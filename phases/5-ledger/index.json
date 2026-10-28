@@ -1,0 +1,31 @@
+{
+  "project": "splito",
+  "phase": "5-ledger",
+  "steps": [
+    {
+      "step": 0,
+      "name": "feed-lib",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "realtime-hooks",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "feed-screen",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "expense-detail",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "ledger-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

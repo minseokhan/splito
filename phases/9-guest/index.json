@@ -1,0 +1,26 @@
+{
+  "project": "splito",
+  "phase": "9-guest",
+  "steps": [
+    {
+      "step": 0,
+      "name": "guest-db",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "guest-view-lib",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "guest-screens",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "guest-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

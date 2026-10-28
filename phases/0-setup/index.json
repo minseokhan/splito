@@ -1,0 +1,31 @@
+{
+  "project": "splito",
+  "phase": "0-setup",
+  "steps": [
+    {
+      "step": 0,
+      "name": "expo-scaffold",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "styling-tokens",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "app-config",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "error-codes",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "spike-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

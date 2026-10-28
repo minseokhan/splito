@@ -1,0 +1,16 @@
+{
+  "project": "splito",
+  "phase": "11-naver",
+  "steps": [
+    {
+      "step": 0,
+      "name": "naver-login",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "naver-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

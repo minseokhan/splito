@@ -1,0 +1,36 @@
+{
+  "project": "splito",
+  "phase": "3-rooms",
+  "steps": [
+    {
+      "step": 0,
+      "name": "invite-lib",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "room-services",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "room-screens",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "invite-deeplink",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "web-static",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "rooms-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

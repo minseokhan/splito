@@ -1,0 +1,56 @@
+{
+  "project": "splito",
+  "phase": "4-expense-input",
+  "steps": [
+    {
+      "step": 0,
+      "name": "fx-rate-function",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "ai-quota-rpc",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "parse-expense-function",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "money-lib",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "duplicate-lib",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "expense-form-lib",
+      "status": "pending"
+    },
+    {
+      "step": 6,
+      "name": "input-services",
+      "status": "pending"
+    },
+    {
+      "step": 7,
+      "name": "input-screens",
+      "status": "pending"
+    },
+    {
+      "step": 8,
+      "name": "review-screen",
+      "status": "pending"
+    },
+    {
+      "step": 9,
+      "name": "input-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

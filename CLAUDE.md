@@ -6,7 +6,7 @@
 - Expo SDK 57(고정) + Expo Router + React Native, TypeScript strict. 실행은 EAS Development Build로 한다(Expo Go 금지).
 - NativeWind 4.x(Tailwind 3), TanStack Query v5, react-hook-form + zod.
 - Supabase(서울): Postgres(RLS·RPC), Auth(카카오·네이버 커스텀 OIDC·Apple), Realtime, Storage, Edge Functions(Deno), Vault.
-- Claude API `claude-sonnet-5-5`(Edge Function에서만 호출), 한국수출입은행 환율 API(`oapi.koreaexim.go.kr`), Vercel(정적 랜딩).
+- Claude API `claude-sonnet-5`(Edge Function에서만 호출), 한국수출입은행 환율 API(`oapi.koreaexim.go.kr`), Vercel(정적 랜딩).
 
 ## 아키텍처 규칙
 - CRITICAL: 금액은 원 단위 정수(DB `bigint`, TS 정수 `number`)로만 다룬다. 부동소수점 금액 연산은 금지다. 나눗셈은 floor로 한다.
