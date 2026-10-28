@@ -1,16 +1,53 @@
 {
   "phases": [
-    { "dir": "0-setup", "status": "pending" },
-    { "dir": "1-db-core", "status": "pending" },
-    { "dir": "2-auth", "status": "pending" },
-    { "dir": "3-rooms", "status": "pending" },
-    { "dir": "4-expense-input", "status": "pending" },
-    { "dir": "5-ledger", "status": "pending" },
-    { "dir": "6-settlement", "status": "pending" },
-    { "dir": "7-activity", "status": "pending" },
-    { "dir": "8-install-join", "status": "pending" },
-    { "dir": "9-guest", "status": "pending" },
-    { "dir": "10-pool-wallet", "status": "pending" },
-    { "dir": "11-naver", "status": "pending" }
+    {
+      "dir": "0-setup",
+      "status": "blocked",
+      "blocked_at": "2026-10-28T18:26:26+0900"
+    },
+    {
+      "dir": "1-db-core",
+      "status": "pending"
+    },
+    {
+      "dir": "2-auth",
+      "status": "pending"
+    },
+    {
+      "dir": "3-rooms",
+      "status": "pending"
+    },
+    {
+      "dir": "4-expense-input",
+      "status": "pending"
+    },
+    {
+      "dir": "5-ledger",
+      "status": "pending"
+    },
+    {
+      "dir": "6-settlement",
+      "status": "pending"
+    },
+    {
+      "dir": "7-activity",
+      "status": "pending"
+    },
+    {
+      "dir": "8-install-join",
+      "status": "pending"
+    },
+    {
+      "dir": "9-guest",
+      "status": "pending"
+    },
+    {
+      "dir": "10-pool-wallet",
+      "status": "pending"
+    },
+    {
+      "dir": "11-naver",
+      "status": "pending"
+    }
   ]
 }
