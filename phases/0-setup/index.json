@@ -5,7 +5,9 @@
     {
       "step": 0,
       "name": "expo-scaffold",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-28T18:00:59+0900",
+      "summary": "Expo SDK 57 골격: package.json(name splito, main expo-router/entry, scripts lint/build/test/start, expo-dev-client, jest-expo·eslint-config-expo devDeps), app.json(name/slug/scheme 'splito', 템플릿 plugins), tsconfig.json(strict, @/*→./src/*, exclude supabase/functions·web), eslint.config.js(flat, eslint-config-expo/flat), jest.config.js(preset jest-expo), app/_layout.tsx(Stack), app/index.tsx('스플리토'), assets/(icon·splash·android·favicon·expo.icon); 템플릿 의존성(@expo/ui·expo-image·react-native-web 등)은 그대로 둠"
     },
     {
       "step": 1,
@@ -27,5 +29,6 @@
       "name": "spike-manual-qa",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-10-28T18:00:59+0900"
 }
