@@ -29,7 +29,11 @@
 ## 브랜치·PR 규칙
 - 흐름: `feat-<phase>`(dev에서 분기) → PR(base: **dev**) → 머지 → `dev` → PR(base: **main**, 승인 후 머지).
 - CRITICAL: `main`과 `dev`에 직접 커밋·push하지 말 것. 모든 변경은 feat 브랜치 → dev PR로만 들어간다. 하네스 `execute.py`는 새 feat 브랜치를 dev에서 만든다.
-- CRITICAL: PR 머지는 Claude가 하지 않는다. Claude는 dev로 PR만 올리고, 사용자가 승인하고 머지한다. main 반영은 사용자가 승인한 dev → main PR로만 한다.
+- CRITICAL: PR 머지는 Claude가 하지 않는다. Claude는 dev로 PR만 올리고, 사용자가 승인하고 머지한다(사용자가 머지를 명시적으로 지시하면 Claude가 머지할 수 있다). main 반영은 사용자가 승인한 dev → main PR로만 한다.
+- CRITICAL: 새 세션에서 파일을 바꾸는 작업을 지시받으면, 사용자가 따로 말하지 않아도 **먼저 dev 기반 워크트리를 만들고** 그 안에서만 작업한다.
+  - 명령: `git fetch origin && git worktree add .claude/worktrees/<name> -b <branch> origin/dev`
+  - 메인 체크아웃(`/Users/hanms/splito`)에서 편집하면 `require-worktree.sh` 훅이 차단한다.
+  - 읽기·조사만 하는 작업은 워크트리가 필요 없다.
 - PR이 머지되면 원격 브랜치는 자동 삭제된다(레포 설정). 로컬 feat 브랜치와 워크트리도 정리한다: `git worktree remove <path>`, `git branch -d feat-<phase>`, `git fetch --prune`.
 
 ## 하네스 실행 규칙
@@ -43,6 +47,7 @@
 
 ## 가드레일 (`.claude/settings.json`)
 - `PreToolUse[Bash]`: 위험 명령(`rm -rf`, force push, `reset --hard`, `DROP TABLE`)을 차단한다.
+- `PreToolUse[Edit|Write|NotebookEdit]`: 이 프로젝트의 메인 체크아웃에서 편집하면 차단한다(워크트리에서만 작업).
 - `PreToolUse[Edit|Write]`: 소스 파일에 대응하는 테스트가 없으면 편집을 차단한다(TDD 강제).
   - 예외: `app/`(Expo Router 화면), `src/components/`, `src/hooks/`, `src/services/`, `src/theme/`, `types/`, `*.d.ts`, `web/`, 설정·스타일·SQL 파일.
 - `Stop`: 턴이 끝날 때 `lint`/`build`/`test`를 실행하고, 실패하면 수정을 이어가도록 유도한다(`package.json`이 없으면 건너뛴다). 스크립트는 반드시 비대화형으로 끝나야 한다(`--watch` 금지).
