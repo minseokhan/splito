@@ -1,6 +1,6 @@
 import type { ExpoConfig } from "expo/config";
 
-const APP_ID = "app.splito"; // 가칭
+const APP_ID = "com.hanms.splito";
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? "splito.vercel.app";
 
 const config: ExpoConfig = {
