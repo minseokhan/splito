@@ -15,3 +15,6 @@ __pycache__/
 # expo prebuild output
 ios/
 android/
+
+# claude worktrees
+.claude/worktrees/
