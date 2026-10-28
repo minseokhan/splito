@@ -31,7 +31,8 @@
       "name": "error-codes",
       "status": "completed",
       "started_at": "2026-10-28T18:22:58+0900",
-      "summary": "src/lib/errors.ts: ERROR_CODES(§8 표 34개, readonly ErrorCode[]), type ErrorCode, type UserError={code:ErrorCode|'UNKNOWN',message,action?}, isErrorCode(v), toUserError(err:unknown) — RPC {message:'<CODE>'} 정확 일치·Edge Function {error:{code}}·status 401/'JWT expired'→AUTH_EXPIRED·TypeError 'Network request failed'→OFFLINE·그 외 UNKNOWN('잠시 후 다시 시도해 주세요', 원문 비노출); src/lib/errors.test.ts"
+      "summary": "src/lib/errors.ts: ERROR_CODES(§8 표 34개, readonly ErrorCode[]), type ErrorCode, type UserError={code:ErrorCode|'UNKNOWN',message,action?}, isErrorCode(v), toUserError(err:unknown) — RPC {message:'<CODE>'} 정확 일치·Edge Function {error:{code}}·status 401/'JWT expired'→AUTH_EXPIRED·TypeError 'Network request failed'→OFFLINE·그 외 UNKNOWN('잠시 후 다시 시도해 주세요', 원문 비노출); src/lib/errors.test.ts",
+      "completed_at": "2026-10-28T18:25:33+0900"
     },
     {
       "step": 4,
