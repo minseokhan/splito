@@ -29,6 +29,7 @@
 ## 브랜치·PR 규칙
 - 흐름: `feat-<phase>`(dev에서 분기) → PR(base: **dev**) → 머지 → `dev` → PR(base: **main**, 승인 후 머지).
 - CRITICAL: `main`과 `dev`에 직접 커밋·push하지 말 것. 모든 변경은 feat 브랜치 → dev PR로만 들어간다. 하네스 `execute.py`는 새 feat 브랜치를 dev에서 만든다.
+- CRITICAL: PR 머지는 Claude가 하지 않는다. Claude는 dev로 PR만 올리고, 사용자가 승인하고 머지한다. main 반영은 사용자가 승인한 dev → main PR로만 한다.
 - PR이 머지되면 원격 브랜치는 자동 삭제된다(레포 설정). 로컬 feat 브랜치와 워크트리도 정리한다: `git worktree remove <path>`, `git branch -d feat-<phase>`, `git fetch --prune`.
 
 ## 하네스 실행 규칙
