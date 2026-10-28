@@ -27,9 +27,11 @@
 - 커밋 메시지는 conventional commits 형식을 따를 것(feat:, fix:, docs:, refactor:).
 
 ## 브랜치·PR 규칙
-- 흐름: `feat-<phase>`(dev에서 분기) → PR(base: **dev**) → 머지 → `dev` → PR(base: **main**, 승인 후 머지).
+- 흐름: `feat-<phase>`(dev에서 분기) → PR(base: **dev**) → 머지 → `dev` → PR(base: **main**, 사용자가 명시적으로 요청할 때만 머지).
 - CRITICAL: `main`과 `dev`에 직접 커밋·push하지 말 것. 모든 변경은 feat 브랜치 → dev PR로만 들어간다. 하네스 `execute.py`는 새 feat 브랜치를 dev에서 만든다.
-- CRITICAL: PR 머지는 Claude가 하지 않는다. Claude는 dev로 PR만 올리고, 사용자가 승인하고 머지한다(사용자가 머지를 명시적으로 지시하면 Claude가 머지할 수 있다). main 반영은 사용자가 승인한 dev → main PR로만 한다.
+- CRITICAL: PR을 만든 뒤에는 멈추고 사용자 승인을 기다린다. 승인 없이 머지하지 않는다.
+  - 사용자가 승인하면 Claude가 이어서 한다: dev에 squash 머지 → 연결된 GitHub 이슈 닫기 → 원격·로컬 브랜치와 워크트리 삭제.
+  - dev → main 머지는 사용자가 명시적으로 요청할 때만 한다. main에 머지돼야 운영에 반영된다.
 - CRITICAL: 새 세션에서 파일을 바꾸는 작업을 지시받으면, 사용자가 따로 말하지 않아도 **먼저 dev 기반 워크트리를 만들고** 그 안에서만 작업한다.
   - 명령: `git fetch origin && git worktree add .claude/worktrees/<name> -b <branch> origin/dev`
   - 메인 체크아웃(`/Users/hanms/splito`)에서 편집하면 `require-worktree.sh` 훅이 차단한다.
