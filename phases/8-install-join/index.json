@@ -1,0 +1,21 @@
+{
+  "project": "splito",
+  "phase": "8-install-join",
+  "steps": [
+    {
+      "step": 0,
+      "name": "landing-download",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "invite-restore",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "install-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

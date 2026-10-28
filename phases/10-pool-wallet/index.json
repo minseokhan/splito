@@ -1,0 +1,26 @@
+{
+  "project": "splito",
+  "phase": "10-pool-wallet",
+  "steps": [
+    {
+      "step": 0,
+      "name": "pool-db",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "pool-lib",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "pool-screens",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "pool-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

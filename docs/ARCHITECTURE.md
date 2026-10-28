@@ -13,7 +13,7 @@
 | 클라이언트 상태 | React state + Context (세션, 대기 중인 초대, 작성 중 지출) | 전역 상태 라이브러리는 쓰지 않는다 |
 | 폼·검증 | react-hook-form + **zod** | 앱과 Edge Function에 스키마를 **각각** 두고, 고정 테스트 데이터(fixture)로 둘의 일치를 테스트한다(Metro와 Deno의 import 방식이 서로 맞지 않는다) |
 | 백엔드 | **Supabase**: Postgres(RLS·RPC), Auth, Realtime, Storage, Edge Functions(Deno), Vault | 별도 서버 없음. 리전 **ap-northeast-2(서울)** |
-| AI | **Claude API `claude-sonnet-5-5`** | Edge Function에서만 호출한다. JSON schema 구조화 출력만 쓰고 tool_choice 강제는 쓰지 않는다. `temperature` 같은 샘플링 파라미터는 넣지 않는다(400 에러). effort `low`, `max_tokens` 4096. 모델 ID는 Secrets `CLAUDE_MODEL`에 둔다 |
+| AI | **Claude API `claude-sonnet-5`** | Edge Function에서만 호출한다. JSON schema 구조화 출력만 쓰고 tool_choice 강제는 쓰지 않는다. `temperature` 같은 샘플링 파라미터는 넣지 않는다(400 에러). effort `low`, `max_tokens` 4096. 모델 ID는 Secrets `CLAUDE_MODEL`에 둔다 |
 | 음성 인식 | **expo-speech-recognition** (SDK 버전에 맞춘 버전, iOS 16.4 이상) | 기기 내장 STT, ko-KR |
 | 환율 | 한국수출입은행 Open API **`oapi.koreaexim.go.kr`** → Edge Function → `fx_rates` 캐시 | 예전 도메인은 2026-04-30에 종료됐다 |
 | 이미지 | expo-image-picker(`exif:false`) → expo-image-manipulator(긴 변 1600px, JPEG 0.8로 다시 인코딩) | EXIF·GPS를 제거하고 용량과 AI 비용을 줄인다 |

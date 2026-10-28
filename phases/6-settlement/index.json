@@ -1,0 +1,41 @@
+{
+  "project": "splito",
+  "phase": "6-settlement",
+  "steps": [
+    {
+      "step": 0,
+      "name": "matching-lib",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "settle-view-lib",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "payout-db",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "settle-services",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "settle-screen",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "payout-account-screen",
+      "status": "pending"
+    },
+    {
+      "step": 6,
+      "name": "settle-manual-qa",
+      "status": "pending"
+    }
+  ]
+}

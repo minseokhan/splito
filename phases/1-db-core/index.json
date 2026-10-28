@@ -1,0 +1,36 @@
+{
+  "project": "splito",
+  "phase": "1-db-core",
+  "steps": [
+    {
+      "step": 0,
+      "name": "schema-rls",
+      "status": "pending"
+    },
+    {
+      "step": 1,
+      "name": "room-rpcs",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "save-expense",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "room-balances",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "transfers-leave",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "db-types",
+      "status": "pending"
+    }
+  ]
+}
