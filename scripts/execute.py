@@ -332,6 +332,7 @@ class StepExecutor:
                 print(f"  ⏸ Step {step_num}: {step_name} blocked [{elapsed}s]")
                 print(f"    Reason: {reason}")
                 self._update_top_index("blocked")
+                self._commit_step(step_num, step_name)
                 sys.exit(2)
 
             err_msg = next(
@@ -354,10 +355,10 @@ class StepExecutor:
                         s["error_message"] = f"[{self.MAX_RETRIES}회 시도 후 실패] {err_msg}"
                         s["failed_at"] = ts
                 self._write_json(self._index_file, index)
-                self._commit_step(step_num, step_name)
                 print(f"  ✗ Step {step_num}: {step_name} failed after {self.MAX_RETRIES} attempts [{elapsed}s]")
                 print(f"    Error: {err_msg}")
                 self._update_top_index("error")
+                self._commit_step(step_num, step_name)
                 sys.exit(1)
 
         return False  # unreachable
