@@ -2,8 +2,9 @@
   "phases": [
     {
       "dir": "0-setup",
-      "status": "blocked",
-      "blocked_at": "2026-10-28T18:26:26+0900"
+      "status": "completed",
+      "blocked_at": "2026-10-28T18:26:26+0900",
+      "completed_at": "2026-10-29T13:55:55+0900"
     },
     {
       "dir": "1-db-core",

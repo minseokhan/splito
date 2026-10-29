@@ -37,11 +37,11 @@
     {
       "step": 4,
       "name": "spike-manual-qa",
-      "status": "blocked",
+      "status": "completed",
       "started_at": "2026-10-28T18:25:33+0900",
-      "blocked_reason": "manual QA",
-      "blocked_at": "2026-10-28T18:26:26+0900"
+      "summary": "수동 QA: EAS 프로젝트 @hanms1017/splito 연결(extra.eas.projectId), 번들 ID com.hanms.splito 확정, Android development 빌드를 에뮬레이터(API 37)에서 확인(sky-100 배경·ink 텍스트, RECORD_AUDIO·CAMERA 권한 포함), Docker·Supabase CLI·Deno 설치. 보류: iOS 실기기(Apple Developer 가입 후), Supabase 원격 프로젝트(1-db-core 전), 카카오(2-auth 전), 수출입은행·Anthropic 키(4-expense-input 전), 네이버 OIDC PoC(11-naver 전), 음성 권한 팝업 실확인(4-expense-input)"
     }
   ],
-  "created_at": "2026-10-28T18:00:59+0900"
+  "created_at": "2026-10-28T18:00:59+0900",
+  "completed_at": "2026-10-29T13:55:55+0900"
 }
