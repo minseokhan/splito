@@ -3,6 +3,7 @@ import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
+import type { RoomEvent } from '@/lib/activity';
 import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
 import type { Json, Tables } from '@/types/database';
@@ -284,6 +285,26 @@ export const api = {
       actorNickname: r.actor_nickname,
       at: r.at,
       snapshot: r.snapshot,
+    }));
+  },
+
+  // 방 활동 시스템 메시지. INSERT는 RPC 안에서만 한다(ARCHITECTURE §3). 최근 200건만 읽는다.
+  async roomEvents(roomId: RoomId): Promise<RoomEvent[]> {
+    const rows = unwrap(
+      await supabase
+        .from('room_events')
+        .select('id, kind, actor_id, target_member_id, payload, created_at')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(200),
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      kind: r.kind as RoomEvent['kind'],
+      actorId: r.actor_id,
+      targetMemberId: r.target_member_id,
+      payload: r.payload as Record<string, unknown>,
+      createdAt: r.created_at,
     }));
   },
 
