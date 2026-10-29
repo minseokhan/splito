@@ -13,7 +13,9 @@
     {
       "step": 1,
       "name": "pool-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T05:59:14+0900",
+      "summary": "src/lib/pool.ts: autoSelectPayer(draft: ExpenseDraft, pool:{enabled, cardLast4: string[]}) → ExpenseDraft (일치 시 payerKind 'pool'·payerMemberId null, 꺼짐/불일치/끝자리 없음이면 같은 객체), poolNote(remainingKrw, ownerName) → '남은 공금 N원은 B 님이 돌려줄 금액에 포함됐어요' | '부족한 공금 N원은 B 님이 받을 금액에 포함됐어요' | null, poolRemaining(deposits[], spent[]) → 입금합−공금결제합(문구용), fillEqual(memberIds, amountKrw) → [{memberId, amountKrw}]; 테스트 src/lib/pool.test.ts"
     },
     {
       "step": 2,
