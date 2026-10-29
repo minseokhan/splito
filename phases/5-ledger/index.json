@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "feed-screen",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:56:19+0900",
+      "completed_at": "2026-10-30T02:05:00+0900",
+      "summary": "app/(app)/rooms/[roomId]/index.tsx: SectionList(groupFeed, room.startDate)+RefreshControl, 배너(작성 중 1건·환율 대기 N건→useReconfirmPendingFx), 오프라인 띠(feed.error.code==='OFFLINE'), 카드 탭→router.push('/rooms/[roomId]/expenses/[expenseId]', {roomId, expenseId}) (상세 화면은 step 3); src/components/ExpenseCard.tsx ExpenseCard({row:FeedRow,payerName,recorderName,payerColorIndex,payerGuest?,onPress}) FadeIn 200ms; src/hooks/useFeed.ts useReconfirmPendingFx(roomId).mutate(pendingRows) = (결제일,통화)별 api.fxRate allSettled → api.reconfirmPendingFx → ['room',id]·['rooms'] 무효화"
     },
     {
       "step": 3,

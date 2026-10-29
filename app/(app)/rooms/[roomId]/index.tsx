@@ -1,13 +1,16 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Plus } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, SectionList, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ExpenseCard } from '@/components/ExpenseCard';
 import { InputMethodSheet } from '@/components/InputMethodSheet';
 import { formatKrw, Money } from '@/components/Money';
 import { StatusChip } from '@/components/StatusChip';
-import { useMyRooms } from '@/hooks/useRooms';
+import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
+import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
+import { groupFeed } from '@/lib/feed';
 import { loadDraft } from '@/services/drafts';
 import { colors } from '@/theme/tokens';
 
@@ -16,6 +19,12 @@ export default function RoomHome() {
   // 순잔액·총지출은 서버 my_rooms 값만 쓴다.
   const { data: rooms, isLoading } = useMyRooms();
   const room = rooms?.find((r) => r.roomId === roomId);
+  const feed = useFeed(roomId);
+  const { data: members = [] } = useRoomMembers(roomId);
+  const reconfirm = useReconfirmPendingFx(roomId);
+  const sections = useMemo(() => groupFeed(feed.data ?? [], room?.startDate ?? null), [feed.data, room?.startDate]);
+  const pending = useMemo(() => (feed.data ?? []).filter((r) => r.krwAmount === null), [feed.data]);
+  const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
@@ -34,8 +43,16 @@ export default function RoomHome() {
     );
   }
 
+  const memberIdx = new Map(members.map((m, i) => [m.id, i]));
+  const userName = new Map(members.flatMap((m) => (m.userId ? [[m.userId, m.name] as const] : [])));
+
   return (
     <SafeAreaView className="flex-1 bg-white">
+      {offline && (
+        <View className="bg-pending-bg px-5 py-2">
+          <Text className="text-[13px] text-pending-fg">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
+        </View>
+      )}
       <View className="gap-2 px-5 pt-6">
         <View className="flex-row items-center justify-between">
           <Text className="flex-1 font-bold text-[22px] text-ink-900" numberOfLines={1}>
@@ -72,13 +89,55 @@ export default function RoomHome() {
             <Text className="font-medium text-[15px] text-sky-900">작성 중인 지출 1건 · 이어서 쓰기</Text>
           </Pressable>
         )}
+        {pending.length > 0 && (
+          <Pressable
+            accessibilityRole="button"
+            disabled={reconfirm.isPending}
+            onPress={() => reconfirm.mutate(pending)}
+            className="h-11 justify-center rounded-lg bg-pending-bg px-4"
+          >
+            <Text className="font-medium text-[15px] text-pending-fg">
+              {reconfirm.isPending ? '환율을 다시 확인하고 있어요' : `환율 대기 ${pending.length}건 · 다시 확정하기`}
+            </Text>
+          </Pressable>
+        )}
       </View>
-      {/* 피드는 5-ledger phase가 추가한다. */}
-      <View className="flex-1 items-center justify-center px-5">
-        <Text className="text-center text-[15px] text-ink-700">
-          첫 지출을 올려보세요. 영수증 사진 한 장이면 돼요.
-        </Text>
-      </View>
+      <SectionList
+        sections={sections}
+        keyExtractor={(r) => r.id}
+        className="mt-4 flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 88, flexGrow: 1 }}
+        refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => (
+          <Text className="mb-2 mt-6 font-semibold text-[17px] text-ink-900">{section.title}</Text>
+        )}
+        ItemSeparatorComponent={() => <View className="h-2" />}
+        renderItem={({ item }) => {
+          const payer = item.payerKind === 'pool' ? undefined : members.find((m) => m.id === item.payerMemberId);
+          return (
+            <ExpenseCard
+              row={item}
+              payerName={item.payerKind === 'pool' ? '공금' : (payer?.name ?? '참여자')}
+              recorderName={userName.get(item.createdBy ?? '') ?? '탈퇴한 사용자'}
+              payerColorIndex={payer ? (memberIdx.get(payer.id) ?? 0) : 0}
+              payerGuest={payer?.kind === 'guest'}
+              onPress={() =>
+                router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId: item.id } })
+              }
+            />
+          );
+        }}
+        ListEmptyComponent={
+          feed.isLoading ? null : (
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-center text-[15px] text-ink-700">
+                첫 지출을 올려보세요. 영수증 사진 한 장이면 돼요.
+              </Text>
+            </View>
+          )
+        }
+      />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="지출 추가"
