@@ -29,7 +29,9 @@
     {
       "step": 3,
       "name": "money-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:09:25+0900",
+      "summary": "src/lib/money.ts(+money.test.ts): roundHalfAwayFromZero·floorDiv·toKrwPreview(amount,ratePerUnit)(×1000·×1e6 BigInt 정수 스케일)·allocateLargestRemainder(total,{position,amount}[])→number[](입력 순서, save_expense _allocate_items와 같은 규칙, 원본 합≤0이면 RangeError)·splitEvenly(box,n)→{perPerson,remainder≥0}·formatKrw('132,000원')·formatForeign('¥3,280','$12.50', KRW/JPY/VND/IDR 소수 0)·fxBasisLabel({source,baseDate?,rate?,currency}) — 미리보기·표시 전용"
     },
     {
       "step": 4,
