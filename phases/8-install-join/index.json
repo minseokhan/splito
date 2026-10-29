@@ -15,7 +15,7 @@
       "name": "invite-restore",
       "status": "completed",
       "started_at": "2026-10-30T03:06:00+0900",
-      "completed_at": "2026-10-30T03:20:00+0900",
+      "completed_at": "2026-10-30T03:10:22+0900",
       "summary": "src/components/InvitePasteBox.tsx({onSaved?}: iOS16+ Clipboard.ClipboardPasteButton / 그 외 [초대 링크 붙여넣기]=getStringAsync / 입력칸+[확인] → extractInviteToken(EXPO_PUBLIC_LINK_DOMAIN) → savePendingInvite + 성공·실패 문구) 를 app/(auth)/login.tsx 하단과 app/(app)/home.tsx 빈 상태(onSaved→router.replace('/')로 resolveEntryRoute join 분기)에 배치"
     },
     {
