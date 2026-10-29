@@ -40,7 +40,7 @@
       "status": "completed",
       "started_at": "2026-10-30T01:12:25+0900",
       "summary": "src/lib/duplicate.ts(+duplicate.test.ts): DupCandidate{id,merchant,paidLocalDate,paidLocalTime,currency,amountOriginal,krwAmount,createdAt}; normalizeMerchant(NFKC·소문자·문자/숫자만)·merchantSimilarity(포함=1, 아니면 bigram Dice)·findDuplicate(draft,recent,now)→DupCandidate|null — createdAt 72h 내, 같은 통화 원본/다르면 krw(둘 다 있을 때) ±20%(draft 기준), 둘 다 시각이면 2h(자정 넘김 포함) 아니면 같은 날, 유사도≥0.5; 점수=유사도−상대금액차 최고 1건. 제안 전용",
-      "completed_at": "2026-10-30T01:14:09+0900"
+      "completed_at": "2026-10-30T01:15:30+0900"
     },
     {
       "step": 5,
