@@ -37,7 +37,9 @@
     {
       "step": 4,
       "name": "web-static",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T00:04:55+0900",
+      "summary": "web/ 정적 사이트: .well-known/apple-app-site-association(appIDs TEAMID_PLACEHOLDER.com.hanms.splito, /i/*)·assetlinks.json(com.hanms.splito, SHA256_PLACEHOLDER); i/index.html(고정 문구 '스플리토 여행에 초대받았어요'+앱에서 열기 안내, 스크립트 없음); terms.html·privacy.html(초안 표시, 국외 이전 표·EXIF·1년 보관·계좌 암호화·탈퇴 익명화); style.css(CSP상 인라인 style 불가라 외부 파일, UI_GUIDE 토큰); vercel.json(rewrite /i/:token→/i/index.html, CSP·Referrer-Policy no-referrer·nosniff, AASA Content-Type application/json). 플레이스홀더 교체·vercel deploy는 manual QA"
     },
     {
       "step": 5,
