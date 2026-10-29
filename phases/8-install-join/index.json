@@ -23,7 +23,8 @@
       "name": "install-manual-qa",
       "status": "blocked",
       "started_at": "2026-10-30T03:10:22+0900",
-      "blocked_reason": "manual QA"
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T03:11:09+0900"
     }
   ],
   "created_at": "2026-10-30T03:03:13+0900"
