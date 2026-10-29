@@ -3,12 +3,47 @@ import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
+import type { Snapshot } from '@/lib/history';
 import type { Json, Tables } from '@/types/database';
-import type { MyRoom, RoomId, RoomMember, RoomStatus, SaveExpensePayload } from '@/types/domain';
+import type { ExpenseId, FxSource, MemberId, MyRoom, RoomId, RoomMember, RoomStatus, SaveExpensePayload } from '@/types/domain';
 
 import { supabase } from './supabase';
 
 export type Room = Tables<'rooms'>;
+
+// 피드 한 줄. 박스는 상세에서만 읽는다. 결제자(참여자 ID)·기록자(profile ID) 이름은 멤버 목록으로 붙인다.
+export type FeedRow = {
+  id: ExpenseId;
+  merchant: string | null;
+  paidLocalDate: string;
+  paidLocalTime: string | null;
+  createdAt: string;
+  currency: string;
+  amountOriginal: number;
+  krwAmount: number | null;
+  fxSource: FxSource;
+  source: string;
+  payerKind: 'member' | 'pool';
+  payerMemberId: MemberId | null;
+  createdBy: string | null;
+  needsReview: boolean;
+};
+
+// 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
+export type ExpenseDetail = Tables<'expenses'> & {
+  expense_items: (Tables<'expense_items'> & { item_assignees: { member_id: string }[] })[];
+  expense_scope: { member_id: string }[];
+  expense_photos: { storage_path: string; kind: string }[];
+};
+
+export type HistoryRow = {
+  id: string;
+  action: string;
+  actorId: string | null;
+  actorNickname: string | null;
+  at: string;
+  snapshot: Snapshot;
+};
 
 export type InvitePreview = {
   roomId: RoomId;
@@ -179,23 +214,80 @@ export const api = {
     }));
   },
 
-  // [합치기]용: 저장된 지출을 save_expense payload 형태로 다시 읽는다(원화는 서버 값이라 넣지 않는다).
-  async expensePayload(id: string): Promise<{ payload: SaveExpensePayload; version: number }> {
-    // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
-    type Row = Tables<'expenses'> & {
-      expense_items: (Tables<'expense_items'> & { item_assignees: { member_id: string }[] })[];
-      expense_scope: { member_id: string }[];
-      expense_photos: { storage_path: string; kind: string }[];
-    };
-    const e = unwrap<Row>(
+  async feed(roomId: RoomId): Promise<FeedRow[]> {
+    const rows = unwrap(
+      await supabase
+        .from('expenses')
+        .select(
+          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review',
+        )
+        .eq('room_id', roomId)
+        .is('deleted_at', null)
+        .order('paid_local_date', { ascending: false })
+        .order('created_at', { ascending: false }),
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      merchant: r.merchant,
+      paidLocalDate: r.paid_local_date,
+      paidLocalTime: r.paid_local_time,
+      createdAt: r.created_at,
+      currency: r.currency,
+      amountOriginal: Number(r.amount_original),
+      krwAmount: r.krw_amount,
+      fxSource: r.fx_source as FxSource,
+      source: r.source,
+      payerKind: r.payer_kind as FeedRow['payerKind'],
+      payerMemberId: r.payer_member_id,
+      createdBy: r.created_by,
+      needsReview: r.needs_review,
+    }));
+  },
+
+  async expense(id: ExpenseId): Promise<ExpenseDetail> {
+    return unwrap<ExpenseDetail>(
       await supabase
         .from('expenses')
         .select('*, expense_items(*, item_assignees(member_id)), expense_scope(member_id), expense_photos(storage_path, kind)')
         .eq('id', id)
         .is('deleted_at', null)
+        .order('position', { referencedTable: 'expense_items' })
         .single()
-        .overrideTypes<Row, { merge: false }>(),
+        .overrideTypes<ExpenseDetail, { merge: false }>(),
     );
+  },
+
+  async expenseHistory(id: ExpenseId): Promise<HistoryRow[]> {
+    const rows = unwrap(await supabase.rpc('expense_history', { p_expense_id: id })) as {
+      id: string;
+      action: string;
+      actor_id: string | null;
+      actor_nickname: string | null;
+      at: string;
+      snapshot: Snapshot;
+    }[];
+    return rows.map((r) => ({
+      id: r.id,
+      action: r.action,
+      actorId: r.actor_id,
+      actorNickname: r.actor_nickname,
+      at: r.at,
+      snapshot: r.snapshot,
+    }));
+  },
+
+  async deleteExpense(id: ExpenseId, expectedVersion: number): Promise<void> {
+    unwrap(await supabase.rpc('delete_expense', { p_id: id, p_expected_version: expectedVersion }));
+  },
+
+  // 확정된 건수를 돌려준다. 호출 전에 fx-rate로 캐시를 채운다(ARCHITECTURE §5.1).
+  async reconfirmPendingFx(roomId: RoomId): Promise<number> {
+    return unwrap(await supabase.rpc('reconfirm_pending_fx', { p_room_id: roomId }));
+  },
+
+  // [합치기]용: 저장된 지출을 save_expense payload 형태로 다시 읽는다(원화는 서버 값이라 넣지 않는다).
+  async expensePayload(id: string): Promise<{ payload: SaveExpensePayload; version: number }> {
+    const e = await api.expense(id);
     return {
       version: e.version,
       payload: {
