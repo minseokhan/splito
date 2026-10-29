@@ -13,7 +13,9 @@
     {
       "step": 1,
       "name": "guest-view-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:18:32+0900",
+      "summary": "src/lib/guestView.ts(+test 10): memberDisplayName(row,names)→'엄마(게스트 · 대표 민지)'(user는 이름), guestShareNote(repId,rows,names)→'엄마·아빠 몫 포함'|null, repChangeWarning(guest,newRep)→'엄마의 정산 금액이 지훈 님에게 옮겨져요', orderBalanceRows(rows)→user 순서 유지+각 user 뒤 대표 게스트, 대표자 없는 게스트는 끝. 금액(net) 미변경"
     },
     {
       "step": 2,
