@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.hanms.splito",
-      "sha256_cert_fingerprints": ["SHA256_PLACEHOLDER"]
+      "sha256_cert_fingerprints": ["C6:CE:1D:51:5D:34:4F:F7:D7:58:B2:D3:E2:19:15:9E:0C:C6:0F:BD:29:42:51:96:C3:EC:60:B1:26:B3:5E:E4"]
     }
   }
 ]
