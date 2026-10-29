@@ -7,7 +7,8 @@
       "name": "pool-db",
       "status": "completed",
       "started_at": "2026-10-30T05:53:25+0900",
-      "summary": "supabase/migrations/20261030030000_pool.sql: set_pool(p_room_id uuid, p_enabled boolean, p_owner_member_id uuid, p_card_last4 text[]) → void (켤 때 활성 user 통장 주인 필수·카드 ^[0-9]{4}$ ≤5개=INVALID_INPUT, 끌 때 공금 결제·입금 있으면 POOL_IN_USE·끄면 주인/카드 비움, 주인 변경 시 room_events pool_owner_change {from,to}) + upsert_pool_deposits(p_room_id uuid, p_rows jsonb [{member_id, amount_krw}]) → void (공금 꺼짐 INVALID_PAYER, 정수 ≥0 아니면 INVALID_INPUT, 나간 참여자 MEMBER_LEFT, 0은 삭제, 게스트 허용, pool_deposits(member_id) unique=사람당 1행); pgTAP supabase/tests/090_pool.test.sql(28개, F7 예시 2 RPC만으로 재현); src/types/database.ts 재생성"
+      "summary": "supabase/migrations/20261030030000_pool.sql: set_pool(p_room_id uuid, p_enabled boolean, p_owner_member_id uuid, p_card_last4 text[]) → void (켤 때 활성 user 통장 주인 필수·카드 ^[0-9]{4}$ ≤5개=INVALID_INPUT, 끌 때 공금 결제·입금 있으면 POOL_IN_USE·끄면 주인/카드 비움, 주인 변경 시 room_events pool_owner_change {from,to}) + upsert_pool_deposits(p_room_id uuid, p_rows jsonb [{member_id, amount_krw}]) → void (공금 꺼짐 INVALID_PAYER, 정수 ≥0 아니면 INVALID_INPUT, 나간 참여자 MEMBER_LEFT, 0은 삭제, 게스트 허용, pool_deposits(member_id) unique=사람당 1행); pgTAP supabase/tests/090_pool.test.sql(28개, F7 예시 2 RPC만으로 재현); src/types/database.ts 재생성",
+      "completed_at": "2026-10-30T05:59:14+0900"
     },
     {
       "step": 1,
