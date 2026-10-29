@@ -7,7 +7,8 @@
       "name": "feed-lib",
       "status": "completed",
       "started_at": "2026-10-30T01:48:46+0900",
-      "summary": "src/lib/feed.ts: groupFeed<T extends {paidLocalDate,createdAt}>(rows, roomStartDate|null)→FeedSection<T>[]{key(날짜|'pre-trip'),title,data}, dateTitle('YYYY-MM-DD')→'10월 21일 (수)', payerRecorderLabel(payer,recorder); src/lib/history.ts: type Snapshot(_expense_snapshot의 snake_case 키), diffSnapshots(prev|null,next,names: Record<memberId,name>)→string[] ('처음 기록'/'삭제'/'복구'/금액·통화·결제일·가맹점·결제자·대상 인원·박스 추가/삭제/금액/지정)"
+      "summary": "src/lib/feed.ts: groupFeed<T extends {paidLocalDate,createdAt}>(rows, roomStartDate|null)→FeedSection<T>[]{key(날짜|'pre-trip'),title,data}, dateTitle('YYYY-MM-DD')→'10월 21일 (수)', payerRecorderLabel(payer,recorder); src/lib/history.ts: type Snapshot(_expense_snapshot의 snake_case 키), diffSnapshots(prev|null,next,names: Record<memberId,name>)→string[] ('처음 기록'/'삭제'/'복구'/금액·통화·결제일·가맹점·결제자·대상 인원·박스 추가/삭제/금액/지정)",
+      "completed_at": "2026-10-30T01:51:44+0900"
     },
     {
       "step": 1,
