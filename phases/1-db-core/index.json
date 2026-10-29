@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "transfers-leave",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T14:49:22+0900",
+      "summary": "supabase/migrations/20261029040000_transfers_leave.sql: record_transfer(p_id,p_room_id,p_from_member_id,p_to_member_id,p_amount_krw bigint)→void(p_id 멱등, 당사자는 이 방 user 참여자만·FORBIDDEN, 나간 멤버 MEMBER_LEFT, from=to INVALID_INPUT, amount≤0 AMOUNT_INVALID, 호출자가 from이면 미확인·to면 즉시 confirmed_at, room_events 'transfer' payload{transfer_id,from_member_id,to_member_id,amount_krw}, recorded_by=호출자) · confirm_transfer(p_id)/reject_transfer(p_id)(to 본인만, 무효면 FORBIDDEN, reject=void_reason 'not_received') · cancel_transfer(p_id)(from 본인만, 확인됐으면 ALREADY_CONFIRMED, 'cancelled') · leave_room(p_room_id)→void(차단 순서 GUEST_REPRESENTATIVE→POOL_OWNER→FX_PENDING_EXISTS→BALANCE_NOT_ZERO(room_balances(…,true)), left_at+room_events 'leave', 방장이면 joined_at·id 순 첫 활성 user에게 위임+'owner_change', 마지막 활성 user면 rooms.deleted_at) + 내부 헬퍼 _lock_transfer(uuid,text)(실행권한 전면 회수). supabase/tests/040_transfers_leave.test.sql(54개, 전체 225개 통과)",
+      "completed_at": "2026-10-29T14:52:49+0900"
     },
     {
       "step": 5,
