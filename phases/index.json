@@ -58,7 +58,8 @@
     },
     {
       "dir": "11-naver",
-      "status": "pending"
+      "status": "blocked",
+      "blocked_at": "2026-10-30T06:14:29+0900"
     }
   ]
 }
