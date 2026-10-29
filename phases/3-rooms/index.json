@@ -5,7 +5,9 @@
     {
       "step": 0,
       "name": "invite-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T23:46:59+0900",
+      "summary": "src/lib/invite.ts: INVITE_TOKEN_RE(/^[A-Za-z0-9_-]{22}$/), buildInviteUrl(domain,token)→https://{domain}/i/{token}, extractInviteToken(input,domain)→string|null(https 동일 도메인·splito://i/·/i/·토큰만·메시지 속 URL, 타 도메인/http 거부), PendingInvite{token,savedAt}, isPendingInviteValid(p,now)(24h 미만·미래 시각 거부); src/lib/currency.ts: CURRENCIES(16종 {code,label,unit:1|100,symbol}, JPY·IDR unit 100), isCurrencyCode(v)"
     },
     {
       "step": 1,
@@ -32,5 +34,6 @@
       "name": "rooms-manual-qa",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-10-29T23:46:59+0900"
 }
