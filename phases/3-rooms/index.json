@@ -31,7 +31,8 @@
       "name": "invite-deeplink",
       "status": "completed",
       "started_at": "2026-10-29T23:58:13+0900",
-      "summary": "src/lib/invite.ts toSystemPath(path,domain)→'/i/{token}'(동일 도메인 https·splito://i/·/i/, 토큰 정규식 통과)|auth/callback 원문|'/'; app/+native-intent.tsx redirectSystemPath→toSystemPath; app/i/[token].tsx(토큰 검증→savePendingInvite→replace '/'); app/index.tsx(loadPendingInvite→resolveEntryRoute pendingInviteToken, {join}→/join/[token]); app/(app)/_layout.tsx(unstable_settings initialRouteName 'index', join/[token] transparentModal); app/(app)/join/[token].tsx 합류 확인 바텀시트(useInvitePreview→'OO 여행에 참여할까요?'·초대한 사람·인원→[참여하기] useJoinRoom→clearPendingInvite→replace /rooms/[roomId]; alreadyMember면 바로 방; INVITE_INVALID면 고정 문구+pending 삭제; [나중에]도 pending 삭제); src/hooks/useRooms.ts useInvitePreview(token)(['invite',token], retry false)"
+      "summary": "src/lib/invite.ts toSystemPath(path,domain)→'/i/{token}'(동일 도메인 https·splito://i/·/i/, 토큰 정규식 통과)|auth/callback 원문|'/'; app/+native-intent.tsx redirectSystemPath→toSystemPath; app/i/[token].tsx(토큰 검증→savePendingInvite→replace '/'); app/index.tsx(loadPendingInvite→resolveEntryRoute pendingInviteToken, {join}→/join/[token]); app/(app)/_layout.tsx(unstable_settings initialRouteName 'index', join/[token] transparentModal); app/(app)/join/[token].tsx 합류 확인 바텀시트(useInvitePreview→'OO 여행에 참여할까요?'·초대한 사람·인원→[참여하기] useJoinRoom→clearPendingInvite→replace /rooms/[roomId]; alreadyMember면 바로 방; INVITE_INVALID면 고정 문구+pending 삭제; [나중에]도 pending 삭제); src/hooks/useRooms.ts useInvitePreview(token)(['invite',token], retry false)",
+      "completed_at": "2026-10-30T00:04:55+0900"
     },
     {
       "step": 4,
