@@ -18,6 +18,11 @@ export function useTransfers(roomId: RoomId) {
   return useQuery({ queryKey: ['room', roomId, 'transfers'], queryFn: () => api.transfers(roomId) });
 }
 
+// 키가 feed 아래라 Realtime expenses 이벤트의 feed 무효화에 같이 걸린다.
+export function useLastExpenseChange(roomId: RoomId) {
+  return useQuery({ queryKey: ['room', roomId, 'feed', 'lastChange'], queryFn: () => api.lastExpenseChangeAt(roomId) });
+}
+
 // room_balances → 그리디 매칭 → 내 카드 먼저(ARCHITECTURE §6.5).
 export function useSettlePlan(roomId: RoomId) {
   const { session } = useAuth();

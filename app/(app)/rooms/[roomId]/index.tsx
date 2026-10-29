@@ -58,6 +58,17 @@ export default function RoomHome() {
           <Text className="flex-1 font-bold text-[22px] text-ink-900" numberOfLines={1}>
             {room.name}
           </Text>
+          {/* 참여자(게스트 포함) 2명 이상일 때만 정산 메뉴를 연다 */}
+          {room.memberCount >= 2 && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="정산 보기"
+              onPress={() => router.push({ pathname: '/rooms/[roomId]/settle', params: { roomId } })}
+              className="h-11 justify-center px-2"
+            >
+              <Text className="font-medium text-[15px] text-sky-900">정산</Text>
+            </Pressable>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="동행 초대하기"

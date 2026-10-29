@@ -350,6 +350,14 @@ export const api = {
     };
   },
 
+  // expenses에는 updated_at이 없어 이력의 마지막 시각을 장부 변경 시각으로 쓴다.
+  async lastExpenseChangeAt(roomId: RoomId): Promise<string | null> {
+    const rows = unwrap(
+      await supabase.from('expense_history').select('at').eq('room_id', roomId).order('at', { ascending: false }).limit(1),
+    );
+    return rows[0]?.at ?? null;
+  },
+
   async transfers(roomId: RoomId): Promise<TransferRecord[]> {
     const rows = unwrap(
       await supabase
