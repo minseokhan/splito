@@ -13,8 +13,9 @@
     },
     {
       "dir": "2-auth",
-      "status": "blocked",
-      "blocked_at": "2026-10-29T15:51:10+0900"
+      "status": "completed",
+      "blocked_at": "2026-10-29T15:51:10+0900",
+      "completed_at": "2026-10-29T16:06:39+0900"
     },
     {
       "dir": "3-rooms",
