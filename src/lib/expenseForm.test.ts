@@ -2,9 +2,17 @@ import {
   addItem,
   draftFromParse,
   emptyDraft,
+  kstToday,
+  perPersonOriginal,
+  mergePayload,
+  parseAmountInput,
+  previewKrw,
+  setAssignees,
   splitItem,
+  toDupInput,
   toSavePayload,
   toggleScope,
+  updateItem,
   validateDraft,
   type ExpenseDraft,
   type ParseResult,
@@ -218,5 +226,91 @@ describe('toSavePayload', () => {
   it('공금 결제면 payer_member_id null, 빈 가맹점은 null', () => {
     const d = { ...draftFromParse(parse(), ctx()), payerKind: 'pool' as const, merchant: '  ' };
     expect(toSavePayload(d)).toMatchObject({ payer_kind: 'pool', payer_member_id: null, merchant: null });
+  });
+});
+
+describe('updateItem · setAssignees', () => {
+  const d = () => draftFromParse(parse(), ctx());
+  it('금액을 바꾸고 확인 필요를 해제한다', () => {
+    const x = d();
+    const id = x.items[0].id;
+    const y = updateItem(x, id, { amountOriginal: 2500, needsReview: false });
+    expect(y.items[0]).toMatchObject({ amountOriginal: 2500, needsReview: false });
+    expect(y.items[1]).toBe(x.items[1]);
+  });
+  it('대상 인원 밖은 지정에서 뺀다', () => {
+    const x = toggleScope(d(), 'm3');
+    const y = setAssignees(x, x.items[0].id, ['m1', 'm3']);
+    expect(y.items[0].assigneeMemberIds).toEqual(['m1']);
+  });
+});
+
+describe('parseAmountInput', () => {
+  it.each([
+    ['3,280', 3280],
+    ['12.5', 12.5],
+    ['-1,000', -1000],
+    ['0.125', 0.125],
+  ])('%s → %s', (s, v) => expect(parseAmountInput(s)).toBe(v));
+  it.each(['', '-', 'abc', '1.2345', '1..2'])('%s → null', (s) => expect(parseAmountInput(s)).toBeNull());
+});
+
+describe('previewKrw', () => {
+  const base = (over: Partial<ExpenseDraft> = {}) => ({ ...draftFromParse(parse(), ctx()), ...over });
+  it('환율로 총액을 구하고 박스에 최대 잔여 배분한다(합계 = 총액)', () => {
+    const p = previewKrw(base(), 9.1234)!;
+    expect(p.totalKrw).toBe(29925); // 3280 × 9.1234 = 29924.75
+    expect(p.boxKrw.reduce((a, b) => a + b, 0)).toBe(29925);
+  });
+  it('승인 문자 청구액이 있으면 그 금액이 총액이다', () => {
+    expect(previewKrw(base({ krwCharged: 30000 }), null)!.totalKrw).toBe(30000);
+  });
+  it('KRW는 환율 없이 원본 그대로', () => {
+    const x = base({ currency: 'KRW' });
+    expect(previewKrw(x, null)!.totalKrw).toBe(3280);
+  });
+  it('환율이 없거나 원본 합계 ≤ 0이면 null', () => {
+    expect(previewKrw(base(), null)).toBeNull();
+    const x = base();
+    expect(previewKrw({ ...x, items: x.items.map((it) => ({ ...it, amountOriginal: 0 })) }, 9)).toBeNull();
+  });
+});
+
+describe('toDupInput', () => {
+  it('원본 합계와 미리보기 원화로 중복 비교 입력을 만든다', () => {
+    expect(toDupInput(draftFromParse(parse(), ctx()), 29925)).toEqual({
+      merchant: '一蘭', paidLocalDate: '2026-10-21', paidLocalTime: '18:42', currency: 'JPY',
+      amountOriginal: 3280, krwAmount: 29925,
+    });
+  });
+});
+
+describe('mergePayload', () => {
+  const existing = {
+    ...toSavePayload(draftFromParse(parse(), ctx())),
+    id: 'old', photos: [{ storage_path: 'r1/old/a.jpg', kind: 'receipt' as const }],
+  };
+  it('기존 박스는 그대로 두고 사진을 덧붙이며 청구액이 있으면 적용한다', () => {
+    const d = { ...draftFromParse(parse(), ctx()), krwCharged: 30000 };
+    const p = mergePayload(existing, d, [{ storage_path: 'r1/old/b.jpg', kind: 'capture' }]);
+    expect(p.items).toBe(existing.items);
+    expect(p.photos).toEqual([...existing.photos, { storage_path: 'r1/old/b.jpg', kind: 'capture' }]);
+    expect(p.krw_charged).toBe(30000);
+  });
+  it('청구액이 없으면 기존 값을 유지한다', () => {
+    const p = mergePayload({ ...existing, krw_charged: 100 }, draftFromParse(parse(), ctx()), []);
+    expect(p.krw_charged).toBe(100);
+  });
+});
+
+describe('kstToday · perPersonOriginal', () => {
+  it('UTC 15시 이후는 KST 다음 날', () => {
+    expect(kstToday(new Date('2026-10-21T14:59:00Z'))).toBe('2026-10-21');
+    expect(kstToday(new Date('2026-10-21T15:00:00Z'))).toBe('2026-10-22');
+  });
+  it('원본 금액을 floor로 나눈다(소수 3자리)', () => {
+    expect(perPersonOriginal(3280, 2)).toBe(1640);
+    expect(perPersonOriginal(10, 3)).toBe(3.333);
+    expect(perPersonOriginal(-100, 3)).toBe(-33.334);
   });
 });

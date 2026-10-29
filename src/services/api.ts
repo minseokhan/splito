@@ -179,6 +179,58 @@ export const api = {
     }));
   },
 
+  // [합치기]용: 저장된 지출을 save_expense payload 형태로 다시 읽는다(원화는 서버 값이라 넣지 않는다).
+  async expensePayload(id: string): Promise<{ payload: SaveExpensePayload; version: number }> {
+    // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
+    type Row = Tables<'expenses'> & {
+      expense_items: (Tables<'expense_items'> & { item_assignees: { member_id: string }[] })[];
+      expense_scope: { member_id: string }[];
+      expense_photos: { storage_path: string; kind: string }[];
+    };
+    const e = unwrap<Row>(
+      await supabase
+        .from('expenses')
+        .select('*, expense_items(*, item_assignees(member_id)), expense_scope(member_id), expense_photos(storage_path, kind)')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single()
+        .overrideTypes<Row, { merge: false }>(),
+    );
+    return {
+      version: e.version,
+      payload: {
+        id: e.id,
+        room_id: e.room_id,
+        payer_kind: e.payer_kind as SaveExpensePayload['payer_kind'],
+        payer_member_id: e.payer_member_id,
+        source: e.source as SaveExpensePayload['source'],
+        merchant: e.merchant,
+        paid_local_date: e.paid_local_date,
+        paid_local_time: e.paid_local_time,
+        currency: e.currency,
+        krw_charged: e.krw_charged,
+        // 수동 환율로 확정된 지출은 같은 환율을 다시 보내야 재확정되지 않는다.
+        manual_rate: e.fx_source === 'manual' ? Number(e.fx_rate) : null,
+        card_last4: e.card_last4,
+        needs_review: e.needs_review,
+        ai_result: e.ai_result,
+        scope_member_ids: e.expense_scope.map((s) => s.member_id),
+        items: e.expense_items.map((it) => ({
+          id: it.id,
+          position: it.position,
+          name_original: it.name_original,
+          name_ko: it.name_ko,
+          quantity: Number(it.quantity),
+          amount_original: Number(it.amount_original),
+          needs_review: it.needs_review,
+          is_adjustment: it.is_adjustment,
+          assignee_member_ids: it.item_assignees.map((a) => a.member_id),
+        })),
+        photos: e.expense_photos.map((p) => ({ storage_path: p.storage_path, kind: p.kind as 'receipt' | 'capture' })),
+      },
+    };
+  },
+
   async ackAiNotice(): Promise<void> {
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user.id;

@@ -1,5 +1,6 @@
 // 인식 결과 → 작성 중 지출(draft) → save_expense payload. 원화는 넣지 않는다(서버가 확정, ADR-006).
-import { floorDiv, roundHalfAwayFromZero } from './money';
+import type { DupCandidate } from './duplicate';
+import { allocateLargestRemainder, floorDiv, roundHalfAwayFromZero, splitEvenly, toKrwPreview } from './money';
 import type { ExpenseSource, SaveExpensePayload } from '../types/domain';
 
 // parse-expense 응답(supabase/functions/_shared/parseSchema.ts ParsedExpense와 같은 형태)
@@ -167,4 +168,57 @@ export function toSavePayload(d: ExpenseDraft): SaveExpensePayload {
     })),
     photos: d.photos.map((p) => ({ storage_path: p.storagePath, kind: p.kind })),
   };
+}
+
+export function updateItem(
+  d: ExpenseDraft, itemId: string,
+  patch: Partial<Pick<DraftItem, 'nameOriginal' | 'nameKo' | 'quantity' | 'amountOriginal' | 'needsReview'>>,
+): ExpenseDraft {
+  return { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) };
+}
+
+// 대상 인원 안에서만 지정한다. 빈 배열 = 대상 인원 전원.
+export function setAssignees(d: ExpenseDraft, itemId: string, memberIds: string[]): ExpenseDraft {
+  const ids = memberIds.filter((id) => d.scopeMemberIds.includes(id));
+  return { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, assigneeMemberIds: ids } : it)) };
+}
+
+// "3,280" → 3280, 소수 3자리까지, 음수(할인) 허용. 형식이 틀리면 null.
+export function parseAmountInput(text: string): number | null {
+  const s = text.replace(/,/g, '').trim();
+  if (!/^-?\d+(\.\d{1,3})?$/.test(s)) return null;
+  return Number(s);
+}
+
+// 미리보기 전용(확정은 save_expense). 청구액 > KRW > 환율 순. 원본 합계 ≤ 0이거나 환율이 없으면 null.
+export function previewKrw(d: ExpenseDraft, ratePerUnit: number | null): { totalKrw: number; boxKrw: number[] } | null {
+  const milli = d.items.reduce((a, it) => a + toMilli(it.amountOriginal), 0);
+  if (milli <= 0) return null;
+  const totalKrw = d.krwCharged ?? (d.currency === 'KRW' ? roundHalfAwayFromZero(fromMilli(milli))
+    : ratePerUnit === null ? null : toKrwPreview(fromMilli(milli), ratePerUnit));
+  if (totalKrw === null) return null;
+  return { totalKrw, boxKrw: allocateLargestRemainder(totalKrw, d.items.map((it) => ({ position: it.position, amount: it.amountOriginal }))) };
+}
+
+export function toDupInput(d: ExpenseDraft, krwPreview: number | null): Omit<DupCandidate, 'id' | 'createdAt'> {
+  return {
+    merchant: d.merchant || null, paidLocalDate: d.paidLocalDate, paidLocalTime: d.paidLocalTime, currency: d.currency,
+    amountOriginal: fromMilli(d.items.reduce((a, it) => a + toMilli(it.amountOriginal), 0)), krwAmount: krwPreview,
+  };
+}
+
+// [합치기]: 기존 지출의 박스·지정은 그대로, 사진만 덧붙이고 승인 문자 청구액이 있으면 적용한다.
+export function mergePayload(
+  existing: SaveExpensePayload, d: ExpenseDraft, photos: NonNullable<SaveExpensePayload['photos']>,
+): SaveExpensePayload {
+  return { ...existing, photos: [...(existing.photos ?? []), ...photos], krw_charged: d.krwCharged ?? existing.krw_charged ?? null };
+}
+
+export function kstToday(now: Date): string {
+  return new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+}
+
+// 사람 지정 시트의 "1인 ¥1,640"(미리보기). 원화 확정 분담은 서버가 한다.
+export function perPersonOriginal(amountOriginal: number, n: number): number {
+  return fromMilli(splitEvenly(toMilli(amountOriginal), n).perPerson);
 }

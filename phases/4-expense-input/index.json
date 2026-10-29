@@ -69,7 +69,10 @@
     {
       "step": 8,
       "name": "review-screen",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:31:14+0900",
+      "summary": "app/(app)/rooms/[roomId]/expenses/review.tsx(useDraft로 작성 중 지출 편집: 가맹점·결제일·통화 칩·결제자(활성 참여자, 게스트 포함)·대상 인원 아바타 토글, 합계+previewKrw '미리보기 — 저장 시 확정돼요'·환율 대기 배지, ItemBox 목록(이름·금액 수정, 확인 필요 탭 해제, 쪼개기·품목 추가, 참여자 1명이면 지정 숨김), AssigneeSheet '2명 · 1인 ¥1,640', 중복 배너 recentExpenses(72h)+findDuplicate+describeDuplicate [합치기]=expensePayload→copyReceipt→mergePayload→saveExpense(기존 version) [별개예요], [저장]=validateDraft(kstToday) 실패 시 섹션 스크롤+toUserError 문구 → saveExpense(toSavePayload,null) → router.back); lib/expenseForm +updateItem·setAssignees(대상 인원 안만)·parseAmountInput·previewKrw(d,rate)→{totalKrw,boxKrw}|null(청구액>KRW>환율)·toDupInput·mergePayload(existing,d,photos)·kstToday·perPersonOriginal; lib/duplicate +describeDuplicate(c,todayLocal); services/api +expensePayload(id)→{payload,version}; services/storage +copyReceipt(path,roomId,expenseId); components Avatar(합류 순서 색·게스트 점선)·AvatarStack(4+n)·Badge(review|pending, 탭 해제)·ItemBox·AssigneeSheet; 화면 테스트 expenses/__tests__/review.test.tsx",
+      "completed_at": "2026-10-30T02:10:00+0900"
     },
     {
       "step": 9,

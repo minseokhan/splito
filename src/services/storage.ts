@@ -39,3 +39,11 @@ export async function signedUrl(path: string): Promise<string> {
   if (error) throw toUserError(error);
   return data.signedUrl;
 }
+
+// [합치기]: save_expense는 사진 경로가 {room}/{지출 id}/ 아래여야 하므로 기존 지출 폴더로 복사한다.
+export async function copyReceipt(path: string, roomId: string, expenseId: string): Promise<string> {
+  const to = `${roomId}/${expenseId}/${uuidV4()}.jpg`;
+  const { error } = await supabase.storage.from(BUCKET).copy(path, to);
+  if (error) throw toUserError({ message: 'UPLOAD_FAILED' });
+  return to;
+}

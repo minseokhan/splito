@@ -1,4 +1,6 @@
 // 확인 화면의 중복 의심 배너용(PRD F4). 제안만 하고 합치지는 않는다.
+import { formatForeign } from './money';
+
 export type DupCandidate = {
   id: string;
   merchant: string | null;
@@ -82,4 +84,12 @@ export function findDuplicate(
     }
   }
   return best;
+}
+
+// 배너 문구: "어제 18:42 이치란 ¥3,280". todayLocal 기준 오늘·어제, 그 외 M/D.
+export function describeDuplicate(c: DupCandidate, todayLocal: string): string {
+  const days = Math.round((Date.parse(`${todayLocal}T00:00:00Z`) - Date.parse(`${c.paidLocalDate}T00:00:00Z`)) / 86_400_000);
+  const [, m, d] = c.paidLocalDate.split('-');
+  const day = days === 0 ? '오늘' : days === 1 ? '어제' : `${Number(m)}/${Number(d)}`;
+  return [day, c.paidLocalTime?.slice(0, 5), c.merchant, formatForeign(c.amountOriginal, c.currency)].filter(Boolean).join(' ');
 }
