@@ -24,7 +24,7 @@
       "status": "completed",
       "started_at": "2026-10-30T02:21:31+0900",
       "summary": "supabase/migrations/20261030010000_payout.sql: set_payout_account(bank_code,bank_name,holder_name,account_number)→void(숫자·하이픈, 숫자 8~20 else INVALID_INPUT, pgp_sym_encrypt(Vault 'payout_account_key'), 본인 upsert), get_payout_account(room_id,owner_member_id)→{registered,bank_name,holder_name,account_masked '****-**-***'||last4,account_number(본인 또는 room_balances(false) 호출자 net<0∧주인 net>0일 때만, 아니면 NULL)}(남의 원문 시 payout_reveals+room_events 'payout_reveal', (viewer,room) KST 하루 20회 초과 RATE_LIMITED, 비멤버·방 밖 주인 FORBIDDEN), request_payout_account(room_id,owner_member_id)→room_events 'payout_request'; supabase/seed.sql 개발용 Vault 키; pgTAP supabase/tests/060_payout.test.sql(38); src/types/database.ts 재생성",
-      "completed_at": "2026-10-30T02:24:44+0900"
+      "completed_at": "2026-10-30T02:28:33+0900"
     },
     {
       "step": 3,
