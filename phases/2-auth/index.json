@@ -7,7 +7,8 @@
       "name": "auth-lib",
       "status": "completed",
       "started_at": "2026-10-29T15:31:23+0900",
-      "summary": "src/lib/profile.ts(TERMS_VERSION='2026-10-28', nicknameSchema trim 1~12자, consentSchema{terms,age14,overseas: literal true, marketing: boolean}, ConsentInput, ProfileConsentUpdate, isConsentComplete(p), buildConsentUpdate(input, now)→profiles UPDATE 값; marketing_opt_in_at은 true일 때만) + src/lib/entryRoute.ts(EntryState, EntryRoute, resolveEntryRoute: login→loading→consent→profile-setup→{join}→/(app)) + 각 .test.ts, zod ^4 추가"
+      "summary": "src/lib/profile.ts(TERMS_VERSION='2026-10-28', nicknameSchema trim 1~12자, consentSchema{terms,age14,overseas: literal true, marketing: boolean}, ConsentInput, ProfileConsentUpdate, isConsentComplete(p), buildConsentUpdate(input, now)→profiles UPDATE 값; marketing_opt_in_at은 true일 때만) + src/lib/entryRoute.ts(EntryState, EntryRoute, resolveEntryRoute: login→loading→consent→profile-setup→{join}→/(app)) + 각 .test.ts, zod ^4 추가",
+      "completed_at": "2026-10-29T15:33:53+0900"
     },
     {
       "step": 1,
