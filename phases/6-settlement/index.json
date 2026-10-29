@@ -29,7 +29,10 @@
     {
       "step": 3,
       "name": "settle-services",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:28:33+0900",
+      "summary": "src/services/api.ts: roomBalances(roomId,confirmedOnly=false)→{rows:BalanceRow[],fxPendingCount}, transfers(roomId)→TransferRecord[], recordTransfer({id,roomId,from,to,amount}), confirm/reject/cancelTransfer(id), setPayoutAccount({bankCode,bankName,holderName,accountNumber}), getPayoutAccount(roomId,ownerMemberId)→PayoutAccount{registered,bankName,holderName,accountMasked,accountNumber|null}, requestPayoutAccount; src/hooks/useSettlement.ts: useBalances(['room',id,'balances']), useTransfers(['room',id,'transfers']), useSettlePlan(roomId)→{...balancesQuery, me:RoomMember|undefined, cards:SettleCard[]|undefined}, useRecord/Confirm/Reject/CancelTransfer(roomId)(성공 시 balances·transfers·['rooms'] 무효화, 낙관적 업데이트 없음); src/hooks/usePayoutAccount.ts: usePayoutAccount(roomId,ownerMemberId)(['payout',roomId,owner]), useRequestPayoutAccount(roomId), useSetPayoutAccount(); useRealtimeRoom은 이미 transfers 키 무효화 중(변경 없음)",
+      "completed_at": "2026-10-30T02:29:49+0900"
     },
     {
       "step": 4,

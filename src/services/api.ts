@@ -4,8 +4,9 @@ import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
 import type { Snapshot } from '@/lib/history';
+import type { TransferRecord } from '@/lib/settleView';
 import type { Json, Tables } from '@/types/database';
-import type { ExpenseId, FxSource, MemberId, MyRoom, RoomId, RoomMember, RoomStatus, SaveExpensePayload } from '@/types/domain';
+import type { BalanceRow, ExpenseId, FxSource, Krw, MemberId, MyRoom, RoomId, RoomMember, RoomStatus, SaveExpensePayload } from '@/types/domain';
 
 import { supabase } from './supabase';
 
@@ -43,6 +44,14 @@ export type HistoryRow = {
   actorNickname: string | null;
   at: string;
   snapshot: Snapshot;
+};
+
+export type PayoutAccount = {
+  registered: boolean;
+  bankName: string | null;
+  holderName: string | null;
+  accountMasked: string | null;
+  accountNumber: string | null; // 본인이거나 내가 줄 돈이 있을 때만 원문
 };
 
 export type InvitePreview = {
@@ -321,6 +330,95 @@ export const api = {
         photos: e.expense_photos.map((p) => ({ storage_path: p.storage_path, kind: p.kind as 'receipt' | 'capture' })),
       },
     };
+  },
+
+  // 순잔액의 유일한 정답(ADR-007). fx_pending_count는 모든 행에 같은 값이 실린다.
+  async roomBalances(roomId: RoomId, confirmedOnly = false): Promise<{ rows: BalanceRow[]; fxPendingCount: number }> {
+    const rows = unwrap(await supabase.rpc('room_balances', { p_room_id: roomId, p_confirmed_only: confirmedOnly }));
+    return {
+      fxPendingCount: rows[0]?.fx_pending_count ?? 0,
+      rows: rows.map((r) => ({
+        memberId: r.member_id,
+        kind: r.kind as BalanceRow['kind'],
+        representativeMemberId: r.representative_member_id,
+        joinedAt: r.joined_at,
+        leftAt: r.left_at,
+        paid: r.paid,
+        owed: r.owed,
+        net: r.net,
+      })),
+    };
+  },
+
+  async transfers(roomId: RoomId): Promise<TransferRecord[]> {
+    const rows = unwrap(
+      await supabase
+        .from('transfers')
+        .select('id, from_member_id, to_member_id, amount_krw, confirmed_at, voided_at, void_reason, created_at')
+        .eq('room_id', roomId)
+        .order('created_at'),
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      from: r.from_member_id,
+      to: r.to_member_id,
+      amount: r.amount_krw,
+      confirmedAt: r.confirmed_at,
+      voidedAt: r.voided_at,
+      voidReason: r.void_reason as TransferRecord['voidReason'],
+      createdAt: r.created_at,
+    }));
+  },
+
+  // id는 클라이언트 UUID라 같은 요청을 다시 보내도 1건만 남는다.
+  async recordTransfer(input: { id: string; roomId: RoomId; from: MemberId; to: MemberId; amount: Krw }): Promise<void> {
+    unwrap(
+      await supabase.rpc('record_transfer', {
+        p_id: input.id,
+        p_room_id: input.roomId,
+        p_from_member_id: input.from,
+        p_to_member_id: input.to,
+        p_amount_krw: input.amount,
+      }),
+    );
+  },
+
+  async confirmTransfer(id: string): Promise<void> {
+    unwrap(await supabase.rpc('confirm_transfer', { p_id: id }));
+  },
+
+  async rejectTransfer(id: string): Promise<void> {
+    unwrap(await supabase.rpc('reject_transfer', { p_id: id }));
+  },
+
+  async cancelTransfer(id: string): Promise<void> {
+    unwrap(await supabase.rpc('cancel_transfer', { p_id: id }));
+  },
+
+  async setPayoutAccount(input: { bankCode: string; bankName: string; holderName: string; accountNumber: string }): Promise<void> {
+    unwrap(
+      await supabase.rpc('set_payout_account', {
+        p_bank_code: input.bankCode,
+        p_bank_name: input.bankName,
+        p_holder_name: input.holderName,
+        p_account_number: input.accountNumber,
+      }),
+    );
+  },
+
+  async getPayoutAccount(roomId: RoomId, ownerMemberId: MemberId): Promise<PayoutAccount> {
+    const [r] = unwrap(await supabase.rpc('get_payout_account', { p_room_id: roomId, p_owner_member_id: ownerMemberId }));
+    return {
+      registered: r?.registered ?? false,
+      bankName: r?.bank_name ?? null,
+      holderName: r?.holder_name ?? null,
+      accountMasked: r?.account_masked ?? null,
+      accountNumber: r?.account_number ?? null,
+    };
+  },
+
+  async requestPayoutAccount(roomId: RoomId, ownerMemberId: MemberId): Promise<void> {
+    unwrap(await supabase.rpc('request_payout_account', { p_room_id: roomId, p_owner_member_id: ownerMemberId }));
   },
 
   async ackAiNotice(): Promise<void> {
