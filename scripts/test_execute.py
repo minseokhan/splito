@@ -571,3 +571,44 @@ class TestCheckBlockers:
         with pytest.raises(SystemExit) as exc_info:
             inst._check_blockers()
         assert exc_info.value.code == 2
+
+
+# ---------------------------------------------------------------------------
+# _execute_single_step: blocked/error 종료 시 메타데이터 커밋
+# ---------------------------------------------------------------------------
+
+class TestExitPathsCommitMetadata:
+    """blocked·error로 종료해도 index.json·phases/index.json 변경이 커밋돼야 한다."""
+
+    def _run_until_exit(self, executor, top_index, status_fields):
+        def fake_invoke(step, preamble):
+            index = executor._read_json(executor._index_file)
+            for s in index["steps"]:
+                if s["step"] == step["step"]:
+                    s.update(status_fields)
+            executor._write_json(executor._index_file, index)
+
+        top_at_commit = []
+        executor._invoke_claude = fake_invoke
+        executor._commit_step = lambda num, name: top_at_commit.append(
+            executor._read_json(top_index)["phases"][0]["status"]
+        )
+        step = {"step": 2, "name": "ui"}
+        with patch.object(ex, "progress_indicator", MagicMock()):
+            with pytest.raises(SystemExit) as exc_info:
+                executor._execute_single_step(step, "guardrails")
+        return exc_info.value.code, top_at_commit
+
+    def test_blocked_commits_after_top_index_update(self, executor, top_index):
+        code, top_at_commit = self._run_until_exit(
+            executor, top_index, {"status": "blocked", "blocked_reason": "manual QA"}
+        )
+        assert code == 2
+        assert top_at_commit == ["blocked"]
+
+    def test_error_commits_after_top_index_update(self, executor, top_index):
+        code, top_at_commit = self._run_until_exit(
+            executor, top_index, {"status": "error", "error_message": "boom"}
+        )
+        assert code == 1
+        assert top_at_commit == ["error"]

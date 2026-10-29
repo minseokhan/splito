@@ -131,6 +131,8 @@ npm test        # 테스트 통과
 
 ### E. 실행
 
+실행 전에 D에서 만든 `phases/` 파일을 별도 브랜치 → dev PR로 먼저 머지한다. 이유: execute.py는 매 step `git add -A`로 커밋하므로, 커밋되지 않은 phase 파일(다른 phase 포함)이 첫 phase의 feat 브랜치에 섞여 들어가고 그 PR이 머지될 때까지 dev에 없다.
+
 ```bash
 python3 scripts/execute.py {task-name}        # 순차 실행
 python3 scripts/execute.py {task-name} --push  # 실행 후 push
@@ -142,10 +144,12 @@ execute.py가 자동으로 처리하는 것:
 - 가드레일 주입 — CLAUDE.md + docs/*.md 내용을 매 step 프롬프트에 포함
 - 컨텍스트 누적 — 완료된 step의 summary를 다음 step 프롬프트에 전달
 - 자가 교정 — 실패 시 최대 3회 재시도하며, 이전 에러 메시지를 프롬프트에 피드백
-- 2단계 커밋 — 코드 변경(`feat`)과 메타데이터(`chore`)를 분리 커밋
+- 2단계 커밋 — 코드 변경(`feat`)과 메타데이터(`chore`)를 분리 커밋. completed·blocked·error 어느 경로로 끝나도 커밋하므로 종료 후 워킹트리는 깨끗하다
 - 타임스탬프 — started_at, completed_at, failed_at, blocked_at 자동 기록
 
 에러 복구:
 
 - **error 발생 시**: `phases/{task-name}/index.json`에서 해당 step의 `status`를 `"pending"`으로 바꾸고 `error_message`를 삭제한 뒤 재실행한다.
 - **blocked 발생 시**: `blocked_reason`에 적힌 사유를 해결한 뒤, `status`를 `"pending"`으로 바꾸고 `blocked_reason`을 삭제한 뒤 재실행한다.
+- **사람이 수행하는 step(`manual QA`)**: 사람이 체크리스트를 끝내면 `status`를 `"completed"`, `summary`에 결과와 보류 항목(처리할 phase 포함)을 적고 `blocked_reason`·`blocked_at`을 삭제한 뒤 재실행해 phase를 마무리한다.
+- 종료 코드: 0 완료, 1 error, 2 blocked. 2는 실패가 아니다.
