@@ -24,7 +24,7 @@
       "status": "completed",
       "started_at": "2026-10-30T02:57:24+0900",
       "summary": "src/services/api.ts: roomEvents(roomId)→RoomEvent[](room_events SELECT, created_at desc, limit 200); src/hooks/useRoomEvents.ts: useRoomEvents(roomId) 키 ['room',id,'events'](useRealtimeRoom room_events가 이미 무효화); src/components/ActivityRow.tsx: ActivityRow({text,onPress?})(가운데 13 ink-500, onPress 있으면 sky-900 '· 계좌 등록하기'); 장부 홈 피드를 mergeActivity(feed, events, startDate)로 렌더('kind' in item이면 이벤트 행, names=member id+user id→이름), 나에게 온 payout_request + useMyPayoutAccount()===null이면 탭 → /payout-account",
-      "completed_at": "2026-10-30T02:59:03+0900"
+      "completed_at": "2026-10-30T03:00:51+0900"
     },
     {
       "step": 3,
