@@ -48,7 +48,7 @@
       "status": "completed",
       "started_at": "2026-10-30T01:15:30+0900",
       "summary": "src/lib/expenseForm.ts(+expenseForm.test.ts): ParseResult(parse-expense 응답 형태)·DraftItem·ExpenseDraft; draftFromParse(parse,{expenseId,roomId,source,meMemberId,activeMemberIds,todayLocal,newId})(결제자=나·대상=활성 전원, 품목합≠total→마지막에 '기타' isAdjustment+needsReview 박스(음수=할인), total만→총액 박스, low→item.needsReview, 전체 low·통화 모호·날짜/통화 없음→draft.needsReview, aiResult=parse)·emptyDraft(ctx+{currency})(결제일=오늘, 빈 박스 1개)·splitItem(d,itemId,newId)(×1000 floor 반, 나머지 원 박스, 바로 뒤 삽입·position 재번호)·addItem·toggleScope(최소 1명, 빠진 사람 assignee 제거)·validateDraft(d,todayKst)→INVALID_INPUT(currency/paidLocalDate/cardLast4/payer)·AMOUNT_INVALID(Σ원본×1000≤0, krwCharged≤0)·DATE_IN_FUTURE(>KST+1)·SCOPE_EMPTY·toSavePayload(d)→SaveExpensePayload(원화 없음, pool이면 payer_member_id null, 빈 가맹점 null)",
-      "completed_at": "2026-10-30T01:17:26+0900"
+      "completed_at": "2026-10-30T01:19:04+0900"
     },
     {
       "step": 6,
