@@ -39,7 +39,7 @@
       "name": "settle-screen",
       "status": "completed",
       "started_at": "2026-10-30T02:31:40+0900",
-      "completed_at": "2026-10-30T02:45:00+0900",
+      "completed_at": "2026-10-30T02:37:08+0900",
       "summary": "app/(app)/rooms/[roomId]/settle.tsx(진입 시 pending 지출 useReconfirmPendingFx 1회·환율 대기 띠+[확인하기]·1명이면 초대 안내·BalanceTable·송금 카드(CardContainer가 usePayoutAccount(card.to), 복사 시 AsyncStorage 'clipboard_sync_notice_shown' 1회 안내)·[보냈어요] SendSheet(금액 수정, 시트당 uuid)·payee [받았어요]=recordTransfer(from=card.from,to=me)·송금 기록 TransferRecordRow(받았어요/못 받았어요/취소)·pendingConfirmSummary·ledgerChangedAfterTransfer 배너); src/components/BalanceTable.tsx({rows,names,colorIndex}), src/components/TransferCard.tsx(TransferCard·TransferRecordRow); api.lastExpenseChangeAt(roomId)(expense_history 최신 at) + useLastExpenseChange(['room',id,'feed','lastChange']); 장부 홈 상단 [정산] 버튼(memberCount≥2)"
     },
     {
