@@ -7,7 +7,8 @@
       "name": "activity-lib",
       "status": "completed",
       "started_at": "2026-10-30T02:48:01+0900",
-      "summary": "src/lib/activity.ts: RoomEvent 타입, eventText(e, names)(names=profiles id+member id → 이름, 모르면 '탈퇴한 사용자'; payload 키: transfer {from_member_id,to_member_id,amount_krw}, guest_rep_change {representative_member_id}), mergeActivity(expenses, events, roomStartDate)(이벤트는 KST 날짜 섹션, groupFeed 재사용), commentSchema(trim 1~500)"
+      "summary": "src/lib/activity.ts: RoomEvent 타입, eventText(e, names)(names=profiles id+member id → 이름, 모르면 '탈퇴한 사용자'; payload 키: transfer {from_member_id,to_member_id,amount_krw}, guest_rep_change {representative_member_id}), mergeActivity(expenses, events, roomStartDate)(이벤트는 KST 날짜 섹션, groupFeed 재사용), commentSchema(trim 1~500)",
+      "completed_at": "2026-10-30T02:50:41+0900"
     },
     {
       "step": 1,
