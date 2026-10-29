@@ -1,9 +1,20 @@
-import { Text, View } from 'react-native';
+import { Redirect } from 'expo-router';
+
+import { useAuth } from '@/hooks/useAuth';
+import { resolveEntryRoute } from '@/lib/entryRoute';
+import { isConsentComplete } from '@/lib/profile';
 
 export default function Index() {
-  return (
-    <View className="flex-1 items-center justify-center bg-sky-100">
-      <Text className="font-bold text-ink-900">스플리토</Text>
-    </View>
-  );
+  const { session, profile } = useAuth();
+  if (session === undefined) return null; // 저장된 세션 복원 중
+  const route = resolveEntryRoute({
+    session: session !== null,
+    profileLoaded: profile !== undefined,
+    consentComplete: !!profile && isConsentComplete(profile),
+    nicknameSet: !!profile?.nickname,
+    pendingInviteToken: null,
+  });
+  if (route === 'loading') return null;
+  // TODO(3-rooms): { join } 분기는 합류 확인 시트로 보낸다. 지금은 /(app).
+  return <Redirect href={typeof route === 'string' ? route : '/(app)'} />;
 }
