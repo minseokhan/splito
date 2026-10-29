@@ -7,7 +7,8 @@
       "name": "fx-rate-function",
       "status": "completed",
       "started_at": "2026-10-30T00:51:45+0900",
-      "summary": "supabase/functions/fx-rate/{fx.ts,index.ts,fx.test.ts}: resolveRate(deps,date,currency)→{base_date,rate,source:'kexim'|'krw'}|{status:'pending'|'unsupported'}, normalizeKeximRows·kstToday; date-10~date 역탐색, fx_rates 하루치 upsert(service role). _shared/http.ts json·errorResponse(code,status,roomId?), _shared/auth.ts requireUser(req)→{client,user}|401 AUTH_EXPIRED"
+      "summary": "supabase/functions/fx-rate/{fx.ts,index.ts,fx.test.ts}: resolveRate(deps,date,currency)→{base_date,rate,source:'kexim'|'krw'}|{status:'pending'|'unsupported'}, normalizeKeximRows·kstToday; date-10~date 역탐색, fx_rates 하루치 upsert(service role). _shared/http.ts json·errorResponse(code,status,roomId?), _shared/auth.ts requireUser(req)→{client,user}|401 AUTH_EXPIRED",
+      "completed_at": "2026-10-30T00:56:55+0900"
     },
     {
       "step": 1,
