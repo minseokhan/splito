@@ -5,27 +5,43 @@
     {
       "step": 0,
       "name": "expo-scaffold",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-28T18:00:59+0900",
+      "summary": "Expo SDK 57 골격: package.json(name splito, main expo-router/entry, scripts lint/build/test/start, expo-dev-client, jest-expo·eslint-config-expo devDeps), app.json(name/slug/scheme 'splito', 템플릿 plugins), tsconfig.json(strict, @/*→./src/*, exclude supabase/functions·web), eslint.config.js(flat, eslint-config-expo/flat), jest.config.js(preset jest-expo), app/_layout.tsx(Stack), app/index.tsx('스플리토'), assets/(icon·splash·android·favicon·expo.icon); 템플릿 의존성(@expo/ui·expo-image·react-native-web 등)은 그대로 둠",
+      "completed_at": "2026-10-28T18:12:35+0900"
     },
     {
       "step": 1,
       "name": "styling-tokens",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-28T18:12:35+0900",
+      "summary": "NativeWind 4.2(Tailwind 3.4): tailwind.config.js(content app/**·src/**, nativewind/preset, colors sky 100~900 대체·ink·시맨틱 plus/minus/review-*/pending-*/done-*/line/divider/input-line, borderRadius md6/lg8/xl12/sheet16, fontFamily sans/medium/semibold/bold=Pretendard-*), global.css, babel.config.js(jsxImportSource nativewind + nativewind/babel), metro.config.js(withNativeWind input ./global.css), nativewind-env.d.ts(+jest types, *.css 모듈 선언); src/theme/tokens.ts(colors, radius, AVATAR_COLORS, MAX_FONT_SIZE_MULTIPLIER=1.3) + tokens.test.ts(tailwind 색상과 일치 검사); assets/fonts/Pretendard-{Regular,Medium,SemiBold,Bold}.otf + OFL.txt; app/_layout.tsx(global.css import, useFonts 로드, Text/TextInput defaultProps maxFontSizeMultiplier); app/index.tsx(bg-sky-100·text-ink-900); deps lucide-react-native·react-native-svg·nativewind, devDep tailwindcss@^3",
+      "completed_at": "2026-10-28T18:18:28+0900"
     },
     {
       "step": 2,
       "name": "app-config",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-28T18:18:28+0900",
+      "summary": "app.json 삭제 → app.config.ts(ExpoConfig; name 스플리토, scheme splito, portrait, light, APP_ID='app.splito'(가칭) = ios.bundleIdentifier·android.package, LINK_DOMAIN=EXPO_PUBLIC_LINK_DOMAIN ?? 'splito.vercel.app' → ios.associatedDomains applinks:·android intentFilters https host pathPrefix /i/ autoVerify, plugins expo-router·expo-secure-store·expo-font·expo-build-properties(ios 16.4)·expo-image-picker(카메라·사진 한국어)·expo-speech-recognition(마이크·음성인식 한국어)·expo-splash-screen); eas.json(development devClient internal apk / preview internal apk / production, cli.appVersionSource remote); .env.example(SUPABASE_URL·ANON_KEY·LINK_DOMAIN만); deps expo-secure-store·async-storage·expo-image-picker·expo-image-manipulator·expo-file-system·expo-clipboard·expo-speech-recognition(58.0.0)·expo-application·react-native-qrcode-svg·react-native-get-random-values·expo-build-properties. 주의: image-picker에 microphonePermission:false를 주면 speech-recognition의 NSMicrophoneUsageDescription이 지워짐. expo-doctor는 이 머신에 CocoaPods 미설치로 1건 실패(프로젝트 문제 아님)",
+      "completed_at": "2026-10-28T18:22:58+0900"
     },
     {
       "step": 3,
       "name": "error-codes",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-28T18:22:58+0900",
+      "summary": "src/lib/errors.ts: ERROR_CODES(§8 표 34개, readonly ErrorCode[]), type ErrorCode, type UserError={code:ErrorCode|'UNKNOWN',message,action?}, isErrorCode(v), toUserError(err:unknown) — RPC {message:'<CODE>'} 정확 일치·Edge Function {error:{code}}·status 401/'JWT expired'→AUTH_EXPIRED·TypeError 'Network request failed'→OFFLINE·그 외 UNKNOWN('잠시 후 다시 시도해 주세요', 원문 비노출); src/lib/errors.test.ts",
+      "completed_at": "2026-10-28T18:25:33+0900"
     },
     {
       "step": 4,
       "name": "spike-manual-qa",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-28T18:25:33+0900",
+      "summary": "수동 QA: EAS 프로젝트 @hanms1017/splito 연결(extra.eas.projectId), 번들 ID com.hanms.splito 확정, Android development 빌드를 에뮬레이터(API 37)에서 확인(sky-100 배경·ink 텍스트, RECORD_AUDIO·CAMERA 권한 포함), Docker·Supabase CLI·Deno 설치. 보류: iOS 실기기(Apple Developer 가입 후), Supabase 원격 프로젝트(1-db-core 전), 카카오(2-auth 전), 수출입은행·Anthropic 키(4-expense-input 전), 네이버 OIDC PoC(11-naver 전), 음성 권한 팝업 실확인(4-expense-input)"
     }
-  ]
+  ],
+  "created_at": "2026-10-28T18:00:59+0900",
+  "completed_at": "2026-10-29T13:55:55+0900"
 }

@@ -12,8 +12,8 @@
 
 Vercel 정적 사이트 `web/`을 만든다. 빌드 도구 없이 순수 HTML/CSS.
 
-1. `web/.well-known/apple-app-site-association`(확장자 없음, JSON): `applinks.details[].appIDs = ["<TEAM_ID>.app.splito"]`, `components: [{"/": "/i/*"}]`. TEAM_ID는 자리표시자 문자열 `TEAMID_PLACEHOLDER`로 두고 README 주석 대신 manual QA에서 교체한다.
-2. `web/.well-known/assetlinks.json`: `package_name: "app.splito"`, `sha256_cert_fingerprints: ["SHA256_PLACEHOLDER"]`.
+1. `web/.well-known/apple-app-site-association`(확장자 없음, JSON): `applinks.details[].appIDs = ["<TEAM_ID>.com.hanms.splito"]`, `components: [{"/": "/i/*"}]`. TEAM_ID는 자리표시자 문자열 `TEAMID_PLACEHOLDER`로 두고 README 주석 대신 manual QA에서 교체한다.
+2. `web/.well-known/assetlinks.json`: `package_name: "com.hanms.splito"`, `sha256_cert_fingerprints: ["SHA256_PLACEHOLDER"]`.
 3. `web/i/index.html`: 고정 문구 "스플리토 여행에 초대받았어요" + "앱에서 열기" 안내. 방 정보를 조회하지 않는다. 인라인 스크립트 금지(CSP `script-src 'self'`). 다운로드·클립보드 버튼은 8-install-join phase가 추가한다.
 4. `web/terms.html`, `web/privacy.html`: 초안. privacy에는 PRD §7.3 국외 이전 항목(이전 항목·국가·시기·방법·이전받는 자·목적·보유 기간·거부 방법), 사진 EXIF 제거·보관 1년, 계좌 암호화, 탈퇴 시 익명화를 적는다. 상단에 "초안 — 출시 전 법률 검토 필요" 표시.
 5. `web/vercel.json`
