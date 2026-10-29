@@ -23,7 +23,7 @@
       "name": "pool-screens",
       "status": "completed",
       "started_at": "2026-10-30T06:01:36+0900",
-      "completed_at": "2026-10-30T06:20:00+0900",
+      "completed_at": "2026-10-30T06:07:02+0900",
       "summary": "src/services/api.ts: setPool({roomId, enabled, ownerMemberId|null, cardLast4}), upsertPoolDeposits({roomId, rows:[{memberId, amountKrw}]}), poolDeposits(roomId); src/hooks/usePool.ts: usePoolDeposits(['room',id,'pool']), useSetPool/useUpsertPoolDeposits(['room',id]·['rooms'] 무효화); useRealtimeRoom rooms 이벤트에 balances 무효화 추가; app/(app)/rooms/[roomId]/pool.tsx(켜기/끄기·통장 주인 user만+변경 경고·입금+같은 금액 일괄·카드 끝자리·남은 공금); 방 메뉴 '공금 지갑'(2명 이상); review 결제자 '공금' 칩; new.tsx draftFromParse 직후 autoSelectPayer; settle 통장 주인 카드 아래 poolNote"
     },
     {
