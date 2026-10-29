@@ -49,8 +49,7 @@
     },
     {
       "dir": "9-guest",
-      "status": "error",
-      "failed_at": "2026-10-30T03:24:35+0900"
+      "status": "blocked"
     },
     {
       "dir": "10-pool-wallet",
