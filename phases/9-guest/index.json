@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "guest-screens",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:20:40+0900",
+      "summary": "api.addGuest({roomId,name,representativeMemberId?})→MemberId·updateGuest({memberId,name?,representativeMemberId?})·removeGuest(memberId), src/hooks/useGuests.ts(useAddGuest/useUpdateGuest/useRemoveGuest: members·balances·events·rooms 무효화), app/(app)/rooms/[roomId]/members.tsx(활성 멤버 목록·[게스트 추가]·[초대하기], 게스트 탭→GuestSheet 이름·대표자(user만, repChangeWarning Alert 확인)·삭제(GUEST_IN_USE 메시지)), 장부 홈 우상단 방 메뉴(BottomSheet)→멤버, Avatar.tsx에 GuestChip export, review 결제자 '(게스트)'·대상 인원 GuestChip, settle: orderBalanceRows+BalanceTable memberDisplayName+카드 guestShareNote",
+      "completed_at": "2026-10-30T03:23:20+0900"
     },
     {
       "step": 3,

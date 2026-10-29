@@ -481,6 +481,32 @@ export const api = {
     unwrap(await supabase.rpc('request_payout_account', { p_room_id: roomId, p_owner_member_id: ownerMemberId }));
   },
 
+  // 게스트(ADR-011). 대표자를 비우면 서버가 호출자로 정한다.
+  async addGuest(input: { roomId: RoomId; name: string; representativeMemberId?: MemberId }): Promise<MemberId> {
+    return unwrap(
+      await supabase.rpc('add_guest', {
+        p_room_id: input.roomId,
+        p_name: input.name,
+        p_representative_member_id: input.representativeMemberId,
+      }),
+    );
+  },
+
+  // 안 넘긴 값은 서버가 유지한다.
+  async updateGuest(input: { memberId: MemberId; name?: string; representativeMemberId?: MemberId }): Promise<void> {
+    unwrap(
+      await supabase.rpc('update_guest', {
+        p_member_id: input.memberId,
+        p_name: input.name,
+        p_representative_member_id: input.representativeMemberId,
+      }),
+    );
+  },
+
+  async removeGuest(memberId: MemberId): Promise<void> {
+    unwrap(await supabase.rpc('remove_guest', { p_member_id: memberId }));
+  },
+
   async ackAiNotice(): Promise<void> {
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user.id;

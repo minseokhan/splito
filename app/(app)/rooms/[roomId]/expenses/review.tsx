@@ -5,7 +5,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AssigneeSheet } from '@/components/AssigneeSheet';
-import { Avatar } from '@/components/Avatar';
+import { Avatar, GuestChip } from '@/components/Avatar';
 import type { AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { ItemBox } from '@/components/ItemBox';
@@ -246,7 +246,7 @@ export default function ReviewExpense() {
             {active.map((p) => (
               <Chip
                 key={p.id}
-                label={p.userId === session?.user.id ? `${p.name}(나)` : p.name}
+                label={p.userId === session?.user.id ? `${p.name}(나)` : p.guest ? `${p.name}(게스트)` : p.name}
                 selected={draft.payerKind === 'member' && draft.payerMemberId === p.id}
                 onPress={() => update((d) => ({ ...d, payerKind: 'member', payerMemberId: p.id }))}
               />
@@ -271,6 +271,7 @@ export default function ReviewExpense() {
                   >
                     <Avatar name={p.name} colorIndex={p.colorIndex} guest={p.guest} size={36} />
                     <Text className="text-[13px] text-ink-700">{p.name}</Text>
+                    {p.guest && <GuestChip />}
                   </Pressable>
                 );
               })}

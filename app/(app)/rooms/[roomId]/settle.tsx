@@ -22,9 +22,10 @@ import {
   useSettlePlan,
   useTransfers,
 } from '@/hooks/useSettlement';
+import { guestShareNote, orderBalanceRows } from '@/lib/guestView';
 import { copyText, ledgerChangedAfterTransfer, pendingConfirmSummary, recordState, type SettleCard } from '@/lib/settleView';
 import { uuidV4 } from '@/lib/uuid';
-import type { MemberId, RoomId } from '@/types/domain';
+import type { RoomId } from '@/types/domain';
 
 const CLIPBOARD_NOTICE_KEY = 'clipboard_sync_notice_shown';
 
@@ -72,8 +73,9 @@ export default function Settle() {
   const me = plan.me.id;
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const colorIndex = Object.fromEntries(members.map((m, i) => [m.id, i]));
-  const guestsOf = (id: MemberId) =>
-    members.filter((m) => m.kind === 'guest' && m.representativeMemberId === id).map((m) => m.name);
+  const rows = plan.data.rows;
+  const shareNote = (c: SettleCard) =>
+    [guestShareNote(c.from, rows, names), guestShareNote(c.to, rows, names)].filter(Boolean).join(' · ') || undefined;
   const busy = record.isPending || confirm.isPending || reject.isPending || cancel.isPending;
   const fxPending = plan.data.fxPendingCount;
   const summary = pendingConfirmSummary(records, names);
@@ -96,7 +98,7 @@ export default function Settle() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 8 }}>
         <Text className="mb-2 mt-6 font-bold text-[22px] text-ink-900">정산</Text>
         <Text className="mb-2 font-semibold text-[17px] text-ink-900">사람별</Text>
-        <BalanceTable rows={plan.data.rows} names={names} colorIndex={colorIndex} />
+        <BalanceTable rows={orderBalanceRows(rows)} names={names} colorIndex={colorIndex} />
 
         <Text className="mb-2 mt-6 font-semibold text-[17px] text-ink-900">송금</Text>
         {plan.cards.length === 0 && <Text className="text-[15px] text-ink-700">남은 송금이 없어요</Text>}
@@ -106,7 +108,7 @@ export default function Settle() {
             roomId={roomId}
             card={c}
             names={names}
-            guestNote={[...guestsOf(c.from), ...guestsOf(c.to)].map((n) => `${n} 몫 포함`).join(' · ') || undefined}
+            guestNote={shareNote(c)}
             rejected={records.some((r) => r.from === c.from && r.to === c.to && recordState(r) === 'not_received')}
             busy={busy}
             onSend={() => setSendCard(c)}

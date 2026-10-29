@@ -1,10 +1,11 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { Menu, Plus } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, SectionList, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityRow } from '@/components/ActivityRow';
+import { BottomSheet } from '@/components/BottomSheet';
 import { ExpenseCard } from '@/components/ExpenseCard';
 import { InputMethodSheet } from '@/components/InputMethodSheet';
 import { formatKrw, Money } from '@/components/Money';
@@ -37,6 +38,7 @@ export default function RoomHome() {
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   // 입력 화면에서 돌아올 때마다 기기의 작성 중 지출을 다시 확인한다.
   useFocusEffect(
@@ -89,6 +91,14 @@ export default function RoomHome() {
             className="h-11 justify-center px-2"
           >
             <Text className="font-medium text-[15px] text-sky-900">초대</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="방 메뉴"
+            onPress={() => setMenuOpen(true)}
+            className="h-11 w-11 items-center justify-center"
+          >
+            <Menu size={24} strokeWidth={1.75} color={colors.ink[900]} />
           </Pressable>
         </View>
         <StatusChip status={room.status} />
@@ -178,6 +188,18 @@ export default function RoomHome() {
       >
         <Plus size={24} strokeWidth={1.75} color={colors.ink[900]} />
       </Pressable>
+      <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            setMenuOpen(false);
+            router.push({ pathname: '/rooms/[roomId]/members', params: { roomId } });
+          }}
+          className="h-14 justify-center"
+        >
+          <Text className="text-base text-ink-900">멤버</Text>
+        </Pressable>
+      </BottomSheet>
       <InputMethodSheet
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}

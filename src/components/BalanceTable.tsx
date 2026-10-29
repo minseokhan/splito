@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { formatKrw, Money } from '@/components/Money';
+import { memberDisplayName } from '@/lib/guestView';
 import type { BalanceRow } from '@/types/domain';
 
 type Props = { rows: BalanceRow[]; names: Record<string, string>; colorIndex: Record<string, number> };
@@ -21,7 +22,7 @@ export function BalanceTable({ rows, names, colorIndex }: Props) {
             <Avatar name={name} colorIndex={colorIndex[r.memberId] ?? 0} guest={guest} size={32} />
             <View className="flex-1">
               <Text className="font-semibold text-[15px] text-ink-900" numberOfLines={1}>
-                {guest ? `${name}(게스트 · 대표 ${names[r.representativeMemberId ?? ''] ?? ''})` : name}
+                {memberDisplayName(r, names)}
               </Text>
               <Text style={{ fontVariant: ['tabular-nums'] }} className="text-[13px] text-ink-500">
                 낸 돈 {formatKrw(r.paid)} · 부담액 {formatKrw(r.owed)}
