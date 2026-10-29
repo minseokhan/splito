@@ -24,6 +24,18 @@ export function extractInviteToken(input: string, domain: string): string | null
   return null;
 }
 
+const CALLBACK_RE = /^(?:splito:\/\/\/?|\/)auth\/callback\/?(?:[?#].*)?$/;
+
+// +native-intent 허용 목록(ARCHITECTURE §4 딥링크): 초대 링크는 /i/{token}으로, 로그인 콜백은 그대로, 나머지는 홈.
+export function toSystemPath(path: string, domain: string): string {
+  if (CALLBACK_RE.test(path)) return path;
+  const m = LINK_RE.exec(path);
+  if (m && (m[1] === undefined || m[1].toLowerCase() === domain.toLowerCase()) && INVITE_TOKEN_RE.test(m[2])) {
+    return `/i/${m[2]}`;
+  }
+  return '/';
+}
+
 export type PendingInvite = { token: string; savedAt: number };
 
 export function isPendingInviteValid(p: PendingInvite | null, now: number): boolean {

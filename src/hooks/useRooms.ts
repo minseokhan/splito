@@ -30,3 +30,7 @@ export function useJoinRoom() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
   });
 }
+
+export function useInvitePreview(token: string) {
+  return useQuery({ queryKey: ['invite', token], queryFn: () => api.previewInvite(token), retry: false });
+}

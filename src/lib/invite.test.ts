@@ -1,4 +1,4 @@
-import { INVITE_TOKEN_RE, buildInviteUrl, extractInviteToken, isPendingInviteValid } from './invite';
+import { INVITE_TOKEN_RE, buildInviteUrl, extractInviteToken, isPendingInviteValid, toSystemPath } from './invite';
 
 const T = 'AbCdEfGhIjKlMnOpQr_-12'; // 22자
 const D = 'splito.vercel.app';
@@ -69,4 +69,31 @@ describe('isPendingInviteValid', () => {
   ])('%s', (_, p, ok) => {
     expect(isPendingInviteValid(p, now)).toBe(ok);
   });
+});
+
+describe('toSystemPath', () => {
+  it.each([
+    [`https://${D}/i/${T}`, `/i/${T}`],
+    [`https://${D}/i/${T}/?utm=x`, `/i/${T}`],
+    [`splito://i/${T}`, `/i/${T}`],
+    [`/i/${T}`, `/i/${T}`],
+  ])('초대 링크 %s → %s', (input, out) => expect(toSystemPath(input, D)).toBe(out));
+
+  it.each(['splito://auth/callback?code=abc', '/auth/callback?code=abc', 'splito:///auth/callback'])(
+    '로그인 콜백 %s는 그대로',
+    (input) => expect(toSystemPath(input, D)).toBe(input),
+  );
+
+  it.each([
+    `https://evil.com/i/${T}`,
+    `http://${D}/i/${T}`,
+    `/i/short`,
+    `/i/${T}/extra`,
+    T,
+    '/rooms/123',
+    'splito://rooms/123',
+    '/auth/callbackX',
+    '/',
+    '',
+  ])('허용 목록 밖 %s → /', (input) => expect(toSystemPath(input, D)).toBe('/'));
 });

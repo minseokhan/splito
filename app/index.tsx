@@ -1,20 +1,30 @@
 import { Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
 import { resolveEntryRoute } from '@/lib/entryRoute';
 import { isConsentComplete } from '@/lib/profile';
+import { loadPendingInvite } from '@/services/pendingInvite';
 
 export default function Index() {
   const { session, profile } = useAuth();
-  if (session === undefined) return null; // 저장된 세션 복원 중
+  const [pendingToken, setPendingToken] = useState<string | null>();
+
+  useEffect(() => {
+    loadPendingInvite()
+      .catch(() => null)
+      .then((p) => setPendingToken(p?.token ?? null));
+  }, []);
+
+  if (session === undefined || pendingToken === undefined) return null; // 세션·대기 초대 복원 중
   const route = resolveEntryRoute({
     session: session !== null,
     profileLoaded: profile !== undefined,
     consentComplete: !!profile && isConsentComplete(profile),
     nicknameSet: !!profile?.nickname,
-    pendingInviteToken: null,
+    pendingInviteToken: pendingToken,
   });
   if (route === 'loading') return null;
-  // TODO(3-rooms): { join } 분기는 합류 확인 시트로 보낸다. 지금은 /(app).
-  return <Redirect href={typeof route === 'string' ? route : '/(app)'} />;
+  if (typeof route === 'string') return <Redirect href={route} />;
+  return <Redirect href={{ pathname: '/join/[token]', params: { token: route.join } }} />;
 }
