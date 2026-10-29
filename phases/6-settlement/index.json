@@ -53,7 +53,9 @@
     {
       "step": 6,
       "name": "settle-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T02:44:58+0900",
+      "blocked_reason": "manual QA"
     }
   ],
   "created_at": "2026-10-30T02:16:45+0900"
