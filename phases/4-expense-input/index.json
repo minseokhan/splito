@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "ai-quota-rpc",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T00:56:55+0900",
+      "summary": "supabase/migrations/20261030000000_ai_quota.sql: consume_ai_quota(p_room_id uuid, p_global_limit int) returns void — 멤버만(FORBIDDEN), ai_usage user(uid)/room/global('00000000-0000-0000-0000-000000000000') KST 오늘 upsert+1, user>100·room>300·global>p_global_limit면 AI_QUOTA_EXCEEDED(롤백). authenticated 실행, anon 회수. pgTAP supabase/tests/050_ai_quota.test.sql",
+      "completed_at": "2026-10-30T00:58:25+0900"
     },
     {
       "step": 2,
