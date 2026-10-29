@@ -12,7 +12,7 @@ import { toUserError } from '@/lib/errors';
 import { consentSchema } from '@/lib/profile';
 import { signOut, updateConsent } from '@/services/auth';
 
-const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito.vercel.app';
+const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 const REQUIRED = ['terms', 'age14', 'overseas'] as const;
 
 // PRD §7.3 국외 이전 고지 요약. 전문은 처리방침.

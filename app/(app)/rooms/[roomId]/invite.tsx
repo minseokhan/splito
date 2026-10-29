@@ -10,7 +10,7 @@ import { useRoom } from '@/hooks/useRooms';
 import { buildInviteUrl } from '@/lib/invite';
 import { colors } from '@/theme/tokens';
 
-const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito.vercel.app';
+const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 
 export default function Invite() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();

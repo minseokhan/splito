@@ -1,7 +1,7 @@
 import { INVITE_TOKEN_RE, buildInviteUrl, extractInviteToken, isPendingInviteValid, toSystemPath } from './invite';
 
 const T = 'AbCdEfGhIjKlMnOpQr_-12'; // 22자
-const D = 'splito.vercel.app';
+const D = 'splito-trip.vercel.app';
 const DAY = 24 * 60 * 60 * 1000;
 
 describe('INVITE_TOKEN_RE', () => {
