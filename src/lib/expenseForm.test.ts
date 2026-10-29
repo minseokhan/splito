@@ -1,5 +1,6 @@
 import {
   addItem,
+  draftFromExpense,
   draftFromParse,
   emptyDraft,
   kstToday,
@@ -312,5 +313,29 @@ describe('kstToday · perPersonOriginal', () => {
     expect(perPersonOriginal(3280, 2)).toBe(1640);
     expect(perPersonOriginal(10, 3)).toBe(3.333);
     expect(perPersonOriginal(-100, 3)).toBe(-33.334);
+  });
+});
+
+describe('draftFromExpense', () => {
+  const saved = {
+    id: 'e1', room_id: 'r1', payer_kind: 'member' as const, payer_member_id: 'm2', source: 'receipt' as const,
+    merchant: '一蘭', paid_local_date: '2026-10-21', paid_local_time: '18:42:00', currency: 'JPY',
+    krw_charged: null, manual_rate: null, card_last4: '1234', needs_review: true, ai_result: { x: 1 },
+    scope_member_ids: ['m1', 'm2'],
+    items: [
+      { id: 'i1', position: 0, name_original: 'ラーメン', name_ko: '라멘', quantity: 2, amount_original: 2000,
+        needs_review: false, is_adjustment: false, assignee_member_ids: ['m1'] },
+      { id: 'i2', position: 1, name_original: '', name_ko: null, quantity: 1, amount_original: -100,
+        needs_review: true, is_adjustment: true, assignee_member_ids: [] },
+    ],
+    photos: [{ storage_path: 'r1/e1/p.jpg', kind: 'receipt' as const }],
+  };
+
+  it('저장된 지출을 draft로 바꾸고 다시 payload로 바꾸면 같은 값(박스 id·지정·사진 유지)', () => {
+    const d = draftFromExpense(saved);
+    expect(d).toMatchObject({ id: 'e1', payerMemberId: 'm2', paidLocalTime: '18:42:00', needsReview: true });
+    expect(d.items[1]).toMatchObject({ id: 'i2', nameKo: '', amountOriginal: -100, isAdjustment: true });
+    const { manual_rate: _, ...rest } = saved;
+    expect(toSavePayload(d)).toEqual(rest);
   });
 });

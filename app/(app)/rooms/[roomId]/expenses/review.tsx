@@ -12,6 +12,7 @@ import { ItemBox } from '@/components/ItemBox';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
+import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
 import { useRoomMembers } from '@/hooks/useRooms';
 import { CURRENCIES } from '@/lib/currency';
@@ -19,6 +20,7 @@ import { describeDuplicate, findDuplicate, type DupCandidate } from '@/lib/dupli
 import { toUserError, type UserError } from '@/lib/errors';
 import {
   addItem,
+  draftFromExpense,
   kstToday,
   mergePayload,
   parseAmountInput,
@@ -59,12 +61,15 @@ const asUserError = (err: unknown): UserError =>
   typeof err === 'object' && err !== null && 'code' in err ? (err as UserError) : toUserError(err);
 
 export default function ReviewExpense() {
-  const { roomId } = useLocalSearchParams<{ roomId: string }>();
+  // edit가 있으면 저장된 지출을 고치는 편집 모드. 편집 draft는 메모리에만 두고 기기의 작성 중 지출과 섞지 않는다.
+  const { roomId, edit, version } = useLocalSearchParams<{ roomId: string; edit?: string; version?: string }>();
   const { session } = useAuth();
   const { data: members } = useRoomMembers(roomId);
   const { stored, setStored, loaded } = useDraft(roomId);
   const save = useSaveExpense(roomId);
-  const draft = stored?.draft ?? null;
+  const updateExpense = useUpdateExpense();
+  const [editing, setEditing] = useState<{ draft: ExpenseDraft; version: number } | null>(null);
+  const draft = edit ? (editing?.draft ?? null) : (stored?.draft ?? null);
 
   const [assignFor, setAssignFor] = useState<string | null>(null);
   const [dupDismissed, setDupDismissed] = useState(false);
@@ -83,12 +88,24 @@ export default function ReviewExpense() {
 
   // 작성 중 지출이 없으면(저장·폐기 후 다시 열림) 장부 홈으로 돌아간다.
   useEffect(() => {
-    if (loaded && !stored) router.back();
-  }, [loaded, stored]);
+    if (!edit && loaded && !stored) router.back();
+  }, [edit, loaded, stored]);
+
+  // 편집 모드: 상세 화면에서 본 version을 기대값으로 쓴다. 그 사이 바뀌었으면 저장 때 VERSION_CONFLICT가 난다.
+  useEffect(() => {
+    if (!edit) return;
+    api.expensePayload(edit).then(
+      ({ payload }) => setEditing({ draft: draftFromExpense(payload), version: Number(version) }),
+      (err: unknown) => setError(asUserError(err).message),
+    );
+  }, [edit, version]);
 
   if (!draft || !members) return null;
 
-  const update = (f: (d: ExpenseDraft) => ExpenseDraft) => setStored((s) => (s ? { ...s, draft: f(s.draft) } : s));
+  const update = (f: (d: ExpenseDraft) => ExpenseDraft) =>
+    edit
+      ? setEditing((s) => (s ? { ...s, draft: f(s.draft) } : s))
+      : setStored((s) => (s ? { ...s, draft: f(s.draft) } : s));
 
   const people: (AvatarPerson & { active: boolean; userId: string | null })[] = members.map((m, i) => ({
     id: m.id,
@@ -107,7 +124,7 @@ export default function ReviewExpense() {
   const fxPending = fxNeeded && !fx.isFetching && !fx.fx;
   const sumOriginal = toDupInput(draft, null).amountOriginal;
 
-  const dup = dupDismissed
+  const dup = dupDismissed || edit
     ? null
     : findDuplicate(toDupInput(draft, preview?.totalKrw ?? null), (recent ?? []).filter((c) => c.id !== draft.id), new Date());
 
@@ -124,6 +141,24 @@ export default function ReviewExpense() {
       return;
     }
     setError(null);
+    if (edit && editing) {
+      try {
+        await updateExpense.mutateAsync({ payload: toSavePayload(draft), expectedVersion: editing.version });
+        router.back();
+      } catch (err) {
+        const e = asUserError(err);
+        setError(e.message);
+        // 덮어쓰지 않는다: 최신 지출과 version으로 draft를 바꾸고, 사용자가 다시 고쳐 저장한다.
+        if (e.code === 'VERSION_CONFLICT') {
+          const latest = await api.expensePayload(edit).catch(() => null);
+          if (latest) {
+            setEditing({ draft: draftFromExpense(latest.payload), version: latest.version });
+            setSplitRev((r) => r + 1);
+          }
+        }
+      }
+      return;
+    }
     try {
       await save.mutateAsync({ payload: toSavePayload(draft), expectedVersion: null });
       router.back();
@@ -295,7 +330,7 @@ export default function ReviewExpense() {
 
       <View className="gap-2 border-t border-divider px-5 pt-3">
         {error && <Text className="text-sm text-minus">{error}</Text>}
-        <PrimaryButton title="저장" onPress={() => void onSave()} disabled={save.isPending} />
+        <PrimaryButton title="저장" onPress={() => void onSave()} disabled={save.isPending || updateExpense.isPending} />
       </View>
 
       <AssigneeSheet

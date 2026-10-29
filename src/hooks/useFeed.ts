@@ -11,7 +11,7 @@ export function useFeed(roomId: RoomId) {
 export function useReconfirmPendingFx(roomId: RoomId) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (pending: FeedRow[]) => {
+    mutationFn: async (pending: Pick<FeedRow, 'paidLocalDate' | 'currency'>[]) => {
       const keys = [...new Set(pending.map((r) => `${r.paidLocalDate}|${r.currency}`))];
       await Promise.allSettled(keys.map((k) => api.fxRate(...(k.split('|') as [string, string]))));
       return api.reconfirmPendingFx(roomId);
