@@ -46,6 +46,8 @@ export type HistoryRow = {
   snapshot: Snapshot;
 };
 
+export type CommentRow = { id: string; authorId: string; body: string; createdAt: string };
+
 export type PayoutAccount = {
   registered: boolean;
   bankName: string | null;
@@ -283,6 +285,28 @@ export const api = {
       at: r.at,
       snapshot: r.snapshot,
     }));
+  },
+
+  // 소프트 삭제된 댓글은 숨긴다. 작성자 이름은 멤버 목록(userId)으로 붙인다.
+  async comments(expenseId: ExpenseId): Promise<CommentRow[]> {
+    const rows = unwrap(
+      await supabase.from('comments').select('id, author_id, body, created_at').eq('expense_id', expenseId).is('deleted_at', null).order('created_at'),
+    );
+    return rows.map((r) => ({ id: r.id, authorId: r.author_id, body: r.body, createdAt: r.created_at }));
+  },
+
+  // comments는 직접 INSERT 예외(ARCHITECTURE §4). RLS가 author_id = 본인·방 멤버를 강제한다. id는 클라이언트 UUID.
+  async addComment(input: { id: string; expenseId: ExpenseId; roomId: RoomId; authorId: string; body: string }): Promise<void> {
+    unwrap(
+      await supabase
+        .from('comments')
+        .insert({ id: input.id, expense_id: input.expenseId, room_id: input.roomId, author_id: input.authorId, body: input.body }),
+    );
+  },
+
+  // RLS가 본인 행만 고치게 한다. 남의 댓글이면 0행이라 조용히 끝난다.
+  async deleteComment(id: string): Promise<void> {
+    unwrap(await supabase.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', id));
   },
 
   async deleteExpense(id: ExpenseId, expectedVersion: number): Promise<void> {

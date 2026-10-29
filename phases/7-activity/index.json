@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "comments",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:50:41+0900",
+      "summary": "src/services/api.ts: CommentRow{id,authorId,body,createdAt}, comments(expenseId)(deleted_at null, created_at순), addComment({id,expenseId,roomId,authorId,body})(직접 INSERT·클라이언트 UUID), deleteComment(id)(deleted_at UPDATE); src/hooks/useComments.ts: useComments/useAddComment(낙관적+롤백)/useDeleteComment, 키 ['expense',id,'comments'](useRealtimeRoom comments 이벤트가 이미 무효화); 상세 화면 댓글 목록·본인 삭제·하단 입력(KeyboardAvoidingView); supabase/tests/070_comments.test.sql(남의 댓글 UPDATE 0행·501자 거부·비멤버 INSERT 거부)",
+      "completed_at": "2026-10-30T02:54:58+0900"
     },
     {
       "step": 2,
