@@ -34,7 +34,8 @@
     },
     {
       "dir": "6-settlement",
-      "status": "pending"
+      "status": "blocked",
+      "blocked_at": "2026-10-30T02:46:06+0900"
     },
     {
       "dir": "7-activity",
