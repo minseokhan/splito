@@ -34,7 +34,7 @@ describe('extractInviteToken', () => {
     ['토큰만', T],
     ['앞뒤 공백', `  ${T}\n`],
     ['카톡 메시지 속 URL', `[스플리토] 오사카 여행에 초대받았어요!\nhttps://${D}/i/${T}\n눌러서 참여하세요`],
-    ['도메인 대소문자', `https://SPLITO.Vercel.app/i/${T}`],
+    ['도메인 대소문자', `https://SPLITO-Trip.Vercel.app/i/${T}`],
   ])('%s', (_, input) => {
     expect(extractInviteToken(input, D)).toBe(T);
   });
