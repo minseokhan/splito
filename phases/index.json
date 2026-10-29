@@ -53,7 +53,8 @@
     },
     {
       "dir": "10-pool-wallet",
-      "status": "pending"
+      "status": "blocked",
+      "blocked_at": "2026-10-30T06:07:56+0900"
     },
     {
       "dir": "11-naver",
