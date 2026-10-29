@@ -8,7 +8,8 @@
     },
     {
       "dir": "1-db-core",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-10-29T14:59:04+0900"
     },
     {
       "dir": "2-auth",
