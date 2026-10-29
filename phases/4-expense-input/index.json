@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "parse-expense-function",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:02:16+0900",
+      "summary": "supabase/functions/parse-expense/{parse.ts,index.ts,parse.test.ts}: parseExpense(deps{now,model,consumeQuota,download,callClaude,timeoutMs?}, body)→{ok:true,data:ParsedExpense}|{ok:false,code,status,room_id?}; 요청 {room_id,kind:'image'|'text',storage_path?,text?(≤4000),base_currency,room_start_date?}; 에러 INVALID_INPUT 400·FORBIDDEN 403·AI_QUOTA_EXCEEDED 429·UPLOAD_INVALID 400·NOT_A_RECEIPT 422·PARSE_INVALID/PARSE_FAILED 502·PARSE_TIMEOUT 504(25초); 후처리: currency 없음/모호→base_currency(currency_ambiguous 유지), '--MM-DD'→room_start_date 연도·confidence low, URL·10자리+ 숫자 품목 low. _shared/parseSchema.ts ParsedExpense(zod)+parsedExpenseJsonSchema. @anthropic-ai/sdk devDependency(Deno가 루트 node_modules로 npm: 해석)",
+      "completed_at": "2026-10-30T01:06:16+0900"
     },
     {
       "step": 3,
