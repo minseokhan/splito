@@ -24,7 +24,7 @@
       "status": "completed",
       "started_at": "2026-10-29T14:30:16+0900",
       "summary": "supabase/migrations/20261029020000_save_expense.sql: save_expense(p_payload jsonb, p_expected_version int default null)→jsonb{id,version,krw_amount,fx_source,fx_rate,fx_base_date}(id 기준 멱등·VERSION_CONFLICT, 원화 확정 KRW→krw_charged(card_krw)→manual_rate→room_fx_overrides(manual)→fx_rates 10일(kexim)→pending, 박스 정수 최대 잔여 배분, 갱신 시 날짜·통화·금액·청구액·수동환율 불변이면 기존 확정 유지) · delete_expense(p_id,p_expected_version)→void(소프트 삭제+version+1, 재호출 멱등) · reconfirm_pending_fx(p_room_id)→int · expense_history(p_expense_id)→setof jsonb{id,action,actor_id,actor_nickname,at,snapshot}(삭제 포함) + 내부 헬퍼 _lookup_fx(text,date)·_allocate_items(uuid)·_expense_snapshot(uuid)·_record_history(uuid,text)(실행권한 전면 회수). 에러 P0001+FORBIDDEN/INVALID_INPUT/AMOUNT_INVALID/DATE_IN_FUTURE/SCOPE_EMPTY/MEMBER_LEFT/INVALID_PAYER/VERSION_CONFLICT. supabase/tests/020_save_expense.test.sql(59개, 전체 132개 통과)",
-      "completed_at": "2026-10-29T14:37:28+0900"
+      "completed_at": "2026-10-29T14:41:33+0900"
     },
     {
       "step": 3,
