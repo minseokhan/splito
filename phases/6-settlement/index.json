@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "settle-view-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:19:27+0900",
+      "summary": "src/lib/settleView.ts: buildCards(transfers,me)→SettleCard[]{from,to,amount,role:'payer'|'payee'|'observer'}(내 카드 먼저·안정 정렬), recordState(r)→'pending'|'confirmed'|'cancelled'|'not_received', pendingConfirmSummary(records,names)→'확인 대기 N건 · 이름들'|null, ledgerChangedAfterTransfer(records,lastExpenseUpdatedAt)(유효 기록 createdAt < 변경 시각, Date.parse 비교), copyText({toName,amount,bankName,accountNumber}); TransferRecord 타입 export; 테스트 src/lib/settleView.test.ts",
+      "completed_at": "2026-10-30T02:25:00+0900"
     },
     {
       "step": 2,
