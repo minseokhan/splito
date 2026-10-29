@@ -7,7 +7,7 @@
       "name": "naver-login",
       "status": "completed",
       "started_at": "2026-10-30T06:09:49+0900",
-      "completed_at": "2026-10-30T06:11:30+0900",
+      "completed_at": "2026-10-30T06:13:41+0900",
       "summary": "src/services/auth.ts: signInWithKakao → signInWithProvider(provider: 'kakao' | 'custom:naver')(PKCE·skipBrowserRedirect·LOGIN_CANCELLED 동일, completeSignIn 공유); app/(auth)/login.tsx 카카오 아래 네이버 버튼(#03C75A·흰 글자·h-52); config.toml 미변경(커스텀 OIDC는 CLI config 미지원 — 대시보드에서 custom:naver, issuer https://nid.naver.com 등록); handle_new_user는 이미 nickname→name→full_name 순으로 읽어 마이그레이션 없음(닉네임 미제공 시 profile-setup에서 입력)"
     },
     {
