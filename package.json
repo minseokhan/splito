@@ -57,7 +57,8 @@
     "lint": "eslint . --max-warnings=0",
     "build": "tsc --noEmit",
     "test": "jest --ci --passWithNoTests",
-    "start": "expo start --dev-client"
+    "start": "expo start --dev-client",
+    "db:types": "supabase gen types typescript --local > src/types/database.ts"
   },
   "private": true
 }
