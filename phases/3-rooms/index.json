@@ -24,7 +24,7 @@
       "status": "completed",
       "started_at": "2026-10-29T23:53:46+0900",
       "summary": "app/(app)/index.tsx(내 여행 목록: 진행 중/정산 완료 탭, RoomCard, 빈 상태, + 여행 만들기→/rooms/new); app/(app)/rooms/new.tsx(zod: name 1~30·baseCurrency isCurrencyCode·start/endDate YYYY-MM-DD 선택 → useCreateRoom → replace /rooms/[roomId]); app/(app)/rooms/[roomId]/_layout.tsx(Stack, headerShown false); [roomId]/index.tsx(장부 홈 뼈대: useMyRooms에서 방 찾아 이름·StatusChip·총지출·내 순잔액, 초대 버튼, 1명 안내, 빈 피드 문구); [roomId]/invite.tsx(useRoom.invite_token+buildInviteUrl(EXPO_PUBLIC_LINK_DOMAIN) QR·Share.share·Clipboard 복사); src/components/Money.tsx(Money{net,size?:'base'|'large'} 부호+받을 돈/줄 돈+a11y 라벨, formatKrw(v)), StatusChip{status}, RoomCard{room,onPress}",
-      "completed_at": "2026-10-29T23:56:11+0900"
+      "completed_at": "2026-10-29T23:58:13+0900"
     },
     {
       "step": 3,
