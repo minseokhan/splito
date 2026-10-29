@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
+import { autoSelectPayer } from '@/lib/pool';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
 import { keepPhoto, saveDraft } from '@/services/drafts';
@@ -122,7 +123,8 @@ export default function NewExpense() {
       return;
     }
     if (controller.signal.aborted) return;
-    const draft = draftFromParse(result, ctx(source));
+    // 공금 카드 끝자리와 일치하면 결제자를 '공금'으로(J7 2번).
+    const draft = autoSelectPayer(draftFromParse(result, ctx(source)), { enabled: room.pool_enabled, cardLast4: room.pool_card_last4 });
     await goReview({ ...draft, photos: photos(p) }, p ? [p.local] : []);
   };
 

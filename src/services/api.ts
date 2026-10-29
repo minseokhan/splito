@@ -507,6 +507,33 @@ export const api = {
     unwrap(await supabase.rpc('remove_guest', { p_member_id: memberId }));
   },
 
+  // 끌 때는 주인을 null로 보낸다(서버가 주인·카드를 비운다). 키를 빼면 함수 시그니처가 안 맞아 null을 그대로 보낸다.
+  async setPool(input: { roomId: RoomId; enabled: boolean; ownerMemberId: MemberId | null; cardLast4: string[] }): Promise<void> {
+    unwrap(
+      await supabase.rpc('set_pool', {
+        p_room_id: input.roomId,
+        p_enabled: input.enabled,
+        p_owner_member_id: input.ownerMemberId as string,
+        p_card_last4: input.cardLast4,
+      }),
+    );
+  },
+
+  // 0원은 서버가 삭제한다(사람당 1행).
+  async upsertPoolDeposits(input: { roomId: RoomId; rows: { memberId: MemberId; amountKrw: Krw }[] }): Promise<void> {
+    unwrap(
+      await supabase.rpc('upsert_pool_deposits', {
+        p_room_id: input.roomId,
+        p_rows: input.rows.map((r) => ({ member_id: r.memberId, amount_krw: r.amountKrw })),
+      }),
+    );
+  },
+
+  async poolDeposits(roomId: RoomId): Promise<{ memberId: MemberId; amountKrw: Krw }[]> {
+    const rows = unwrap(await supabase.from('pool_deposits').select('member_id, amount_krw').eq('room_id', roomId));
+    return rows.map((r) => ({ memberId: r.member_id, amountKrw: r.amount_krw }));
+  },
+
   async ackAiNotice(): Promise<void> {
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user.id;

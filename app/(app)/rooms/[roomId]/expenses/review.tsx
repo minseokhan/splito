@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
-import { useRoomMembers } from '@/hooks/useRooms';
+import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { CURRENCIES } from '@/lib/currency';
 import { describeDuplicate, findDuplicate, type DupCandidate } from '@/lib/duplicate';
 import { toUserError, type UserError } from '@/lib/errors';
@@ -65,6 +65,7 @@ export default function ReviewExpense() {
   const { roomId, edit, version } = useLocalSearchParams<{ roomId: string; edit?: string; version?: string }>();
   const { session } = useAuth();
   const { data: members } = useRoomMembers(roomId);
+  const { data: room } = useRoom(roomId);
   const { stored, setStored, loaded } = useDraft(roomId);
   const save = useSaveExpense(roomId);
   const updateExpense = useUpdateExpense();
@@ -251,6 +252,14 @@ export default function ReviewExpense() {
                 onPress={() => update((d) => ({ ...d, payerKind: 'member', payerMemberId: p.id }))}
               />
             ))}
+            {/* 공금이 켜져 있으면 '공금'도 결제자로 고를 수 있다. 꺼진 뒤 열린 공금 지출도 선택 상태를 보여준다. */}
+            {(room?.pool_enabled || draft.payerKind === 'pool') && (
+              <Chip
+                label="공금"
+                selected={draft.payerKind === 'pool'}
+                onPress={() => update((d) => ({ ...d, payerKind: 'pool', payerMemberId: null }))}
+              />
+            )}
           </View>
         </View>
 

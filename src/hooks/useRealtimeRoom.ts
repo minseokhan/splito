@@ -34,7 +34,8 @@ export function useRealtimeRoom(roomId: RoomId) {
     }
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, () => {
       qc.invalidateQueries({ queryKey: ['room', roomId], exact: true });
-      invalidate(['rooms']);
+      // 공금 통장 주인이 바뀌면 상계 대상이 바뀐다.
+      invalidate(['room', roomId, 'balances'], ['rooms']);
     });
 
     // 끊긴 동안의 이벤트는 다시 오지 않으므로 재구독되면 방 쿼리 전체를 무효화한다(ADR-002).

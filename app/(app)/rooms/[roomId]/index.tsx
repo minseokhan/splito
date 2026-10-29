@@ -199,6 +199,18 @@ export default function RoomHome() {
         >
           <Text className="text-base text-ink-900">멤버</Text>
         </Pressable>
+        {room.memberCount >= 2 && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setMenuOpen(false);
+              router.push({ pathname: '/rooms/[roomId]/pool', params: { roomId } });
+            }}
+            className="h-14 justify-center"
+          >
+            <Text className="text-base text-ink-900">공금 지갑</Text>
+          </Pressable>
+        )}
       </BottomSheet>
       <InputMethodSheet
         visible={sheetOpen}
