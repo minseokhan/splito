@@ -11,7 +11,7 @@ export type EntryRoute =
   | '/(auth)/consent'
   | '/(auth)/profile-setup'
   | { join: string }
-  | '/(app)'
+  | '/home'
   | 'loading';
 
 export function resolveEntryRoute(s: EntryState): EntryRoute {
@@ -20,5 +20,5 @@ export function resolveEntryRoute(s: EntryState): EntryRoute {
   if (!s.consentComplete) return '/(auth)/consent';
   if (!s.nicknameSet) return '/(auth)/profile-setup';
   if (s.pendingInviteToken) return { join: s.pendingInviteToken };
-  return '/(app)';
+  return '/home';
 }

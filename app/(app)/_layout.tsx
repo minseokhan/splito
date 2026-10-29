@@ -3,7 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 
 // 합류 시트로 바로 들어와도 아래에 내 여행 목록이 깔리게 한다.
-export const unstable_settings = { initialRouteName: 'index' };
+export const unstable_settings = { initialRouteName: 'home' };
 
 export default function AppLayout() {
   const { session } = useAuth();

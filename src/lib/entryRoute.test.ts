@@ -10,7 +10,7 @@ describe('resolveEntryRoute', () => {
     ['동의 미완', { ...ready, consentComplete: false, nicknameSet: false }, '/(auth)/consent'],
     ['닉네임 빈칸', { ...ready, nicknameSet: false, pendingInviteToken: 'tok' }, '/(auth)/profile-setup'],
     ['대기 초대', { ...ready, pendingInviteToken: 'tok' }, { join: 'tok' }],
-    ['그 외', ready, '/(app)'],
+    ['그 외', ready, '/home'],
   ])('%s', (_, state, expected) => {
     expect(resolveEntryRoute(state)).toEqual(expected);
   });

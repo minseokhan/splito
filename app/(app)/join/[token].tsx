@@ -22,7 +22,7 @@ export default function JoinSheet() {
   const goRoom = (roomId: string) => router.replace({ pathname: '/rooms/[roomId]', params: { roomId } });
   const close = () => {
     clearPendingInvite().catch(() => undefined);
-    router.replace('/(app)');
+    router.replace('/home');
   };
 
   // 이미 참여 중이면 시트 없이 그 방으로(J2-D).
