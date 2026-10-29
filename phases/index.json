@@ -29,7 +29,8 @@
     },
     {
       "dir": "5-ledger",
-      "status": "pending"
+      "status": "blocked",
+      "blocked_at": "2026-10-30T02:14:45+0900"
     },
     {
       "dir": "6-settlement",
