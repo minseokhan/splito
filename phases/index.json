@@ -49,7 +49,8 @@
     },
     {
       "dir": "9-guest",
-      "status": "pending"
+      "status": "error",
+      "failed_at": "2026-10-30T03:24:35+0900"
     },
     {
       "dir": "10-pool-wallet",
