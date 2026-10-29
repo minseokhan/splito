@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "ledger-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T02:13:35+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T02:14:00+0900"
     }
   ],
   "created_at": "2026-10-30T01:48:46+0900"
