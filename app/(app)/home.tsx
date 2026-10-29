@@ -20,7 +20,13 @@ export default function Home() {
 
   return (
     <SafeAreaView className="flex-1 bg-white px-5">
-      <Text className="pb-4 pt-6 font-bold text-[22px] text-ink-900">내 여행</Text>
+      <View className="flex-row items-center justify-between pb-4 pt-6">
+        <Text className="font-bold text-[22px] text-ink-900">내 여행</Text>
+        {/* 내 정보 화면(F9.2)은 P1. 지금은 받을 계좌 진입만 둔다. */}
+        <Pressable accessibilityRole="button" onPress={() => router.push('/payout-account')} className="h-11 justify-center px-2">
+          <Text className="font-medium text-[15px] text-sky-900">받을 계좌</Text>
+        </Pressable>
+      </View>
       {rooms && rooms.length > 0 && (
         <View className="mb-4 flex-row gap-2">
           {TABS.map((t) => (

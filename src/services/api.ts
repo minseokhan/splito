@@ -414,6 +414,13 @@ export const api = {
     );
   },
 
+  // 내 계좌 요약. RLS가 본인 행만 보여준다. 원문은 암호문뿐이라 읽지 않는다.
+  async myPayoutAccount(): Promise<{ bankCode: string; bankName: string; holderName: string; accountLast4: string } | null> {
+    const { data: r, error } = await supabase.from('payout_accounts').select('bank_code, bank_name, holder_name, account_last4').maybeSingle();
+    if (error) throw toUserError(error);
+    return r && { bankCode: r.bank_code, bankName: r.bank_name, holderName: r.holder_name, accountLast4: r.account_last4 };
+  },
+
   async getPayoutAccount(roomId: RoomId, ownerMemberId: MemberId): Promise<PayoutAccount> {
     const [r] = unwrap(await supabase.rpc('get_payout_account', { p_room_id: roomId, p_owner_member_id: ownerMemberId }));
     return {

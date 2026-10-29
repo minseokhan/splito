@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
@@ -25,15 +25,18 @@ export default function ProfileSetup() {
   });
   const invalid = !!formState.errors.nickname;
 
-  const submit = handleSubmit(async ({ nickname }) => {
-    try {
-      await updateNickname(nickname);
-      await refreshProfile();
-      router.replace('/');
-    } catch (e) {
-      setError(toUserError(e).message);
-    }
-  });
+  // 계좌 등록은 선택이다. [시작하기]가 '나중에'다.
+  const submitTo = (next: '/' | '/payout-account') =>
+    handleSubmit(async ({ nickname }) => {
+      try {
+        await updateNickname(nickname);
+        await refreshProfile();
+        router.replace(next);
+      } catch (e) {
+        setError(toUserError(e).message);
+      }
+    });
+  const disabled = !formState.isValid || formState.isSubmitting;
 
   return (
     <SafeAreaView className="flex-1 bg-white px-5">
@@ -62,7 +65,16 @@ export default function ProfileSetup() {
       </View>
       <View className="gap-2 pb-4">
         {error && <Text className="text-[13px] text-minus">{error}</Text>}
-        <PrimaryButton title="시작하기" disabled={!formState.isValid || formState.isSubmitting} onPress={submit} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={submitTo('/payout-account')}
+          className={`h-14 items-center justify-center rounded-xl bg-sky-200 ${disabled ? 'opacity-40' : ''}`}
+        >
+          <Text className="font-semibold text-base text-ink-900">받을 계좌 등록(선택)</Text>
+        </Pressable>
+        <PrimaryButton title="시작하기" disabled={disabled} onPress={submitTo('/')} />
       </View>
     </SafeAreaView>
   );

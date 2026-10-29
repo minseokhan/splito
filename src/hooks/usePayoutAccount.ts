@@ -15,6 +15,10 @@ export function useRequestPayoutAccount(roomId: RoomId) {
   return useMutation({ mutationFn: (ownerMemberId: MemberId) => api.requestPayoutAccount(roomId, ownerMemberId) });
 }
 
+export function useMyPayoutAccount() {
+  return useQuery({ queryKey: ['payout', 'me'], queryFn: api.myPayoutAccount });
+}
+
 export function useSetPayoutAccount() {
   const qc = useQueryClient();
   return useMutation({
