@@ -18,3 +18,6 @@ a { color: #0874BB; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { border: 1px solid #E3EAF0; padding: 8px; text-align: left; vertical-align: top; }
 th { background: #F5FBFF; color: #0B2540; }
+.btn { display: block; width: 100%; height: 56px; margin-top: 16px; border: 0; border-radius: 12px; background: #36B6FF; color: #0B2540; font-size: 15px; font-weight: 700; }
+.btn:active { background: #1FA3F0; }
+.btn[hidden] { display: none; }
