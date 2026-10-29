@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "room-rpcs",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T14:23:40+0900",
+      "summary": "supabase/migrations/20261029010000_room_rpcs.sql: create_room(p_name,p_base_currency,p_start_date?,p_end_date?)→uuid · preview_invite(p_token)→jsonb{room_id,room_name,inviter_nickname,member_count,already_member} · join_room(p_token)→uuid(신규 INSERT+room_events 'join', 재합류는 left_at=null·같은 id) · update_room(p_room_id,p_name,p_base_currency,p_start_date,p_end_date)→void(방장만, CURRENCY_LOCKED) · rotate_invite(p_room_id)→text + 내부 헬퍼 new_invite_token()(22자 128비트, 실행권한 전면 회수). 에러는 P0001+FORBIDDEN/INVALID_INPUT/INVITE_INVALID/CURRENCY_LOCKED. supabase/tests/010_room_rpcs.test.sql(39개, 전체 73개 통과)",
+      "completed_at": "2026-10-29T14:26:20+0900"
     },
     {
       "step": 2,
