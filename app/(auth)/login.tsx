@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { InvitePasteBox } from '@/components/InvitePasteBox';
 import { toUserError } from '@/lib/errors';
 import { signInWithKakao } from '@/services/auth';
 
@@ -40,6 +41,10 @@ export default function Login() {
         >
           <Text className="font-semibold text-base text-black/85">카카오 로그인</Text>
         </Pressable>
+        {/* 앱 미설치 → 설치 후 첫 실행: 저장된 초대는 로그인 뒤 resolveEntryRoute의 join 분기가 처리한다. */}
+        <View className="pt-6">
+          <InvitePasteBox />
+        </View>
       </View>
     </SafeAreaView>
   );
