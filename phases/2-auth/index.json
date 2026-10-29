@@ -13,7 +13,9 @@
     {
       "step": 1,
       "name": "supabase-client",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T15:33:53+0900",
+      "summary": "src/services/largeSecureStore.ts(LargeSecureStore get/set/removeItem, AES 키 SecureStore·암호문 AsyncStorage) + src/services/supabase.ts(supabase: createClient<Database> pkce·detectSessionInUrl false, AppState 자동갱신) + src/services/auth.ts(signInWithKakao, completeSignIn(url) — 로그인 진행 중일 때만 코드 교환·auth/callback 라우트용, isLoginInProgress, signOut, updateConsent(ConsentInput), updateNickname; 취소 시 Error('LOGIN_CANCELLED')) + src/services/queryClient.ts(staleTime 30s, 4xx 제외 retry 3, mutation 0) + src/hooks/useAuth.tsx(AuthProvider, useAuth→{session: Session|null|undefined(복원 중), profile: Profile|null|undefined(조회 전), refreshProfile}) + app/_layout.tsx Provider 감쌈"
     },
     {
       "step": 2,

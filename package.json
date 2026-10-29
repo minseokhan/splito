@@ -5,6 +5,9 @@
   "dependencies": {
     "@expo/ui": "~57.0.26",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "@tanstack/react-query": "^5.105.0",
+    "aes-js": "^3.1.2",
     "expo": "~57.0.31",
     "expo-application": "~57.0.3",
     "expo-build-properties": "~57.0.22",
@@ -45,6 +48,7 @@
   },
   "devDependencies": {
     "@testing-library/react-native": "^14.1.0",
+    "@types/aes-js": "^3.1.4",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",

@@ -1,9 +1,12 @@
 import '../global.css';
 
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { Text, TextInput } from 'react-native';
 
+import { AuthProvider } from '@/hooks/useAuth';
+import { queryClient } from '@/services/queryClient';
 import { MAX_FONT_SIZE_MULTIPLIER } from '@/theme/tokens';
 
 // 시스템 글꼴 크기는 따르되 최대 1.3배.
@@ -20,5 +23,11 @@ export default function RootLayout() {
     'Pretendard-Bold': require('../assets/fonts/Pretendard-Bold.otf'),
   });
   if (!loaded) return null;
-  return <Stack />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Stack />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }
