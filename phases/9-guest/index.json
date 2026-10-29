@@ -5,7 +5,9 @@
     {
       "step": 0,
       "name": "guest-db",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:12:20+0900",
+      "summary": "supabase/migrations/20261030020000_guest.sql: add_guest(p_room_id uuid, p_name text, p_representative_member_id uuid=null)→uuid(대표자 기본=호출자, guest_added 이벤트), update_guest(p_member_id uuid, p_name text=null, p_representative_member_id uuid=null)→void(NULL=유지, 대표자 변경 시 guest_rep_change {from,to}), remove_guest(p_member_id uuid)→void(결제자·대상·지정·공금입금 참조 시 GUEST_IN_USE, 미참조면 하드 삭제 + room_events.target_member_id null). 에러: INVALID_INPUT(이름 trim 1~12·대표자가 user 아님), MEMBER_LEFT(나간 대표자), FORBIDDEN(user 행·비멤버). pgTAP 080_guest(31). src/types/database.ts 재생성"
     },
     {
       "step": 1,
@@ -22,5 +24,6 @@
       "name": "guest-manual-qa",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T03:12:20+0900"
 }
