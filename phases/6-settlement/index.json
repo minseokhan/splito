@@ -5,7 +5,9 @@
     {
       "step": 0,
       "name": "matching-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:16:45+0900",
+      "summary": "src/lib/matching.ts: matchTransfers(rows: BalanceRow[]): Transfer[] ({from,to,amount}) — user 행만 그리디 매칭, 동점 joinedAt→memberId, Σnet≠0이면 throw; 테스트 src/lib/matching.test.ts(PRD F7 예시 2개·게스트·mulberry32 속성 500방)"
     },
     {
       "step": 1,
@@ -37,5 +39,6 @@
       "name": "settle-manual-qa",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T02:16:45+0900"
 }
