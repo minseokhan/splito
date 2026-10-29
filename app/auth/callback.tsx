@@ -11,7 +11,7 @@ export default function AuthCallback() {
 
   useEffect(() => {
     if (!pending || !url) return;
-    // 실패는 로그인 화면(signInWithKakao 호출 쪽)이 보여준다.
+    // 실패는 로그인 화면(signInWithProvider 호출 쪽)이 보여준다.
     completeSignIn(url)
       .catch(() => undefined)
       .finally(() => router.replace('/'));
