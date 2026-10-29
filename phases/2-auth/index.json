@@ -23,7 +23,7 @@
       "name": "auth-screens",
       "status": "completed",
       "started_at": "2026-10-29T15:41:23+0900",
-      "completed_at": "2026-10-29T15:46:45+0900",
+      "completed_at": "2026-10-29T15:50:19+0900",
       "summary": "app/(auth)/{_layout,login(카카오 #FEE500 h52, 실패 시 toUserError 문구),consent(react-hook-form+zodResolver(consentSchema), 필수 전체 동의+4항목, 국외 이전 접힘 요약, 약관·처리방침 https://${EXPO_PUBLIC_LINK_DOMAIN}/terms·/privacy, 거부=signOut 후 login·초대 보존, 제출→updateConsent→refreshProfile→profile-setup),profile-setup(닉네임 SNS값 미리 채움, updateNickname→/)}.tsx + app/auth/callback.tsx(isLoginInProgress일 때만 completeSignIn(useLinkingURL)) + app/index.tsx(resolveEntryRoute→Redirect, {join}은 TODO(3-rooms)로 /(app)) + app/(app)/{_layout(세션 가드→/(auth)/login),index(빈 상태)}.tsx + src/components/{PrimaryButton({title,onPress,disabled}),Checkbox({label,checked,onChange,bold})}.tsx + app/(auth)/__tests__/consent.test.tsx; react-hook-form·@hookform/resolvers 추가, jest moduleNameMapper(lucide CJS), metro blockList(app/**/__tests__), 루트 Stack headerShown false. RNTL v14는 render/fireEvent가 async(await 필요)"
     },
     {
