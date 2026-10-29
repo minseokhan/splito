@@ -56,7 +56,7 @@
       "status": "completed",
       "started_at": "2026-10-30T01:19:05+0900",
       "summary": "src/services/storage.ts: preparePhoto(uri)→{uri}(긴 변 1600·JPEG 0.8 재인코딩, EXIF 제거)·uploadReceipt(roomId,expenseId,localUri)→storage_path '{room}/{expense}/{uuid}.jpg'(내부에서 항상 preparePhoto, 실패 UPLOAD_FAILED)·signedUrl(path)(600초); src/services/api.ts +parseExpense(req{roomId,kind,storagePath?,text?,baseCurrency,roomStartDate?},signal?)→ParseResult(30초 timeout→PARSE_TIMEOUT, 재시도 없음, 사용자 abort는 원 에러)·fxRate(date,currency)→FxRateResult({base_date,rate,source}|{status})·saveExpense(payload,expectedVersion|null)→{id,version}·recentExpenses(roomId,sinceIso)→DupCandidate[]·ackAiNotice(); src/services/drafts.ts StoredDraft{draft,localPhotos}·keepPhoto(roomId,uri)→documentDirectory/drafts/{roomId}/ 복사 uri·loadDraft/saveDraft/clearDraft(AsyncStorage 'draft:{roomId}'+사진 폴더 삭제); src/hooks/useDraft.ts useDraft(roomId)→{stored,setStored,loaded}(500ms 디바운스 저장)·useSaveExpense(roomId) mutation({payload,expectedVersion})(성공 시 clearDraft·['room',id,'feed']·['rooms'] 무효화); src/hooks/useFxPreview.ts useFxPreview(date|null,currency|null)→query+{fx,toKrw(amount)→number|null}; src/lib/uuid.ts uuidV4()",
-      "completed_at": "2026-10-30T01:22:33+0900"
+      "completed_at": "2026-10-30T01:24:39+0900"
     },
     {
       "step": 7,
