@@ -31,7 +31,8 @@
       "name": "room-balances",
       "status": "completed",
       "started_at": "2026-10-29T14:41:33+0900",
-      "summary": "supabase/migrations/20261029030000_room_balances.sql: room_balances(p_room_id uuid, p_confirmed_only bool default false)→table(member_id,kind,representative_member_id,joined_at,left_at,paid,owed,net bigint,fx_pending_count int)(활성 멤버만 호출·FORBIDDEN, 나간 멤버·게스트 행 포함, 공금 행 없음, floor 분담+자투리는 결제자/공금이면 통장 주인, 남은 공금은 통장 주인 owed, 무효 송금 제외·confirmed_only면 확인분만, 게스트 net=0·현재 대표자 net에 합산, Σnet≠0이면 예외) · my_rooms()→table(room_id,name,base_currency,start_date,end_date,status 'settled'|'settling'|'shared'|'solo',member_count(게스트 포함 활성),total_krw,my_net)(내 활성·미삭제 방, created_at desc). supabase/tests/030_room_balances.test.sql(39개, 전체 171개 통과)"
+      "summary": "supabase/migrations/20261029030000_room_balances.sql: room_balances(p_room_id uuid, p_confirmed_only bool default false)→table(member_id,kind,representative_member_id,joined_at,left_at,paid,owed,net bigint,fx_pending_count int)(활성 멤버만 호출·FORBIDDEN, 나간 멤버·게스트 행 포함, 공금 행 없음, floor 분담+자투리는 결제자/공금이면 통장 주인, 남은 공금은 통장 주인 owed, 무효 송금 제외·confirmed_only면 확인분만, 게스트 net=0·현재 대표자 net에 합산, Σnet≠0이면 예외) · my_rooms()→table(room_id,name,base_currency,start_date,end_date,status 'settled'|'settling'|'shared'|'solo',member_count(게스트 포함 활성),total_krw,my_net)(내 활성·미삭제 방, created_at desc). supabase/tests/030_room_balances.test.sql(39개, 전체 171개 통과)",
+      "completed_at": "2026-10-29T14:49:21+0900"
     },
     {
       "step": 4,
