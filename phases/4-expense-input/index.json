@@ -5,52 +5,83 @@
     {
       "step": 0,
       "name": "fx-rate-function",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T00:51:45+0900",
+      "summary": "supabase/functions/fx-rate/{fx.ts,index.ts,fx.test.ts}: resolveRate(deps,date,currency)→{base_date,rate,source:'kexim'|'krw'}|{status:'pending'|'unsupported'}, normalizeKeximRows·kstToday; date-10~date 역탐색, fx_rates 하루치 upsert(service role). _shared/http.ts json·errorResponse(code,status,roomId?), _shared/auth.ts requireUser(req)→{client,user}|401 AUTH_EXPIRED",
+      "completed_at": "2026-10-30T00:56:55+0900"
     },
     {
       "step": 1,
       "name": "ai-quota-rpc",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T00:56:55+0900",
+      "summary": "supabase/migrations/20261030000000_ai_quota.sql: consume_ai_quota(p_room_id uuid, p_global_limit int) returns void — 멤버만(FORBIDDEN), ai_usage user(uid)/room/global('00000000-0000-0000-0000-000000000000') KST 오늘 upsert+1, user>100·room>300·global>p_global_limit면 AI_QUOTA_EXCEEDED(롤백). authenticated 실행, anon 회수. pgTAP supabase/tests/050_ai_quota.test.sql",
+      "completed_at": "2026-10-30T01:02:16+0900"
     },
     {
       "step": 2,
       "name": "parse-expense-function",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:02:16+0900",
+      "summary": "supabase/functions/parse-expense/{parse.ts,index.ts,parse.test.ts}: parseExpense(deps{now,model,consumeQuota,download,callClaude,timeoutMs?}, body)→{ok:true,data:ParsedExpense}|{ok:false,code,status,room_id?}; 요청 {room_id,kind:'image'|'text',storage_path?,text?(≤4000),base_currency,room_start_date?}; 에러 INVALID_INPUT 400·FORBIDDEN 403·AI_QUOTA_EXCEEDED 429·UPLOAD_INVALID 400·NOT_A_RECEIPT 422·PARSE_INVALID/PARSE_FAILED 502·PARSE_TIMEOUT 504(25초); 후처리: currency 없음/모호→base_currency(currency_ambiguous 유지), '--MM-DD'→room_start_date 연도·confidence low, URL·10자리+ 숫자 품목 low. _shared/parseSchema.ts ParsedExpense(zod)+parsedExpenseJsonSchema. @anthropic-ai/sdk devDependency(Deno가 루트 node_modules로 npm: 해석)",
+      "completed_at": "2026-10-30T01:09:25+0900"
     },
     {
       "step": 3,
       "name": "money-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:09:25+0900",
+      "summary": "src/lib/money.ts(+money.test.ts): roundHalfAwayFromZero·floorDiv·toKrwPreview(amount,ratePerUnit)(×1000·×1e6 BigInt 정수 스케일)·allocateLargestRemainder(total,{position,amount}[])→number[](입력 순서, save_expense _allocate_items와 같은 규칙, 원본 합≤0이면 RangeError)·splitEvenly(box,n)→{perPerson,remainder≥0}·formatKrw('132,000원')·formatForeign('¥3,280','$12.50', KRW/JPY/VND/IDR 소수 0)·fxBasisLabel({source,baseDate?,rate?,currency}) — 미리보기·표시 전용",
+      "completed_at": "2026-10-30T01:12:25+0900"
     },
     {
       "step": 4,
       "name": "duplicate-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:12:25+0900",
+      "summary": "src/lib/duplicate.ts(+duplicate.test.ts): DupCandidate{id,merchant,paidLocalDate,paidLocalTime,currency,amountOriginal,krwAmount,createdAt}; normalizeMerchant(NFKC·소문자·문자/숫자만)·merchantSimilarity(포함=1, 아니면 bigram Dice)·findDuplicate(draft,recent,now)→DupCandidate|null — createdAt 72h 내, 같은 통화 원본/다르면 krw(둘 다 있을 때) ±20%(draft 기준), 둘 다 시각이면 2h(자정 넘김 포함) 아니면 같은 날, 유사도≥0.5; 점수=유사도−상대금액차 최고 1건. 제안 전용",
+      "completed_at": "2026-10-30T01:15:30+0900"
     },
     {
       "step": 5,
       "name": "expense-form-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:15:30+0900",
+      "summary": "src/lib/expenseForm.ts(+expenseForm.test.ts): ParseResult(parse-expense 응답 형태)·DraftItem·ExpenseDraft; draftFromParse(parse,{expenseId,roomId,source,meMemberId,activeMemberIds,todayLocal,newId})(결제자=나·대상=활성 전원, 품목합≠total→마지막에 '기타' isAdjustment+needsReview 박스(음수=할인), total만→총액 박스, low→item.needsReview, 전체 low·통화 모호·날짜/통화 없음→draft.needsReview, aiResult=parse)·emptyDraft(ctx+{currency})(결제일=오늘, 빈 박스 1개)·splitItem(d,itemId,newId)(×1000 floor 반, 나머지 원 박스, 바로 뒤 삽입·position 재번호)·addItem·toggleScope(최소 1명, 빠진 사람 assignee 제거)·validateDraft(d,todayKst)→INVALID_INPUT(currency/paidLocalDate/cardLast4/payer)·AMOUNT_INVALID(Σ원본×1000≤0, krwCharged≤0)·DATE_IN_FUTURE(>KST+1)·SCOPE_EMPTY·toSavePayload(d)→SaveExpensePayload(원화 없음, pool이면 payer_member_id null, 빈 가맹점 null)",
+      "completed_at": "2026-10-30T01:19:04+0900"
     },
     {
       "step": 6,
       "name": "input-services",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:19:05+0900",
+      "summary": "src/services/storage.ts: preparePhoto(uri)→{uri}(긴 변 1600·JPEG 0.8 재인코딩, EXIF 제거)·uploadReceipt(roomId,expenseId,localUri)→storage_path '{room}/{expense}/{uuid}.jpg'(내부에서 항상 preparePhoto, 실패 UPLOAD_FAILED)·signedUrl(path)(600초); src/services/api.ts +parseExpense(req{roomId,kind,storagePath?,text?,baseCurrency,roomStartDate?},signal?)→ParseResult(30초 timeout→PARSE_TIMEOUT, 재시도 없음, 사용자 abort는 원 에러)·fxRate(date,currency)→FxRateResult({base_date,rate,source}|{status})·saveExpense(payload,expectedVersion|null)→{id,version}·recentExpenses(roomId,sinceIso)→DupCandidate[]·ackAiNotice(); src/services/drafts.ts StoredDraft{draft,localPhotos}·keepPhoto(roomId,uri)→documentDirectory/drafts/{roomId}/ 복사 uri·loadDraft/saveDraft/clearDraft(AsyncStorage 'draft:{roomId}'+사진 폴더 삭제); src/hooks/useDraft.ts useDraft(roomId)→{stored,setStored,loaded}(500ms 디바운스 저장)·useSaveExpense(roomId) mutation({payload,expectedVersion})(성공 시 clearDraft·['room',id,'feed']·['rooms'] 무효화); src/hooks/useFxPreview.ts useFxPreview(date|null,currency|null)→query+{fx,toKrw(amount)→number|null}; src/lib/uuid.ts uuidV4()",
+      "completed_at": "2026-10-30T01:24:39+0900"
     },
     {
       "step": 7,
       "name": "input-screens",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:24:40+0900",
+      "summary": "src/components/BottomSheet.tsx(visible,onClose,children; RN Modal·상단 라운드16·손잡이)·InputMethodSheet.tsx(InputMethod='photo'|'text'|'voice'|'manual', onSelect)·ParsingState.tsx(state 'parsing'{label,onCancel}|'failed'{error:UserError,onRetry?,onManual}); app/(app)/rooms/[roomId]/index.tsx FAB('지출 추가')→시트→expenses/new?method=, useFocusEffect loadDraft로 '작성 중인 지출 1건' 배너→expenses/review; app/(app)/rooms/[roomId]/expenses/new.tsx: 첫 AI 인식 고지 시트(ackAiNotice), photo(영수증/결제앱 캡처 선택→receipt|card_image, exif:false→preparePhoto→keepPhoto→uploadReceipt→parseExpense image), text(4000자)→card_text, voice(expo-speech-recognition ko-KR 실시간 자막·60초·수정 가능, STT_UNAVAILABLE/PERMISSION_DENIED+설정 열기)→voice, manual→emptyDraft; 취소=AbortController, 실패 시 수동 [다시 시도](AI_QUOTA_EXCEEDED는 없음)·[직접 입력], 사진은 실패 시에도 saveDraft로 보관; 성공 시 draftFromParse→saveDraft(즉시)→router.replace expenses/review(step 8이 만들 라우트, useDraft로 읽음)",
+      "completed_at": "2026-10-30T01:31:14+0900"
     },
     {
       "step": 8,
       "name": "review-screen",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T01:31:14+0900",
+      "summary": "app/(app)/rooms/[roomId]/expenses/review.tsx(useDraft로 작성 중 지출 편집: 가맹점·결제일·통화 칩·결제자(활성 참여자, 게스트 포함)·대상 인원 아바타 토글, 합계+previewKrw '미리보기 — 저장 시 확정돼요'·환율 대기 배지, ItemBox 목록(이름·금액 수정, 확인 필요 탭 해제, 쪼개기·품목 추가, 참여자 1명이면 지정 숨김), AssigneeSheet '2명 · 1인 ¥1,640', 중복 배너 recentExpenses(72h)+findDuplicate+describeDuplicate [합치기]=expensePayload→copyReceipt→mergePayload→saveExpense(기존 version) [별개예요], [저장]=validateDraft(kstToday) 실패 시 섹션 스크롤+toUserError 문구 → saveExpense(toSavePayload,null) → router.back); lib/expenseForm +updateItem·setAssignees(대상 인원 안만)·parseAmountInput·previewKrw(d,rate)→{totalKrw,boxKrw}|null(청구액>KRW>환율)·toDupInput·mergePayload(existing,d,photos)·kstToday·perPersonOriginal; lib/duplicate +describeDuplicate(c,todayLocal); services/api +expensePayload(id)→{payload,version}; services/storage +copyReceipt(path,roomId,expenseId); components Avatar(합류 순서 색·게스트 점선)·AvatarStack(4+n)·Badge(review|pending, 탭 해제)·ItemBox·AssigneeSheet; 화면 테스트 expenses/__tests__/review.test.tsx",
+      "completed_at": "2026-10-30T01:42:44+0900"
     },
     {
       "step": 9,
       "name": "input-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T01:42:44+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T01:43:39+0900"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T00:51:45+0900"
 }
