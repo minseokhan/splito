@@ -343,8 +343,8 @@ function Title({ title, sub }: { title: string; sub: string }) {
 
 const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera }[] = [
   { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText },
-  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone },
-  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil },
+  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone },
+  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil },
 ];
 
 // 시안 6: 지출 올리기 방법 선택(전체 화면).

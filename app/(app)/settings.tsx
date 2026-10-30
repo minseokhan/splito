@@ -48,9 +48,18 @@ function Toggle({ on, label, onChange }: { on: boolean; label: string; onChange:
       accessibilityState={{ checked: on }}
       onPress={() => onChange(!on)}
       hitSlop={8}
-      className={`h-7 w-[46px] rounded-full p-[3px] ${on ? 'items-end bg-primary' : 'items-start bg-line'}`}
+      // 46×28 트랙 + 22 손잡이(여백 3). 크기는 style로 고정해 레이아웃 계산이 흔들리지 않게 한다.
+      style={{
+        width: 46,
+        height: 28,
+        borderRadius: 14,
+        padding: 3,
+        justifyContent: 'center',
+        alignItems: on ? 'flex-end' : 'flex-start',
+        backgroundColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT,
+      }}
     >
-      <View className="h-[22px] w-[22px] rounded-full bg-white" style={{ boxShadow: '0 1px 3px rgba(19,25,39,.2)' }} />
+      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', boxShadow: '0 1px 3px rgba(19,25,39,.2)' }} />
     </Pressable>
   );
 }
