@@ -14,7 +14,7 @@ export function isLoginInProgress(): boolean {
   return loginInProgress;
 }
 
-// signInWithKakao와 app/auth/callback 라우트가 함께 쓴다. 먼저 호출한 쪽만 교환한다.
+// signInWithProvider와 app/auth/callback 라우트가 함께 쓴다. 먼저 호출한 쪽만 교환한다.
 export async function completeSignIn(url: string): Promise<void> {
   if (!loginInProgress) return;
   loginInProgress = false;
@@ -24,9 +24,10 @@ export async function completeSignIn(url: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function signInWithKakao(): Promise<void> {
+// 네이버는 Supabase 커스텀 OIDC 제공자(대시보드에서 등록, config.toml 미지원)다(ADR-005).
+export async function signInWithProvider(provider: 'kakao' | 'custom:naver'): Promise<void> {
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'kakao',
+    provider,
     options: { redirectTo: REDIRECT_TO, skipBrowserRedirect: true },
   });
   if (error) throw error;
