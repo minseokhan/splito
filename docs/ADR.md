@@ -121,7 +121,7 @@
 **결정**
 - 6자리 초대코드 UI를 두지 않는다(플로우 다이어그램 기준).
 - 링크는 `https://{LINK_DOMAIN}/i/{token}`이다. iOS Universal Link, Android App Link로 앱을 연다.
-- 도메인은 해커톤 동안 Vercel 기본 서브도메인(`splito.vercel.app`, 가칭)을 쓰고, 출시 전에 자체 도메인으로 바꾼다. 도메인이 바뀌면 앱을 다시 빌드해야 한다.
+- 도메인은 해커톤 동안 Vercel 기본 서브도메인(`splito-trip.vercel.app`)을 쓰고, 출시 전에 자체 도메인으로 바꾼다. 도메인이 바뀌면 앱을 다시 빌드해야 한다.
 - 앱 미설치 경로:
   - Android: Play Install Referrer로 토큰을 복원한다.
   - iOS: 랜딩이 링크를 클립보드에 복사하고, 첫 실행 때 `ClipboardPasteButton`으로 붙여넣는다.

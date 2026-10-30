@@ -5,32 +5,51 @@
     {
       "step": 0,
       "name": "invite-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T23:46:59+0900",
+      "summary": "src/lib/invite.ts: INVITE_TOKEN_RE(/^[A-Za-z0-9_-]{22}$/), buildInviteUrl(domain,token)→https://{domain}/i/{token}, extractInviteToken(input,domain)→string|null(https 동일 도메인·splito://i/·/i/·토큰만·메시지 속 URL, 타 도메인/http 거부), PendingInvite{token,savedAt}, isPendingInviteValid(p,now)(24h 미만·미래 시각 거부); src/lib/currency.ts: CURRENCIES(16종 {code,label,unit:1|100,symbol}, JPY·IDR unit 100), isCurrencyCode(v)",
+      "completed_at": "2026-10-29T23:50:35+0900"
     },
     {
       "step": 1,
       "name": "room-services",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T23:50:35+0900",
+      "summary": "src/services/api.ts: api{createRoom({name,baseCurrency,startDate?,endDate?})→RoomId, previewInvite(token)→InvitePreview{roomId,roomName,inviterNickname,memberCount,alreadyMember}, joinRoom(token)→RoomId, myRooms()→MyRoom[], roomMembers(roomId)→RoomMember[](room_members+member_profiles 2회 조회, joined_at 순), room(roomId)→Room(=Tables<'rooms'>)}, 에러는 toUserError로 throw; src/types/domain.ts: MyRoom{roomId,name,baseCurrency,startDate,endDate,status:RoomStatus,memberCount,myNet,totalKrw}, RoomMember{id,kind,userId,name,avatarUrl,representativeMemberId,joinedAt,leftAt}; src/services/pendingInvite.ts: savePendingInvite(token)·loadPendingInvite()(만료·깨짐이면 삭제 후 null)·clearPendingInvite() (SecureStore 'pending_invite'); src/hooks/useRooms.ts: useMyRooms(['rooms'])·useRoom(id)(['room',id])·useRoomMembers(id)(['room',id,'members'])·useCreateRoom()·useJoinRoom()(성공 시 ['rooms'] 무효화)",
+      "completed_at": "2026-10-29T23:53:45+0900"
     },
     {
       "step": 2,
       "name": "room-screens",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T23:53:46+0900",
+      "summary": "app/(app)/index.tsx(내 여행 목록: 진행 중/정산 완료 탭, RoomCard, 빈 상태, + 여행 만들기→/rooms/new); app/(app)/rooms/new.tsx(zod: name 1~30·baseCurrency isCurrencyCode·start/endDate YYYY-MM-DD 선택 → useCreateRoom → replace /rooms/[roomId]); app/(app)/rooms/[roomId]/_layout.tsx(Stack, headerShown false); [roomId]/index.tsx(장부 홈 뼈대: useMyRooms에서 방 찾아 이름·StatusChip·총지출·내 순잔액, 초대 버튼, 1명 안내, 빈 피드 문구); [roomId]/invite.tsx(useRoom.invite_token+buildInviteUrl(EXPO_PUBLIC_LINK_DOMAIN) QR·Share.share·Clipboard 복사); src/components/Money.tsx(Money{net,size?:'base'|'large'} 부호+받을 돈/줄 돈+a11y 라벨, formatKrw(v)), StatusChip{status}, RoomCard{room,onPress}",
+      "completed_at": "2026-10-29T23:58:13+0900"
     },
     {
       "step": 3,
       "name": "invite-deeplink",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-29T23:58:13+0900",
+      "summary": "src/lib/invite.ts toSystemPath(path,domain)→'/i/{token}'(동일 도메인 https·splito://i/·/i/, 토큰 정규식 통과)|auth/callback 원문|'/'; app/+native-intent.tsx redirectSystemPath→toSystemPath; app/i/[token].tsx(토큰 검증→savePendingInvite→replace '/'); app/index.tsx(loadPendingInvite→resolveEntryRoute pendingInviteToken, {join}→/join/[token]); app/(app)/_layout.tsx(unstable_settings initialRouteName 'index', join/[token] transparentModal); app/(app)/join/[token].tsx 합류 확인 바텀시트(useInvitePreview→'OO 여행에 참여할까요?'·초대한 사람·인원→[참여하기] useJoinRoom→clearPendingInvite→replace /rooms/[roomId]; alreadyMember면 바로 방; INVITE_INVALID면 고정 문구+pending 삭제; [나중에]도 pending 삭제); src/hooks/useRooms.ts useInvitePreview(token)(['invite',token], retry false)",
+      "completed_at": "2026-10-30T00:04:55+0900"
     },
     {
       "step": 4,
       "name": "web-static",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T00:04:55+0900",
+      "summary": "web/ 정적 사이트: .well-known/apple-app-site-association(appIDs TEAMID_PLACEHOLDER.com.hanms.splito, /i/*)·assetlinks.json(com.hanms.splito, SHA256_PLACEHOLDER); i/index.html(고정 문구 '스플리토 여행에 초대받았어요'+앱에서 열기 안내, 스크립트 없음); terms.html·privacy.html(초안 표시, 국외 이전 표·EXIF·1년 보관·계좌 암호화·탈퇴 익명화); style.css(CSP상 인라인 style 불가라 외부 파일, UI_GUIDE 토큰); vercel.json(rewrite /i/:token→/i/index.html, CSP·Referrer-Policy no-referrer·nosniff, AASA Content-Type application/json). 플레이스홀더 교체·vercel deploy는 manual QA",
+      "completed_at": "2026-10-30T00:08:00+0900"
     },
     {
       "step": 5,
       "name": "rooms-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T00:08:00+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T00:09:08+0900"
     }
-  ]
+  ],
+  "created_at": "2026-10-29T23:46:59+0900"
 }

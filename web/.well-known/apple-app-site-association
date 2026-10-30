@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID_PLACEHOLDER.com.hanms.splito"],
+        "components": [{ "/": "/i/*" }]
+      }
+    ]
+  }
+}

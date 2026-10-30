@@ -49,3 +49,26 @@ export type SaveExpensePayload = {
   }[];
   photos?: { storage_path: string; kind: 'receipt' | 'capture' }[];
 };
+
+export type MyRoom = {
+  roomId: RoomId;
+  name: string;
+  baseCurrency: string;
+  startDate: string | null;
+  endDate: string | null;
+  status: RoomStatus;
+  memberCount: number;
+  myNet: Krw;
+  totalKrw: Krw;
+};
+
+export type RoomMember = {
+  id: MemberId;
+  kind: 'user' | 'guest';
+  userId: string | null;
+  name: string; // user는 닉네임, guest는 guest_name
+  avatarUrl: string | null;
+  representativeMemberId: MemberId | null;
+  joinedAt: string;
+  leftAt: string | null;
+};

@@ -289,7 +289,7 @@ Apple(P1, iOS): expo-apple-authentication → signInWithIdToken({provider:'apple
 
 ### 6.2 초대 딥링크
 ```
-링크: https://{LINK_DOMAIN}/i/{token}  — 해커톤은 Vercel 기본 서브도메인(`splito.vercel.app`, 가칭), 출시 전 자체 도메인으로 교체
+링크: https://{LINK_DOMAIN}/i/{token}  — 해커톤은 Vercel 기본 서브도메인(`splito-trip.vercel.app`), 출시 전 자체 도메인으로 교체
       (도메인은 app.config.ts의 associatedDomains·intentFilters에 박히므로 바꾸면 앱 재빌드가 필요하다. 환경변수 `EXPO_PUBLIC_LINK_DOMAIN`으로 한 곳에서 관리)
       AASA·assetlinks 대상 경로는 /i/* 하나. assetlinks에는 Play 앱 서명 키(개발 빌드는 EAS 키) SHA-256
 설치됨 : Universal/App Link → app/i/[token].tsx → pending_invite 저장(SecureStore, 24h) → 로그인 확인 → preview_invite → 시트 → join_room
