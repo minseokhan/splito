@@ -44,7 +44,8 @@
     },
     {
       "dir": "8-install-join",
-      "status": "pending"
+      "status": "blocked",
+      "blocked_at": "2026-10-30T03:11:09+0900"
     },
     {
       "dir": "9-guest",

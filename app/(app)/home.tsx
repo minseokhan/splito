@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { InvitePasteBox } from '@/components/InvitePasteBox';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { RoomCard } from '@/components/RoomCard';
 import { useMyRooms } from '@/hooks/useRooms';
@@ -47,6 +48,10 @@ export default function Home() {
       ) : rooms?.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <Text className="font-semibold text-[17px] text-ink-900">첫 여행을 만들어 볼까요?</Text>
+          {/* 로그인 상태: 저장 후 '/'로 보내면 resolveEntryRoute가 합류 확인으로 보낸다. */}
+          <View className="w-full pt-8">
+            <InvitePasteBox onSaved={() => router.replace('/')} />
+          </View>
         </View>
       ) : (
         <FlatList

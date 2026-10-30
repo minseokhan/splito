@@ -5,17 +5,27 @@
     {
       "step": 0,
       "name": "landing-download",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:03:13+0900",
+      "summary": "web/i/landing.js(ANDROID_URL·IOS_URL 자리표시자 상수, pathname 토큰 ^[A-Za-z0-9_-]{22}$ 검증 실패·데스크톱이면 #download 숨김, 클릭 시 clipboard.writeText(location.href) 후 UA별 URL로 이동) + web/i/index.html 안내 문구·hidden [앱 받기] 버튼·<script src=/i/landing.js defer> + web/style.css .btn(Primary)",
+      "completed_at": "2026-10-30T03:05:59+0900"
     },
     {
       "step": 1,
       "name": "invite-restore",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:06:00+0900",
+      "completed_at": "2026-10-30T03:10:22+0900",
+      "summary": "src/components/InvitePasteBox.tsx({onSaved?}: iOS16+ Clipboard.ClipboardPasteButton / 그 외 [초대 링크 붙여넣기]=getStringAsync / 입력칸+[확인] → extractInviteToken(EXPO_PUBLIC_LINK_DOMAIN) → savePendingInvite + 성공·실패 문구) 를 app/(auth)/login.tsx 하단과 app/(app)/home.tsx 빈 상태(onSaved→router.replace('/')로 resolveEntryRoute join 분기)에 배치"
     },
     {
       "step": 2,
       "name": "install-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T03:10:22+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T03:11:09+0900"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T03:03:13+0900"
 }
