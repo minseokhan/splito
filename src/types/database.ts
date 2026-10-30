@@ -554,6 +554,9 @@ isOneToOne: false
               "base_date": string,"rate": number
             }[]
                            },
+"_payout_key":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "_record_history":
 { Args: { "p_action": string,"p_expense_id": string }; Returns: undefined
                            },
@@ -563,6 +566,9 @@ isOneToOne: false
 "confirm_transfer":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"consume_ai_quota":
+{ Args: { "p_global_limit": number,"p_room_id": string }; Returns: undefined
+                           },
 "create_room":
 { Args: { "p_base_currency": string,"p_end_date"?: string,"p_name": string,"p_start_date"?: string }; Returns: string
                            },
@@ -571,6 +577,11 @@ isOneToOne: false
                            },
 "expense_history":
 { Args: { "p_expense_id": string }; Returns: Json[]
+                           },
+"get_payout_account":
+{ Args: { "p_owner_member_id": string,"p_room_id": string }; Returns: {
+              "account_masked": string,"account_number": string,"bank_name": string,"holder_name": string,"registered": boolean
+            }[]
                            },
 "is_room_member":
 { Args: { "p_room_id": string }; Returns: boolean
@@ -609,6 +620,9 @@ isOneToOne: false
 "reject_transfer":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"request_payout_account":
+{ Args: { "p_owner_member_id": string,"p_room_id": string }; Returns: undefined
+                           },
 "room_balances":
 { Args: { "p_confirmed_only"?: boolean,"p_room_id": string }; Returns: {
               "fx_pending_count": number,"joined_at": string,"kind": string,"left_at": string,"member_id": string,"net": number,"owed": number,"paid": number,"representative_member_id": string
@@ -619,6 +633,9 @@ isOneToOne: false
                            },
 "save_expense":
 { Args: { "p_expected_version"?: number,"p_payload": Json }; Returns: Json
+                           },
+"set_payout_account":
+{ Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined
                            },
 "update_room":
 { Args: { "p_base_currency": string,"p_end_date": string,"p_name": string,"p_room_id": string,"p_start_date": string }; Returns: undefined

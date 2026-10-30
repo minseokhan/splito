@@ -5,37 +5,59 @@
     {
       "step": 0,
       "name": "matching-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:16:45+0900",
+      "summary": "src/lib/matching.ts: matchTransfers(rows: BalanceRow[]): Transfer[] ({from,to,amount}) — user 행만 그리디 매칭, 동점 joinedAt→memberId, Σnet≠0이면 throw; 테스트 src/lib/matching.test.ts(PRD F7 예시 2개·게스트·mulberry32 속성 500방)",
+      "completed_at": "2026-10-30T02:19:27+0900"
     },
     {
       "step": 1,
       "name": "settle-view-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:19:27+0900",
+      "summary": "src/lib/settleView.ts: buildCards(transfers,me)→SettleCard[]{from,to,amount,role:'payer'|'payee'|'observer'}(내 카드 먼저·안정 정렬), recordState(r)→'pending'|'confirmed'|'cancelled'|'not_received', pendingConfirmSummary(records,names)→'확인 대기 N건 · 이름들'|null, ledgerChangedAfterTransfer(records,lastExpenseUpdatedAt)(유효 기록 createdAt < 변경 시각, Date.parse 비교), copyText({toName,amount,bankName,accountNumber}); TransferRecord 타입 export; 테스트 src/lib/settleView.test.ts",
+      "completed_at": "2026-10-30T02:21:31+0900"
     },
     {
       "step": 2,
       "name": "payout-db",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:21:31+0900",
+      "summary": "supabase/migrations/20261030010000_payout.sql: set_payout_account(bank_code,bank_name,holder_name,account_number)→void(숫자·하이픈, 숫자 8~20 else INVALID_INPUT, pgp_sym_encrypt(Vault 'payout_account_key'), 본인 upsert), get_payout_account(room_id,owner_member_id)→{registered,bank_name,holder_name,account_masked '****-**-***'||last4,account_number(본인 또는 room_balances(false) 호출자 net<0∧주인 net>0일 때만, 아니면 NULL)}(남의 원문 시 payout_reveals+room_events 'payout_reveal', (viewer,room) KST 하루 20회 초과 RATE_LIMITED, 비멤버·방 밖 주인 FORBIDDEN), request_payout_account(room_id,owner_member_id)→room_events 'payout_request'; supabase/seed.sql 개발용 Vault 키; pgTAP supabase/tests/060_payout.test.sql(38); src/types/database.ts 재생성",
+      "completed_at": "2026-10-30T02:28:33+0900"
     },
     {
       "step": 3,
       "name": "settle-services",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:28:33+0900",
+      "summary": "src/services/api.ts: roomBalances(roomId,confirmedOnly=false)→{rows:BalanceRow[],fxPendingCount}, transfers(roomId)→TransferRecord[], recordTransfer({id,roomId,from,to,amount}), confirm/reject/cancelTransfer(id), setPayoutAccount({bankCode,bankName,holderName,accountNumber}), getPayoutAccount(roomId,ownerMemberId)→PayoutAccount{registered,bankName,holderName,accountMasked,accountNumber|null}, requestPayoutAccount; src/hooks/useSettlement.ts: useBalances(['room',id,'balances']), useTransfers(['room',id,'transfers']), useSettlePlan(roomId)→{...balancesQuery, me:RoomMember|undefined, cards:SettleCard[]|undefined}, useRecord/Confirm/Reject/CancelTransfer(roomId)(성공 시 balances·transfers·['rooms'] 무효화, 낙관적 업데이트 없음); src/hooks/usePayoutAccount.ts: usePayoutAccount(roomId,ownerMemberId)(['payout',roomId,owner]), useRequestPayoutAccount(roomId), useSetPayoutAccount(); useRealtimeRoom은 이미 transfers 키 무효화 중(변경 없음)",
+      "completed_at": "2026-10-30T02:31:40+0900"
     },
     {
       "step": 4,
       "name": "settle-screen",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:31:40+0900",
+      "completed_at": "2026-10-30T02:37:08+0900",
+      "summary": "app/(app)/rooms/[roomId]/settle.tsx(진입 시 pending 지출 useReconfirmPendingFx 1회·환율 대기 띠+[확인하기]·1명이면 초대 안내·BalanceTable·송금 카드(CardContainer가 usePayoutAccount(card.to), 복사 시 AsyncStorage 'clipboard_sync_notice_shown' 1회 안내)·[보냈어요] SendSheet(금액 수정, 시트당 uuid)·payee [받았어요]=recordTransfer(from=card.from,to=me)·송금 기록 TransferRecordRow(받았어요/못 받았어요/취소)·pendingConfirmSummary·ledgerChangedAfterTransfer 배너); src/components/BalanceTable.tsx({rows,names,colorIndex}), src/components/TransferCard.tsx(TransferCard·TransferRecordRow); api.lastExpenseChangeAt(roomId)(expense_history 최신 at) + useLastExpenseChange(['room',id,'feed','lastChange']); 장부 홈 상단 [정산] 버튼(memberCount≥2)"
     },
     {
       "step": 5,
       "name": "payout-account-screen",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:37:09+0900",
+      "summary": "src/lib/bank.ts: BANKS({code,name} 금융결제원 코드 27개: 은행·인터넷은행·증권), accountNumberSchema(trim, 숫자·하이픈, 숫자 8~20자리 — 서버 set_payout_account와 동일) + bank.test.ts; api.myPayoutAccount()→{bankCode,bankName,holderName,accountLast4}|null(payout_accounts 본인 행 SELECT, 원문 미조회) + useMyPayoutAccount(['payout','me']); app/(app)/payout-account.tsx(등록 시 은행·'****-**-***'+last4 카드 → [계좌 수정하기], 은행 BottomSheet·예금주·계좌번호 폼 → useSetPayoutAccount, 완료 시 back 또는 '/'); profile-setup에 [받을 계좌 등록(선택)](닉네임 저장 후 /payout-account) + [시작하기]=나중에; home 우상단 [받을 계좌] 진입",
+      "completed_at": "2026-10-30T02:44:58+0900"
     },
     {
       "step": 6,
       "name": "settle-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T02:44:58+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T02:46:06+0900"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T02:16:45+0900"
 }
