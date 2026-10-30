@@ -5,22 +5,35 @@
     {
       "step": 0,
       "name": "pool-db",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T05:53:25+0900",
+      "summary": "supabase/migrations/20261030030000_pool.sql: set_pool(p_room_id uuid, p_enabled boolean, p_owner_member_id uuid, p_card_last4 text[]) → void (켤 때 활성 user 통장 주인 필수·카드 ^[0-9]{4}$ ≤5개=INVALID_INPUT, 끌 때 공금 결제·입금 있으면 POOL_IN_USE·끄면 주인/카드 비움, 주인 변경 시 room_events pool_owner_change {from,to}) + upsert_pool_deposits(p_room_id uuid, p_rows jsonb [{member_id, amount_krw}]) → void (공금 꺼짐 INVALID_PAYER, 정수 ≥0 아니면 INVALID_INPUT, 나간 참여자 MEMBER_LEFT, 0은 삭제, 게스트 허용, pool_deposits(member_id) unique=사람당 1행); pgTAP supabase/tests/090_pool.test.sql(28개, F7 예시 2 RPC만으로 재현); src/types/database.ts 재생성",
+      "completed_at": "2026-10-30T05:59:14+0900"
     },
     {
       "step": 1,
       "name": "pool-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T05:59:14+0900",
+      "summary": "src/lib/pool.ts: autoSelectPayer(draft: ExpenseDraft, pool:{enabled, cardLast4: string[]}) → ExpenseDraft (일치 시 payerKind 'pool'·payerMemberId null, 꺼짐/불일치/끝자리 없음이면 같은 객체), poolNote(remainingKrw, ownerName) → '남은 공금 N원은 B 님이 돌려줄 금액에 포함됐어요' | '부족한 공금 N원은 B 님이 받을 금액에 포함됐어요' | null, poolRemaining(deposits[], spent[]) → 입금합−공금결제합(문구용), fillEqual(memberIds, amountKrw) → [{memberId, amountKrw}]; 테스트 src/lib/pool.test.ts",
+      "completed_at": "2026-10-30T06:01:35+0900"
     },
     {
       "step": 2,
       "name": "pool-screens",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T06:01:36+0900",
+      "completed_at": "2026-10-30T06:07:02+0900",
+      "summary": "src/services/api.ts: setPool({roomId, enabled, ownerMemberId|null, cardLast4}), upsertPoolDeposits({roomId, rows:[{memberId, amountKrw}]}), poolDeposits(roomId); src/hooks/usePool.ts: usePoolDeposits(['room',id,'pool']), useSetPool/useUpsertPoolDeposits(['room',id]·['rooms'] 무효화); useRealtimeRoom rooms 이벤트에 balances 무효화 추가; app/(app)/rooms/[roomId]/pool.tsx(켜기/끄기·통장 주인 user만+변경 경고·입금+같은 금액 일괄·카드 끝자리·남은 공금); 방 메뉴 '공금 지갑'(2명 이상); review 결제자 '공금' 칩; new.tsx draftFromParse 직후 autoSelectPayer; settle 통장 주인 카드 아래 poolNote"
     },
     {
       "step": 3,
       "name": "pool-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T06:07:03+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T06:07:56+0900"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T05:53:25+0900"
 }

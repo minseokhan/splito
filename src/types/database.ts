@@ -666,11 +666,17 @@ isOneToOne: false
 "set_payout_account":
 { Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined
                            },
+"set_pool":
+{ Args: { "p_card_last4": (string)[],"p_enabled": boolean,"p_owner_member_id": string,"p_room_id": string }; Returns: undefined
+                           },
 "update_guest":
 { Args: { "p_member_id": string,"p_name"?: string,"p_representative_member_id"?: string }; Returns: undefined
                            },
 "update_room":
 { Args: { "p_base_currency": string,"p_end_date": string,"p_name": string,"p_room_id": string,"p_start_date": string }; Returns: undefined
+                           },
+"upsert_pool_deposits":
+{ Args: { "p_room_id": string,"p_rows": Json }; Returns: undefined
                            }
           }
           Enums: {

@@ -12,7 +12,8 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { TransferCard, TransferRecordRow } from '@/components/TransferCard';
 import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
 import { usePayoutAccount, useRequestPayoutAccount } from '@/hooks/usePayoutAccount';
-import { useRoomMembers } from '@/hooks/useRooms';
+import { usePoolDeposits } from '@/hooks/usePool';
+import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import {
   useCancelTransfer,
   useConfirmTransfer,
@@ -23,6 +24,7 @@ import {
   useTransfers,
 } from '@/hooks/useSettlement';
 import { guestShareNote, orderBalanceRows } from '@/lib/guestView';
+import { poolNote, poolRemaining } from '@/lib/pool';
 import { copyText, ledgerChangedAfterTransfer, pendingConfirmSummary, recordState, type SettleCard } from '@/lib/settleView';
 import { uuidV4 } from '@/lib/uuid';
 import type { RoomId } from '@/types/domain';
@@ -38,6 +40,8 @@ export default function Settle() {
   const { data: records = [] } = useTransfers(roomId);
   const { data: lastChange = null } = useLastExpenseChange(roomId);
   const feed = useFeed(roomId);
+  const { data: room } = useRoom(roomId);
+  const { data: deposits = [] } = usePoolDeposits(roomId);
   const reconfirm = useReconfirmPendingFx(roomId);
   const record = useRecordTransfer(roomId);
   const confirm = useConfirmTransfer(roomId);
@@ -80,6 +84,18 @@ export default function Settle() {
   const fxPending = plan.data.fxPendingCount;
   const summary = pendingConfirmSummary(records, names);
   const changed = ledgerChangedAfterTransfer(records, lastChange);
+  // 공금은 송금 대상이 아니다. 남은 공금은 통장 주인 순잔액에 이미 합쳐져 있어 설명만 붙인다(J7 3번).
+  const poolOwner = room?.pool_enabled ? room.pool_owner_member_id : null;
+  const poolText = poolOwner
+    ? poolNote(
+        poolRemaining(
+          deposits.map((d) => d.amountKrw),
+          (feed.data ?? []).flatMap((r) => (r.payerKind === 'pool' && r.krwAmount !== null ? [r.krwAmount] : [])),
+        ),
+        names[poolOwner] ?? '',
+      )
+    : null;
+  const poolCard = poolText ? plan.cards.find((c) => c.from === poolOwner || c.to === poolOwner) : undefined;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -103,20 +119,23 @@ export default function Settle() {
         <Text className="mb-2 mt-6 font-semibold text-[17px] text-ink-900">송금</Text>
         {plan.cards.length === 0 && <Text className="text-[15px] text-ink-700">남은 송금이 없어요</Text>}
         {plan.cards.map((c) => (
-          <CardContainer
-            key={`${c.from}-${c.to}`}
-            roomId={roomId}
-            card={c}
-            names={names}
-            guestNote={shareNote(c)}
-            rejected={records.some((r) => r.from === c.from && r.to === c.to && recordState(r) === 'not_received')}
-            busy={busy}
-            onSend={() => setSendCard(c)}
-            onReceived={() =>
-              record.mutate({ id: uuidV4(), roomId, from: c.from, to: me, amount: c.amount }, { onError: showError })
-            }
-          />
+          <View key={`${c.from}-${c.to}`} className="gap-1">
+            <CardContainer
+              roomId={roomId}
+              card={c}
+              names={names}
+              guestNote={shareNote(c)}
+              rejected={records.some((r) => r.from === c.from && r.to === c.to && recordState(r) === 'not_received')}
+              busy={busy}
+              onSend={() => setSendCard(c)}
+              onReceived={() =>
+                record.mutate({ id: uuidV4(), roomId, from: c.from, to: me, amount: c.amount }, { onError: showError })
+              }
+            />
+            {c === poolCard && <Text className="text-[13px] text-ink-500">{poolText}</Text>}
+          </View>
         ))}
+        {poolText && !poolCard && <Text className="text-[13px] text-ink-500">{poolText}</Text>}
 
         {records.length > 0 && (
           <>
