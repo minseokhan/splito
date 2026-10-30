@@ -93,6 +93,23 @@ export function emptyDraft(ctx: Ctx & { currency: string }): ExpenseDraft {
   };
 }
 
+// [수정]: 저장된 지출(api.expensePayload) → 편집용 draft. 박스 id를 유지해야 save_expense가 같은 박스로 갱신한다.
+export function draftFromExpense(p: SaveExpensePayload): ExpenseDraft {
+  return {
+    id: p.id, roomId: p.room_id, source: p.source, payerKind: p.payer_kind, payerMemberId: p.payer_member_id,
+    merchant: p.merchant ?? '', paidLocalDate: p.paid_local_date, paidLocalTime: p.paid_local_time ?? null,
+    currency: p.currency, krwCharged: p.krw_charged ?? null, cardLast4: p.card_last4 ?? null,
+    scopeMemberIds: [...p.scope_member_ids],
+    items: p.items.map((it) => item(it.id, it.position, {
+      nameOriginal: it.name_original ?? '', nameKo: it.name_ko ?? '', quantity: it.quantity ?? 1,
+      amountOriginal: it.amount_original, needsReview: it.needs_review ?? false, isAdjustment: it.is_adjustment ?? false,
+      assigneeMemberIds: [...(it.assignee_member_ids ?? [])],
+    })),
+    photos: (p.photos ?? []).map((ph) => ({ storagePath: ph.storage_path, kind: ph.kind })),
+    needsReview: p.needs_review ?? false, aiResult: p.ai_result ?? null,
+  };
+}
+
 export function splitItem(d: ExpenseDraft, itemId: string, newId: () => string): ExpenseDraft {
   const idx = d.items.findIndex((it) => it.id === itemId);
   if (idx < 0) return d;

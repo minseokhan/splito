@@ -1,14 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import type { ExpenseDraft } from '@/lib/expenseForm';
+import { toSavePayload, type ExpenseDraft } from '@/lib/expenseForm';
 import { api } from '@/services/api';
-import { loadDraft } from '@/services/drafts';
+import { clearDraft, loadDraft } from '@/services/drafts';
 
 import Review from '../review';
 
-jest.mock('expo-router', () => ({ router: { back: jest.fn() }, useLocalSearchParams: () => ({ roomId: 'r1' }) }));
+const mockParams: { current: Record<string, string> } = { current: { roomId: 'r1' } };
+jest.mock('expo-router', () => ({ router: { back: jest.fn() }, useLocalSearchParams: () => mockParams.current }));
 jest.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }));
 jest.mock('@/services/storage', () => ({ copyReceipt: jest.fn() }));
 jest.mock('@/services/drafts', () => ({ loadDraft: jest.fn(), saveDraft: jest.fn(), clearDraft: jest.fn() }));
@@ -44,7 +46,7 @@ async function renderWith(d: ExpenseDraft) {
   jest.mocked(api.roomMembers).mockResolvedValue([member('m1', '민지'), member('m2', '지훈')] as never);
   jest.mocked(api.fxRate).mockResolvedValue({ base_date: '2026-10-21', rate: 9.1234, source: 'kexim' });
   jest.mocked(api.recentExpenses).mockResolvedValue([]);
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: Infinity } } });
   await render(
     <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}>
       <QueryClientProvider client={qc}>
@@ -67,5 +69,33 @@ describe('확인·수정 화면', () => {
     await fireEvent.press(await screen.findByRole('button', { name: '저장' }));
     expect(await screen.findByText('나눌 사람을 1명 이상 골라주세요')).toBeOnTheScreen();
     expect(api.saveExpense).not.toHaveBeenCalled();
+  });
+});
+
+describe('편집 모드', () => {
+  afterEach(() => {
+    mockParams.current = { roomId: 'r1' };
+  });
+
+  it('VERSION_CONFLICT면 덮어쓰지 않고 문구를 띄운 뒤 최신 지출과 version으로 draft를 바꾼다', async () => {
+    mockParams.current = { roomId: 'r1', edit: 'e1', version: '3' };
+    jest.mocked(api.expensePayload)
+      .mockResolvedValueOnce({ payload: toSavePayload(draft()), version: 3 })
+      .mockResolvedValueOnce({ payload: toSavePayload(draft({ merchant: '최신 가맹점' })), version: 4 });
+    jest.mocked(api.saveExpense).mockRejectedValueOnce({ code: 'VERSION_CONFLICT', message: '다른 분이 먼저 수정했어요. 최신 내용을 불러왔어요' });
+    await renderWith(draft({ merchant: '작성 중 다른 지출' }));
+
+    expect(await screen.findByDisplayValue('이치란')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: '저장' }));
+
+    expect(await screen.findByText('다른 분이 먼저 수정했어요. 최신 내용을 불러왔어요')).toBeOnTheScreen();
+    expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 3);
+    expect(await screen.findByDisplayValue('최신 가맹점')).toBeOnTheScreen();
+    expect(clearDraft).not.toHaveBeenCalled();
+
+    jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 5 });
+    await fireEvent.press(screen.getByRole('button', { name: '저장' }));
+    expect(api.saveExpense).toHaveBeenLastCalledWith(expect.objectContaining({ merchant: '최신 가맹점' }), 4);
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
   });
 });
