@@ -5,22 +5,35 @@
     {
       "step": 0,
       "name": "activity-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:48:01+0900",
+      "summary": "src/lib/activity.ts: RoomEvent 타입, eventText(e, names)(names=profiles id+member id → 이름, 모르면 '탈퇴한 사용자'; payload 키: transfer {from_member_id,to_member_id,amount_krw}, guest_rep_change {representative_member_id}), mergeActivity(expenses, events, roomStartDate)(이벤트는 KST 날짜 섹션, groupFeed 재사용), commentSchema(trim 1~500)",
+      "completed_at": "2026-10-30T02:50:41+0900"
     },
     {
       "step": 1,
       "name": "comments",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:50:41+0900",
+      "summary": "src/services/api.ts: CommentRow{id,authorId,body,createdAt}, comments(expenseId)(deleted_at null, created_at순), addComment({id,expenseId,roomId,authorId,body})(직접 INSERT·클라이언트 UUID), deleteComment(id)(deleted_at UPDATE); src/hooks/useComments.ts: useComments/useAddComment(낙관적+롤백)/useDeleteComment, 키 ['expense',id,'comments'](useRealtimeRoom comments 이벤트가 이미 무효화); 상세 화면 댓글 목록·본인 삭제·하단 입력(KeyboardAvoidingView); supabase/tests/070_comments.test.sql(남의 댓글 UPDATE 0행·501자 거부·비멤버 INSERT 거부)",
+      "completed_at": "2026-10-30T02:57:24+0900"
     },
     {
       "step": 2,
       "name": "activity-feed",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T02:57:24+0900",
+      "summary": "src/services/api.ts: roomEvents(roomId)→RoomEvent[](room_events SELECT, created_at desc, limit 200); src/hooks/useRoomEvents.ts: useRoomEvents(roomId) 키 ['room',id,'events'](useRealtimeRoom room_events가 이미 무효화); src/components/ActivityRow.tsx: ActivityRow({text,onPress?})(가운데 13 ink-500, onPress 있으면 sky-900 '· 계좌 등록하기'); 장부 홈 피드를 mergeActivity(feed, events, startDate)로 렌더('kind' in item이면 이벤트 행, names=member id+user id→이름), 나에게 온 payout_request + useMyPayoutAccount()===null이면 탭 → /payout-account",
+      "completed_at": "2026-10-30T03:00:51+0900"
     },
     {
       "step": 3,
       "name": "activity-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T03:00:52+0900",
+      "blocked_reason": "manual QA",
+      "blocked_at": "2026-10-30T03:01:35+0900"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T02:48:01+0900"
 }

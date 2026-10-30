@@ -39,7 +39,8 @@
     },
     {
       "dir": "7-activity",
-      "status": "pending"
+      "status": "blocked",
+      "blocked_at": "2026-10-30T03:01:35+0900"
     },
     {
       "dir": "8-install-join",

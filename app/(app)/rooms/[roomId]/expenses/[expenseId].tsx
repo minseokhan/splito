@@ -1,20 +1,24 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarStack, type AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { BottomSheet } from '@/components/BottomSheet';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { useAuth } from '@/hooks/useAuth';
+import { useAddComment, useComments, useDeleteComment } from '@/hooks/useComments';
 import { useDeleteExpense, useExpense, useExpenseHistory } from '@/hooks/useExpense';
 import { useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useRoomMembers } from '@/hooks/useRooms';
+import { commentSchema } from '@/lib/activity';
 import { toUserError, type UserError } from '@/lib/errors';
 import { dateTitle, payerRecorderLabel } from '@/lib/feed';
 import { diffSnapshots, historyStamp } from '@/lib/history';
 import { formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
+import { uuidV4 } from '@/lib/uuid';
 import { signedUrl } from '@/services/storage';
 import type { FxSource } from '@/types/domain';
 
@@ -32,6 +36,12 @@ export default function ExpenseDetailScreen() {
   const { data: members = [] } = useRoomMembers(roomId);
   const reconfirm = useReconfirmPendingFx(roomId);
   const del = useDeleteExpense();
+  const myId = useAuth().session?.user.id;
+  const { data: comments = [] } = useComments(expenseId);
+  const addComment = useAddComment();
+  const deleteComment = useDeleteComment();
+  const [draft, setDraft] = useState('');
+  const [commentError, setCommentError] = useState<string | null>(null);
   const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,117 +96,173 @@ export default function ExpenseDetailScreen() {
     );
   };
 
+  const body = commentSchema.safeParse(draft);
+  const onSend = () => {
+    if (!body.success || !myId) return;
+    setCommentError(null);
+    setDraft('');
+    addComment.mutate(
+      { id: uuidV4(), expenseId: e.id, roomId, authorId: myId, body: body.data },
+      {
+        onError: (err) => {
+          setDraft(body.data);
+          setCommentError(asUserError(err).message);
+        },
+      },
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['bottom']}>
-      <ScrollView contentContainerClassName="gap-6 px-5 pb-6 pt-4">
-        <View className="gap-1">
-          {e.needs_review && <Badge kind="review" />}
-          <Text className="font-bold text-[22px] text-ink-900">{e.merchant ?? '가맹점 없음'}</Text>
-          <Text className="text-[13px] text-ink-500">
-            {dateTitle(e.paid_local_date)} · {payerRecorderLabel(payerName, userName.get(e.created_by ?? '') ?? '탈퇴한 사용자')}
-          </Text>
-        </View>
-
-        <View className="rounded-lg bg-sky-200 p-4">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-[15px] text-ink-700">{formatForeign(Number(e.amount_original), e.currency)}</Text>
-            {e.krw_amount === null ? (
-              <Badge kind="pending" />
-            ) : (
-              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-[17px] text-ink-900">
-                {formatKrw(e.krw_amount)}
-              </Text>
-            )}
+      {/* 댓글 입력창이 키보드와 함께 올라온다. Android는 adjustResize가 처리한다. */}
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-6 px-5 pb-6 pt-4">
+          <View className="gap-1">
+            {e.needs_review && <Badge kind="review" />}
+            <Text className="font-bold text-[22px] text-ink-900">{e.merchant ?? '가맹점 없음'}</Text>
+            <Text className="text-[13px] text-ink-500">
+              {dateTitle(e.paid_local_date)} · {payerRecorderLabel(payerName, userName.get(e.created_by ?? '') ?? '탈퇴한 사용자')}
+            </Text>
           </View>
-          <Text className="mt-1 text-[13px] text-ink-500">
-            {fxBasisLabel({
-              source: fxSource,
-              baseDate: e.fx_base_date ?? undefined,
-              rate: e.fx_rate === null ? undefined : Number(e.fx_rate),
-              currency: e.currency,
-            })}
-          </Text>
-        </View>
 
-        {photoUrls && photoUrls.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-            {photoUrls.map((url, i) => (
-              <Pressable key={url} accessibilityRole="imagebutton" accessibilityLabel={`원본 사진 ${i + 1} 크게 보기`} onPress={() => setZoomUrl(url)}>
-                <Image source={{ uri: url }} className="h-24 w-24 rounded-lg border border-line" />
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-
-        <View className="gap-2">
-          <Text className="font-semibold text-[17px] text-ink-900">대상 인원</Text>
-          <AvatarStack people={scopePeople} />
-          <Text className="text-[13px] text-ink-500">{scopePeople.map((p) => p.name).join(', ')}</Text>
-        </View>
-
-        <View className="gap-2">
-          {e.expense_items.map((it) => {
-            const assignees = it.item_assignees.flatMap((a) => people.get(a.member_id) ?? []);
-            return (
-              <View key={it.id} className={`rounded-md border bg-white p-3 ${it.needs_review ? 'border-[#F0C14B]' : 'border-line'}`}>
-                {!!it.name_original && <Text className="text-sm text-ink-500">{it.name_original}</Text>}
-                <View className="flex-row items-center justify-between">
-                  <Text className="flex-1 font-semibold text-base text-ink-900">{it.name_ko || it.name_original || '품목'}</Text>
-                  {assignees.length ? (
-                    <AvatarStack people={assignees} />
-                  ) : (
-                    <Text className="rounded-md bg-sky-100 px-2 py-1 text-[13px] text-sky-900">전원</Text>
-                  )}
-                </View>
-                <View className="mt-1 flex-row justify-between">
-                  <Text className="text-[13px] text-ink-500">
-                    {Number(it.quantity)} × {formatForeign(Number(it.amount_original), e.currency)}
-                  </Text>
-                  {it.krw_amount !== null && (
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="text-[13px] text-ink-700">
-                      {formatKrw(it.krw_amount)}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* 댓글은 7-activity에서 이 자리에 붙인다. */}
-
-        <View className="gap-3">
-          <Text className="font-semibold text-[17px] text-ink-900">수정 이력</Text>
-          {(history ?? []).map((h, i, all) => (
-            <View key={h.id} className="gap-1">
-              <Text className="text-[13px] text-ink-500">
-                {h.actorNickname ?? '탈퇴한 사용자'} · {historyStamp(h.at)}
-              </Text>
-              {diffSnapshots(i === 0 ? null : all[i - 1].snapshot, h.snapshot, names).map((line, j) => (
-                <Text key={j} className="text-[15px] text-ink-700">
-                  {line}
+          <View className="rounded-lg bg-sky-200 p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[15px] text-ink-700">{formatForeign(Number(e.amount_original), e.currency)}</Text>
+              {e.krw_amount === null ? (
+                <Badge kind="pending" />
+              ) : (
+                <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-[17px] text-ink-900">
+                  {formatKrw(e.krw_amount)}
                 </Text>
-              ))}
+              )}
             </View>
-          ))}
-        </View>
-      </ScrollView>
+            <Text className="mt-1 text-[13px] text-ink-500">
+              {fxBasisLabel({
+                source: fxSource,
+                baseDate: e.fx_base_date ?? undefined,
+                rate: e.fx_rate === null ? undefined : Number(e.fx_rate),
+                currency: e.currency,
+              })}
+            </Text>
+          </View>
 
-      <View className="gap-2 border-t border-divider px-5 pt-3">
-        {error && <Text className="text-sm text-minus">{error}</Text>}
-        <PrimaryButton
-          title="수정"
-          onPress={() =>
-            router.push({
-              pathname: '/rooms/[roomId]/expenses/review',
-              params: { roomId, edit: e.id, version: String(e.version) },
-            })
-          }
-        />
-        <Pressable accessibilityRole="button" onPress={() => setConfirmDelete(true)} disabled={del.isPending} className="h-11 items-center justify-center">
-          <Text className="font-medium text-[15px] text-minus">삭제</Text>
-        </Pressable>
-      </View>
+          {photoUrls && photoUrls.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+              {photoUrls.map((url, i) => (
+                <Pressable key={url} accessibilityRole="imagebutton" accessibilityLabel={`원본 사진 ${i + 1} 크게 보기`} onPress={() => setZoomUrl(url)}>
+                  <Image source={{ uri: url }} className="h-24 w-24 rounded-lg border border-line" />
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+
+          <View className="gap-2">
+            <Text className="font-semibold text-[17px] text-ink-900">대상 인원</Text>
+            <AvatarStack people={scopePeople} />
+            <Text className="text-[13px] text-ink-500">{scopePeople.map((p) => p.name).join(', ')}</Text>
+          </View>
+
+          <View className="gap-2">
+            {e.expense_items.map((it) => {
+              const assignees = it.item_assignees.flatMap((a) => people.get(a.member_id) ?? []);
+              return (
+                <View key={it.id} className={`rounded-md border bg-white p-3 ${it.needs_review ? 'border-[#F0C14B]' : 'border-line'}`}>
+                  {!!it.name_original && <Text className="text-sm text-ink-500">{it.name_original}</Text>}
+                  <View className="flex-row items-center justify-between">
+                    <Text className="flex-1 font-semibold text-base text-ink-900">{it.name_ko || it.name_original || '품목'}</Text>
+                    {assignees.length ? (
+                      <AvatarStack people={assignees} />
+                    ) : (
+                      <Text className="rounded-md bg-sky-100 px-2 py-1 text-[13px] text-sky-900">전원</Text>
+                    )}
+                  </View>
+                  <View className="mt-1 flex-row justify-between">
+                    <Text className="text-[13px] text-ink-500">
+                      {Number(it.quantity)} × {formatForeign(Number(it.amount_original), e.currency)}
+                    </Text>
+                    {it.krw_amount !== null && (
+                      <Text style={{ fontVariant: ['tabular-nums'] }} className="text-[13px] text-ink-700">
+                        {formatKrw(it.krw_amount)}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          <View className="gap-3">
+            <Text className="font-semibold text-[17px] text-ink-900">댓글</Text>
+            {comments.length === 0 && <Text className="text-[13px] text-ink-500">궁금한 점을 댓글로 남겨보세요</Text>}
+            {comments.map((c) => (
+              <View key={c.id} className="gap-1">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-[13px] text-ink-500">
+                    {userName.get(c.authorId) ?? '탈퇴한 사용자'} · {historyStamp(c.createdAt)}
+                  </Text>
+                  {c.authorId === myId && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="댓글 삭제"
+                      onPress={() => deleteComment.mutate({ id: c.id, expenseId: e.id })}
+                      className="h-11 justify-center px-2"
+                    >
+                      <Text className="text-[13px] text-ink-500">삭제</Text>
+                    </Pressable>
+                  )}
+                </View>
+                <Text className="text-[15px] text-ink-700">{c.body}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View className="gap-3">
+            <Text className="font-semibold text-[17px] text-ink-900">수정 이력</Text>
+            {(history ?? []).map((h, i, all) => (
+              <View key={h.id} className="gap-1">
+                <Text className="text-[13px] text-ink-500">
+                  {h.actorNickname ?? '탈퇴한 사용자'} · {historyStamp(h.at)}
+                </Text>
+                {diffSnapshots(i === 0 ? null : all[i - 1].snapshot, h.snapshot, names).map((line, j) => (
+                  <Text key={j} className="text-[15px] text-ink-700">
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        <View className="gap-2 border-t border-divider px-5 pt-3">
+          {commentError && <Text className="text-sm text-minus">{commentError}</Text>}
+          <View className="flex-row items-center gap-2">
+            <TextInput
+              accessibilityLabel="댓글 입력"
+              placeholder="댓글 달기"
+              value={draft}
+              onChangeText={setDraft}
+              maxLength={500}
+              className="h-12 flex-1 rounded-lg border border-input-line px-4 text-base text-ink-900"
+            />
+            <Pressable accessibilityRole="button" accessibilityLabel="댓글 보내기" onPress={onSend} disabled={!body.success} className="h-12 justify-center px-2">
+              <Text className={`font-medium text-[15px] text-sky-900 ${body.success ? '' : 'opacity-40'}`}>보내기</Text>
+            </Pressable>
+          </View>
+          {error && <Text className="text-sm text-minus">{error}</Text>}
+          <PrimaryButton
+            title="수정"
+            onPress={() =>
+              router.push({
+                pathname: '/rooms/[roomId]/expenses/review',
+                params: { roomId, edit: e.id, version: String(e.version) },
+              })
+            }
+          />
+          <Pressable accessibilityRole="button" onPress={() => setConfirmDelete(true)} disabled={del.isPending} className="h-11 items-center justify-center">
+            <Text className="font-medium text-[15px] text-minus">삭제</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
 
       <BottomSheet visible={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <Text className="font-semibold text-[17px] text-ink-900">이 지출을 삭제할까요?</Text>

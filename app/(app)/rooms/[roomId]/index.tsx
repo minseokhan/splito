@@ -4,13 +4,17 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, SectionList, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActivityRow } from '@/components/ActivityRow';
 import { ExpenseCard } from '@/components/ExpenseCard';
 import { InputMethodSheet } from '@/components/InputMethodSheet';
 import { formatKrw, Money } from '@/components/Money';
 import { StatusChip } from '@/components/StatusChip';
+import { useAuth } from '@/hooks/useAuth';
 import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
+import { useMyPayoutAccount } from '@/hooks/usePayoutAccount';
+import { useRoomEvents } from '@/hooks/useRoomEvents';
 import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
-import { groupFeed } from '@/lib/feed';
+import { eventText, mergeActivity } from '@/lib/activity';
 import { loadDraft } from '@/services/drafts';
 import { colors } from '@/theme/tokens';
 
@@ -22,7 +26,13 @@ export default function RoomHome() {
   const feed = useFeed(roomId);
   const { data: members = [] } = useRoomMembers(roomId);
   const reconfirm = useReconfirmPendingFx(roomId);
-  const sections = useMemo(() => groupFeed(feed.data ?? [], room?.startDate ?? null), [feed.data, room?.startDate]);
+  const events = useRoomEvents(roomId);
+  const myId = useAuth().session?.user.id;
+  const { data: myAccount } = useMyPayoutAccount();
+  const sections = useMemo(
+    () => mergeActivity(feed.data ?? [], events.data ?? [], room?.startDate ?? null),
+    [feed.data, events.data, room?.startDate],
+  );
   const pending = useMemo(() => (feed.data ?? []).filter((r) => r.krwAmount === null), [feed.data]);
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
@@ -45,6 +55,9 @@ export default function RoomHome() {
 
   const memberIdx = new Map(members.map((m, i) => [m.id, i]));
   const userName = new Map(members.flatMap((m) => (m.userId ? [[m.userId, m.name] as const] : [])));
+  // eventText는 profile id(actor)와 참여자 id(target)를 모두 이름으로 찾는다.
+  const names = Object.fromEntries([...members.map((m) => [m.id, m.name]), ...userName]);
+  const myMemberId = members.find((m) => m.userId === myId)?.id;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -125,6 +138,13 @@ export default function RoomHome() {
         )}
         ItemSeparatorComponent={() => <View className="h-2" />}
         renderItem={({ item }) => {
+          if ('kind' in item) {
+            // 나에게 온 계좌 요청이고 아직 미등록이면 탭해서 바로 등록한다(J6 3번).
+            const toMe = item.kind === 'payout_request' && item.targetMemberId === myMemberId && myAccount === null;
+            return (
+              <ActivityRow text={eventText(item, names)} onPress={toMe ? () => router.push('/payout-account') : undefined} />
+            );
+          }
           const payer = item.payerKind === 'pool' ? undefined : members.find((m) => m.id === item.payerMemberId);
           return (
             <ExpenseCard
