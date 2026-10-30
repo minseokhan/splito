@@ -1,9 +1,13 @@
 import * as Clipboard from 'expo-clipboard';
+import { Copy } from 'iconoir-react-native';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { extractInviteToken } from '@/lib/invite';
 import { savePendingInvite } from '@/services/pendingInvite';
+
+import { PrimaryButton } from './PrimaryButton';
+import { TextField } from './TextField';
 
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 
@@ -23,48 +27,37 @@ export function InvitePasteBox({ onSaved }: Props) {
   };
 
   return (
-    <View className="gap-2">
-      <Text className="font-semibold text-[15px] text-ink-900">초대받으셨나요?</Text>
+    <View className="gap-2.5">
+      <View className="gap-1">
+        <Text className="font-bold text-base text-ink">초대받으셨나요?</Text>
+        <Text className="text-[13px] text-ink-400">받은 초대 링크를 붙여넣으면 바로 참여할 수 있어요</Text>
+      </View>
       {/* iOS 16+: UIPasteControl이라 붙여넣기 권한 팝업이 없다. */}
       {Clipboard.isPasteButtonAvailable ? (
         <Clipboard.ClipboardPasteButton
           acceptedContentTypes={['plain-text', 'url']}
           displayMode="iconAndLabel"
-          style={{ height: 44, width: '100%' }}
+          style={{ height: 52, width: '100%' }}
           onPress={(data) => (data.type === 'text' ? tryText(data.text) : setResult('missing'))}
         />
       ) : (
-        <Pressable
-          accessibilityRole="button"
-          onPress={async () => tryText(await Clipboard.getStringAsync())}
-          className="h-11 items-center justify-center rounded-lg bg-sky-200"
-        >
-          <Text className="font-semibold text-[15px] text-ink-900">초대 링크 붙여넣기</Text>
-        </Pressable>
+        <PrimaryButton title="초대 링크 붙여넣기" variant="sky" size="md" icon={Copy} onPress={async () => tryText(await Clipboard.getStringAsync())} />
       )}
-      <View className="flex-row gap-2">
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="초대 링크 붙여넣기"
-          autoCapitalize="none"
-          autoCorrect={false}
-          accessibilityLabel="초대 링크 입력"
-          className="h-12 flex-1 rounded-lg border border-input-line bg-white px-4 text-base text-ink-900 focus:border-sky-800 focus:bg-sky-100"
-        />
-        <Pressable
-          accessibilityRole="button"
-          disabled={!text.trim()}
-          onPress={() => tryText(text)}
-          className={`h-12 justify-center px-3 ${text.trim() ? '' : 'opacity-40'}`}
-        >
-          <Text className="font-medium text-[15px] text-sky-900">확인</Text>
-        </Pressable>
-      </View>
-      {result === 'found' && (
-        <Text className="text-[13px] text-plus">초대를 확인했어요. 로그인하면 참여할 수 있어요</Text>
-      )}
-      {result === 'missing' && <Text className="text-[13px] text-minus">초대 링크를 찾지 못했어요</Text>}
+      <TextField
+        value={text}
+        onChangeText={setText}
+        placeholder="초대 링크 직접 입력"
+        autoCapitalize="none"
+        autoCorrect={false}
+        accessibilityLabel="초대 링크 입력"
+        right={
+          <Pressable accessibilityRole="button" disabled={!text.trim()} onPress={() => tryText(text)} hitSlop={8}>
+            <Text className={`font-bold text-[15px] ${text.trim() ? 'text-primary-text' : 'text-ink-300'}`}>확인</Text>
+          </Pressable>
+        }
+      />
+      {result === 'found' && <Text className="text-[13px] text-success">초대를 확인했어요. 로그인하면 참여할 수 있어요</Text>}
+      {result === 'missing' && <Text className="text-[13px] text-danger">초대 링크를 찾지 못했어요</Text>}
     </View>
   );
 }

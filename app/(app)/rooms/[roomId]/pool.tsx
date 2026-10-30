@@ -5,19 +5,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar, GuestChip } from '@/components/Avatar';
 import { formatKrw } from '@/components/Money';
-import { PrimaryButton } from '@/components/PrimaryButton';
+import { NavBar } from '@/components/NavBar';
+import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useFeed } from '@/hooks/useFeed';
 import { usePoolDeposits, useSetPool, useUpsertPoolDeposits } from '@/hooks/usePool';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { fillEqual, poolRemaining } from '@/lib/pool';
 import type { Room } from '@/services/api';
+import { colors } from '@/theme/tokens';
 import type { MemberId, RoomMember } from '@/types/domain';
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
 const toKrw = (text: string) => Number(text.replace(/\D/g, '') || '0');
-const INPUT =
-  'h-12 rounded-lg border border-input-line bg-white px-4 text-base text-ink-900 focus:border-sky-800 focus:bg-sky-100';
+const INPUT = 'h-[54px] rounded-input border-[1.5px] border-line bg-white px-4 font-semibold text-[17px] text-ink focus:border-primary';
+const CARD_SHADOW = { boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' };
 
 // 공금 지갑(J7). 공금 상계는 서버 room_balances가 한다. 여기서는 설정·입금 기록과 남은 공금 표시만.
 export default function Pool() {
@@ -87,22 +89,28 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
     setPool.mutate({ roomId, enabled: false, ownerMemberId: null, cardLast4: [] }, { onError: showError });
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerClassName="gap-6 px-5 pb-6" keyboardShouldPersistTaps="handled">
-        <Text className="mt-6 font-bold text-[22px] text-ink-900">공금 지갑</Text>
-
+    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+      <NavBar title="공금 지갑" align="center" />
+      <ScrollView
+        contentContainerClassName="gap-[22px] px-5 pt-2"
+        contentContainerStyle={{ paddingBottom: 140 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {enabled && (
-          <View className="rounded-xl bg-sky-200 p-4">
-            <Text className="text-[13px] text-ink-500">남은 공금</Text>
-            <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-[28px] text-ink-900">
+          <View className="gap-0.5 rounded-[22px] bg-white p-5" style={CARD_SHADOW}>
+            <Text className="font-semibold text-sm text-ink-500">남은 공금</Text>
+            <Text
+              style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.03 * 28 }}
+              className={`font-extrabold text-[28px] ${remaining < 0 ? 'text-danger' : 'text-ink'}`}
+            >
               {remaining < 0 ? `−${formatKrw(-remaining)}` : formatKrw(remaining)}
             </Text>
-            {remaining < 0 && <Text className="text-[13px] text-ink-700">부족한 공금</Text>}
+            {remaining < 0 && <Text className="text-[13px] text-ink-500">부족한 공금</Text>}
           </View>
         )}
 
-        <View className="gap-2">
-          <Text className="font-semibold text-[17px] text-ink-900">통장 주인</Text>
+        <View className="gap-2.5">
+          <Text className="px-1 font-bold text-base text-ink">통장 주인</Text>
           <View className="flex-row flex-wrap gap-2">
             {users.map((u) => (
               <Pressable
@@ -110,34 +118,38 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                 accessibilityRole="radio"
                 accessibilityState={{ selected: chosenOwner === u.id }}
                 onPress={() => setOwner(u.id)}
-                className={`h-11 items-center justify-center rounded-md px-4 ${chosenOwner === u.id ? 'bg-sky-300' : 'bg-sky-100'}`}
+                className={`h-11 items-center justify-center rounded-chip px-4 ${chosenOwner === u.id ? 'bg-primary' : 'bg-white'}`}
               >
-                <Text className="font-semibold text-[15px] text-ink-900">{u.userId === myId ? `${u.name}(나)` : u.name}</Text>
+                <Text className={`font-semibold text-[15px] ${chosenOwner === u.id ? 'text-primary-on' : 'text-ink'}`}>
+                  {u.userId === myId ? `${u.name}(나)` : u.name}
+                </Text>
               </Pressable>
             ))}
           </View>
         </View>
 
-        <View className="gap-2">
-          <Text className="font-semibold text-[17px] text-ink-900">공금 카드 끝자리(선택)</Text>
+        <View className="gap-2.5">
+          <Text className="px-1 font-bold text-base text-ink">공금 카드 끝자리(선택)</Text>
           <TextInput
             accessibilityLabel="공금 카드 끝자리 4자리"
             placeholder="예: 1234, 5678"
+            placeholderTextColor={colors.ink[300]}
             keyboardType="numbers-and-punctuation"
             value={cards}
             onChangeText={setCards}
             className={INPUT}
           />
-          <Text className="text-[13px] text-ink-500">승인 문자의 끝자리가 같으면 결제자가 &lsquo;공금&rsquo;으로 선택돼요</Text>
+          <Text className="px-1 text-xs text-ink-400">승인 문자의 끝자리가 같으면 결제자가 &lsquo;공금&rsquo;으로 선택돼요</Text>
         </View>
 
         {enabled && (
-          <View className="gap-2">
-            <Text className="font-semibold text-[17px] text-ink-900">입금</Text>
+          <View className="gap-2.5">
+            <Text className="px-1 font-bold text-base text-ink">입금</Text>
             <View className="flex-row gap-2">
               <TextInput
                 accessibilityLabel="모두에게 같은 입금액"
                 placeholder="1인 금액"
+                placeholderTextColor={colors.ink[300]}
                 keyboardType="number-pad"
                 value={bulk ? toKrw(bulk).toLocaleString('ko-KR') : ''}
                 onChangeText={setBulk}
@@ -151,48 +163,42 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                     Object.fromEntries(fillEqual(active.map((m) => m.id), toKrw(bulk)).map((r) => [r.memberId, String(r.amountKrw)])),
                   )
                 }
-                className="h-12 items-center justify-center rounded-xl bg-sky-200 px-4"
+                className="h-[54px] items-center justify-center rounded-input bg-sky-100 px-4 active:bg-sky-200"
               >
-                <Text className="font-semibold text-[15px] text-ink-900">같은 금액 일괄 입력</Text>
+                <Text className="font-bold text-[15px] text-primary-text">같은 금액 일괄 입력</Text>
               </Pressable>
             </View>
-            {active.map((m) => (
-              <View key={m.id} className="min-h-11 flex-row items-center gap-3">
-                <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={32} />
-                <View className="flex-1 flex-row items-center gap-2">
-                  <Text className="text-[15px] text-ink-900" numberOfLines={1}>
-                    {names[m.id]}
-                  </Text>
-                  {m.kind === 'guest' && <GuestChip />}
+            <View className="rounded-card bg-white px-4 py-1" style={CARD_SHADOW}>
+              {active.map((m, i) => (
+                <View key={m.id} className={`min-h-11 flex-row items-center gap-3 py-3 ${i > 0 ? 'border-t border-muted' : ''}`}>
+                  <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={36} />
+                  <View className="flex-1 flex-row items-center gap-2">
+                    <Text className="shrink font-bold text-[15px] text-ink" numberOfLines={1}>
+                      {names[m.id]}
+                    </Text>
+                    {m.kind === 'guest' && <GuestChip />}
+                  </View>
+                  <TextInput
+                    accessibilityLabel={`${m.name} 입금액`}
+                    keyboardType="number-pad"
+                    value={toKrw(amounts[m.id] ?? '') ? toKrw(amounts[m.id] ?? '').toLocaleString('ko-KR') : ''}
+                    onChangeText={(t) => setAmounts((a) => ({ ...a, [m.id]: t }))}
+                    placeholder="0"
+                    placeholderTextColor={colors.ink[300]}
+                    style={{ fontVariant: ['tabular-nums'] }}
+                    className="h-11 w-36 rounded-chip bg-app px-3 text-right font-semibold text-base text-ink focus:bg-sky-50"
+                  />
                 </View>
-                <TextInput
-                  accessibilityLabel={`${m.name} 입금액`}
-                  keyboardType="number-pad"
-                  value={toKrw(amounts[m.id] ?? '') ? toKrw(amounts[m.id] ?? '').toLocaleString('ko-KR') : ''}
-                  onChangeText={(t) => setAmounts((a) => ({ ...a, [m.id]: t }))}
-                  placeholder="0"
-                  style={{ fontVariant: ['tabular-nums'] }}
-                  className={`w-36 text-right ${INPUT}`}
-                />
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
 
-        {enabled && (
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={turnOff}
-            className="h-14 items-center justify-center rounded-xl border border-[#F2C4C4] bg-white"
-          >
-            <Text className="text-base text-minus">공금 끄기</Text>
-          </Pressable>
-        )}
+        {enabled && <PrimaryButton title="공금 끄기" variant="danger" disabled={busy} onPress={turnOff} />}
       </ScrollView>
-      <View className="px-5 pb-4">
+      <BottomBar bg={colors.app} fade>
         <PrimaryButton title={enabled ? '저장' : '공금 켜기'} disabled={busy || !chosenOwner} onPress={onSave} />
-      </View>
+      </BottomBar>
     </SafeAreaView>
   );
 }

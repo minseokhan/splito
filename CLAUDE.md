@@ -20,7 +20,7 @@
   - `src/services/`: 외부 호출을 맡는다.
   - `src/components/`: 표시만 한다.
   - `supabase/`: 마이그레이션·Edge Functions·pgTAP 테스트를 둔다.
-- 색상·간격은 `docs/UI_GUIDE.md` 토큰만 쓴다. 하늘색(`sky-800`) 위에 흰 글자를 쓰지 않는다.
+- 색상·간격은 `docs/UI_GUIDE.md` 토큰만 쓴다. 하늘색(`primary`) 위에 흰 글자를 쓰지 않는다(글자는 `primary-on`). 확정 시안은 `docs/design/`.
 
 ## 개발 프로세스
 - CRITICAL: 새 기능 구현 시 반드시 테스트를 먼저 작성하고, 테스트가 통과하는 구현을 작성할 것(TDD). DB 로직은 pgTAP으로 한다.

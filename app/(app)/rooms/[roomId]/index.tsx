@@ -1,15 +1,19 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Menu, Plus } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, SectionList, Text, View } from 'react-native';
+import { Coins, MoreHoriz, NavArrowRight, Plus, UserPlus, Wallet } from 'iconoir-react-native';
+import { Fragment, useCallback, useMemo, useState, type ComponentType } from 'react';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { SvgProps } from 'react-native-svg';
 
 import { ActivityRow } from '@/components/ActivityRow';
+import { AvatarStack } from '@/components/AvatarStack';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ExpenseCard } from '@/components/ExpenseCard';
-import { InputMethodSheet } from '@/components/InputMethodSheet';
+import { Icon } from '@/components/Icon';
+import { InviteSheet } from '@/components/InviteSheet';
 import { formatKrw, Money } from '@/components/Money';
-import { StatusChip } from '@/components/StatusChip';
+import { NavBar } from '@/components/NavBar';
+import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useMyPayoutAccount } from '@/hooks/usePayoutAccount';
@@ -18,6 +22,12 @@ import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
 import { eventText, mergeActivity } from '@/lib/activity';
 import { loadDraft } from '@/services/drafts';
 import { colors } from '@/theme/tokens';
+
+// YYYY-MM-DD → "10.20"
+const md = (iso: string) => {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${m}.${d}`;
+};
 
 export default function RoomHome() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -30,6 +40,7 @@ export default function RoomHome() {
   const events = useRoomEvents(roomId);
   const myId = useAuth().session?.user.id;
   const { data: myAccount } = useMyPayoutAccount();
+  // groupFeed가 '여행 전' 섹션을 이미 맨 아래에 둔다.
   const sections = useMemo(
     () => mergeActivity(feed.data ?? [], events.data ?? [], room?.startDate ?? null),
     [feed.data, events.data, room?.startDate],
@@ -37,8 +48,8 @@ export default function RoomHome() {
   const pending = useMemo(() => (feed.data ?? []).filter((r) => r.krwAmount === null), [feed.data]);
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   // 입력 화면에서 돌아올 때마다 기기의 작성 중 지출을 다시 확인한다.
   useFocusEffect(
@@ -49,8 +60,11 @@ export default function RoomHome() {
   if (isLoading) return null;
   if (!room) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white px-5">
-        <Text className="text-[15px] text-ink-700">여행을 찾을 수 없어요</Text>
+      <SafeAreaView className="flex-1 bg-app">
+        <NavBar />
+        <View className="flex-1 items-center justify-center px-5">
+          <Text className="text-[15px] text-ink-700">여행을 찾을 수 없어요</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -60,166 +74,222 @@ export default function RoomHome() {
   // eventText는 profile id(actor)와 참여자 id(target)를 모두 이름으로 찾는다.
   const names = Object.fromEntries([...members.map((m) => [m.id, m.name]), ...userName]);
   const myMemberId = members.find((m) => m.userId === myId)?.id;
+  const people = members
+    .filter((m) => !m.leftAt)
+    .map((m) => ({ id: m.id, name: m.name, colorIndex: memberIdx.get(m.id) ?? 0, guest: m.kind === 'guest' }));
+  // 참여자(게스트 포함) 2명 이상일 때만 정산·공금을 연다. 혼자면 초대 시트로 유도한다.
+  const together = room.memberCount >= 2;
+  const period = room.startDate ? ` · ${md(room.startDate)} – ${room.endDate ? md(room.endDate) : ''}` : '';
+  const go = (pathname: '/rooms/[roomId]/settle' | '/rooms/[roomId]/pool' | '/rooms/[roomId]/members') =>
+    router.push({ pathname, params: { roomId } });
 
-  return (
-    <SafeAreaView className="flex-1 bg-white">
-      {offline && (
-        <View className="bg-pending-bg px-5 py-2">
-          <Text className="text-[13px] text-pending-fg">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
+  const header = (
+    <View>
+      <View className="gap-4 rounded-b-hero bg-primary px-5 pb-[22px]" style={{ paddingTop: insets.top }}>
+        <View className="-mx-5">
+          <NavBar
+            title={room.name}
+            align="center"
+            color={colors.primary.on}
+            right={
+              <Pressable accessibilityRole="button" accessibilityLabel="방 메뉴" onPress={() => setMenuOpen(true)} hitSlop={4} className="p-2">
+                <Icon as={MoreHoriz} size={26} color={colors.primary.on} />
+              </Pressable>
+            }
+          />
         </View>
-      )}
-      <View className="gap-2 px-5 pt-6">
-        <View className="flex-row items-center justify-between">
-          <Text className="flex-1 font-bold text-[22px] text-ink-900" numberOfLines={1}>
-            {room.name}
-          </Text>
-          {/* 참여자(게스트 포함) 2명 이상일 때만 정산 메뉴를 연다 */}
-          {room.memberCount >= 2 && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="정산 보기"
-              onPress={() => router.push({ pathname: '/rooms/[roomId]/settle', params: { roomId } })}
-              className="h-11 justify-center px-2"
+        <View className="flex-row items-end justify-between">
+          <View className="gap-0.5">
+            <Text className="font-semibold text-sm text-primary-on">총 지출{period}</Text>
+            <Text
+              style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.03 * 32 }}
+              className="font-extrabold text-[32px] text-primary-on"
             >
-              <Text className="font-medium text-[15px] text-sky-900">정산</Text>
-            </Pressable>
-          )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="동행 초대하기"
-            onPress={() => router.push({ pathname: '/rooms/[roomId]/invite', params: { roomId } })}
-            className="h-11 justify-center px-2"
-          >
-            <Text className="font-medium text-[15px] text-sky-900">초대</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="방 메뉴"
-            onPress={() => setMenuOpen(true)}
-            className="h-11 w-11 items-center justify-center"
-          >
-            <Menu size={24} strokeWidth={1.75} color={colors.ink[900]} />
-          </Pressable>
-        </View>
-        <StatusChip status={room.status} />
-        <View className="mt-4 flex-row items-end justify-between rounded-xl bg-sky-200 p-4">
-          <View>
-            <Text className="text-[13px] text-ink-500">총지출</Text>
-            <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-[17px] text-ink-900">
               {formatKrw(room.totalKrw)}
             </Text>
           </View>
-          <Money net={room.myNet} size="large" />
+          <AvatarStack people={people} size={32} ring={colors.primary.DEFAULT} />
         </View>
-        {room.memberCount === 1 && (
-          <Text className="text-[13px] text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>
+        <View className="flex-row gap-2">
+          <Action
+            label="정산 보기"
+            icon={Coins}
+            white
+            onPress={() => (together ? go('/rooms/[roomId]/settle') : setInviteOpen(true))}
+          />
+          <Action label="공금 지갑" icon={Wallet} onPress={() => (together ? go('/rooms/[roomId]/pool') : setInviteOpen(true))} />
+          <Action label="초대하기" icon={UserPlus} onPress={() => setInviteOpen(true)} />
+        </View>
+      </View>
+      <View className="gap-2.5 px-5 pt-5">
+        {offline && (
+          <View className="rounded-input border border-warning-line bg-warning-banner px-4 py-3">
+            <Text className="text-[13px] text-warning-deep">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
+          </View>
+        )}
+        <View
+          className="flex-row items-center justify-between rounded-card bg-white px-4 py-3.5"
+          style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}
+        >
+          <Text className="font-bold text-[15px] text-ink">내 정산</Text>
+          <Money net={room.myNet} />
+        </View>
+        {!together && (
+          <Text className="px-1 text-[13px] text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>
         )}
         {hasDraft && (
-          <Pressable
-            accessibilityRole="button"
+          <Banner
+            text="작성 중인 지출 1건 · 이어서 쓰기"
             onPress={() => router.push({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } })}
-            className="mt-2 h-11 justify-center rounded-lg border border-line px-4"
-          >
-            <Text className="font-medium text-[15px] text-sky-900">작성 중인 지출 1건 · 이어서 쓰기</Text>
-          </Pressable>
+          />
         )}
         {pending.length > 0 && (
-          <Pressable
-            accessibilityRole="button"
+          <Banner
+            warning
             disabled={reconfirm.isPending}
+            text={reconfirm.isPending ? '환율을 다시 확인하고 있어요' : `환율 대기 ${pending.length}건 · 다시 확정하기`}
             onPress={() => reconfirm.mutate(pending)}
-            className="h-11 justify-center rounded-lg bg-pending-bg px-4"
-          >
-            <Text className="font-medium text-[15px] text-pending-fg">
-              {reconfirm.isPending ? '환율을 다시 확인하고 있어요' : `환율 대기 ${pending.length}건 · 다시 확정하기`}
-            </Text>
-          </Pressable>
+          />
         )}
       </View>
-      <SectionList
-        sections={sections}
-        keyExtractor={(r) => r.id}
-        className="mt-4 flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 88, flexGrow: 1 }}
+    </View>
+  );
+
+  return (
+    <View className="flex-1 bg-app">
+      <FlatList
+        data={sections}
+        keyExtractor={(s) => s.key}
+        ListHeaderComponent={header}
+        contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />}
-        stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => (
-          <Text className="mb-2 mt-6 font-semibold text-[17px] text-ink-900">{section.title}</Text>
-        )}
-        ItemSeparatorComponent={() => <View className="h-2" />}
-        renderItem={({ item }) => {
-          if ('kind' in item) {
-            // 나에게 온 계좌 요청이고 아직 미등록이면 탭해서 바로 등록한다(J6 3번).
-            const toMe = item.kind === 'payout_request' && item.targetMemberId === myMemberId && myAccount === null;
-            return (
-              <ActivityRow text={eventText(item, names)} onPress={toMe ? () => router.push('/payout-account') : undefined} />
-            );
-          }
-          const payer = item.payerKind === 'pool' ? undefined : members.find((m) => m.id === item.payerMemberId);
+        renderItem={({ item: section }) => {
+          const sum = section.data.reduce((s, r) => s + ('kind' in r ? 0 : (r.krwAmount ?? 0)), 0);
+          const hasExpense = section.data.some((r) => !('kind' in r));
           return (
-            <ExpenseCard
-              row={item}
-              payerName={item.payerKind === 'pool' ? '공금' : (payer?.name ?? '참여자')}
-              recorderName={userName.get(item.createdBy ?? '') ?? '탈퇴한 사용자'}
-              payerColorIndex={payer ? (memberIdx.get(payer.id) ?? 0) : 0}
-              payerGuest={payer?.kind === 'guest'}
-              onPress={() =>
-                router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId: item.id } })
-              }
-            />
+            <View className="gap-2.5 px-5 pt-[22px]">
+              <View className="flex-row justify-between px-1">
+                <Text className="font-bold text-[13px] text-ink-500">{section.title}</Text>
+                {hasExpense && (
+                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[13px] text-ink-500">
+                    {formatKrw(sum)}
+                  </Text>
+                )}
+              </View>
+              <View className="rounded-card bg-white px-4 py-1" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
+                {section.data.map((item, i) => (
+                  <Fragment key={item.id}>
+                    {i > 0 && <View className="h-px bg-muted" />}
+                    {'kind' in item ? (
+                      <ActivityRow
+                        text={eventText(item, names)}
+                        // 나에게 온 계좌 요청이고 아직 미등록이면 탭해서 바로 등록한다(J6 3번).
+                        onPress={
+                          item.kind === 'payout_request' && item.targetMemberId === myMemberId && myAccount === null
+                            ? () => router.push('/payout-account')
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <ExpenseCard
+                        row={item}
+                        payerName={
+                          item.payerKind === 'pool' ? '공금' : (members.find((m) => m.id === item.payerMemberId)?.name ?? '참여자')
+                        }
+                        recorderName={userName.get(item.createdBy ?? '') ?? '탈퇴한 사용자'}
+                        onPress={() =>
+                          router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId: item.id } })
+                        }
+                      />
+                    )}
+                  </Fragment>
+                ))}
+              </View>
+            </View>
           );
         }}
         ListEmptyComponent={
           feed.isLoading ? null : (
-            <View className="flex-1 items-center justify-center">
-              <Text className="text-center text-[15px] text-ink-700">
-                첫 지출을 올려보세요. 영수증 사진 한 장이면 돼요.
-              </Text>
+            <View className="flex-1 items-center justify-center px-5 py-10">
+              <Text className="text-center text-[15px] text-ink-500">첫 지출을 올려보세요. 영수증 사진 한 장이면 돼요.</Text>
             </View>
           )
         }
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="지출 추가"
-        onPress={() => setSheetOpen(true)}
-        style={{ bottom: insets.bottom + 16 }}
-        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-sky-800 active:bg-[#1FA3F0]"
-      >
-        <Plus size={24} strokeWidth={1.75} color={colors.ink[900]} />
-      </Pressable>
+      {/* 스크롤해도 상태바 영역은 히어로 색을 유지한다 */}
+      <View pointerEvents="none" className="absolute left-0 right-0 top-0 bg-primary" style={{ height: insets.top }} />
+      <BottomBar bg={colors.app} fade>
+        <PrimaryButton
+          title="지출 올리기"
+          variant="dark"
+          icon={Plus}
+          onPress={() => router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId } })}
+        />
+      </BottomBar>
       <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            setMenuOpen(false);
-            router.push({ pathname: '/rooms/[roomId]/members', params: { roomId } });
-          }}
-          className="h-14 justify-center"
-        >
-          <Text className="text-base text-ink-900">멤버</Text>
-        </Pressable>
-        {room.memberCount >= 2 && (
-          <Pressable
-            accessibilityRole="button"
+        <View>
+          <MenuRow
+            label="멤버"
             onPress={() => {
               setMenuOpen(false);
-              router.push({ pathname: '/rooms/[roomId]/pool', params: { roomId } });
+              go('/rooms/[roomId]/members');
             }}
-            className="h-14 justify-center"
-          >
-            <Text className="text-base text-ink-900">공금 지갑</Text>
-          </Pressable>
-        )}
+          />
+          {together && (
+            <MenuRow
+              label="공금 지갑"
+              onPress={() => {
+                setMenuOpen(false);
+                go('/rooms/[roomId]/pool');
+              }}
+            />
+          )}
+        </View>
       </BottomSheet>
-      <InputMethodSheet
-        visible={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onSelect={(method) => {
-          setSheetOpen(false);
-          router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId, method } });
-        }}
-      />
-    </SafeAreaView>
+      <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
+    </View>
+  );
+}
+
+type ActionProps = { label: string; icon: ComponentType<SvgProps>; white?: boolean; onPress: () => void };
+
+// 히어로 액션 칸: radius 14, padding 12×10, 아이콘 22 + 13/700.
+function Action({ label, icon, white, onPress }: ActionProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      className={`flex-1 items-center gap-1.5 rounded-input px-2.5 py-3 active:translate-y-px ${white ? 'bg-white' : 'bg-[rgba(255,255,255,0.55)]'}`}
+    >
+      <Icon as={icon} size={22} color={white ? colors.primary.text : colors.primary.on} />
+      <Text className={`font-bold text-[13px] ${white ? 'text-ink' : 'text-primary-on'}`}>{label}</Text>
+    </Pressable>
+  );
+}
+
+type BannerProps = { text: string; onPress: () => void; warning?: boolean; disabled?: boolean };
+
+function Banner({ text, onPress, warning, disabled }: BannerProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      className={`min-h-[52px] flex-row items-center gap-2 rounded-button px-4 py-3 ${
+        warning ? 'border border-warning-line bg-warning-banner' : 'border-[1.5px] border-line bg-white'
+      }`}
+    >
+      <Text className={`flex-1 font-semibold text-[15px] ${warning ? 'text-warning' : 'text-primary-text'}`}>{text}</Text>
+      <Icon as={NavArrowRight} size={18} color={warning ? colors.warning.DEFAULT : colors.ink[300]} />
+    </Pressable>
+  );
+}
+
+function MenuRow({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} className="h-14 flex-row items-center justify-between">
+      <Text className="font-semibold text-base text-ink">{label}</Text>
+      <Icon as={NavArrowRight} size={18} color={colors.ink[300]} />
+    </Pressable>
   );
 }

@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
-import { PrimaryButton } from '@/components/PrimaryButton';
+import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
+import { TextField } from '@/components/TextField';
 import { useAuth } from '@/hooks/useAuth';
 import { toUserError } from '@/lib/errors';
 import { nicknameSchema } from '@/lib/profile';
@@ -14,10 +15,10 @@ import { updateNickname } from '@/services/auth';
 
 const schema = z.object({ nickname: nicknameSchema });
 
+// 예외 경로: 동의는 했지만 닉네임이 비어 있을 때(resolveEntryRoute). 보통은 가입 화면에서 함께 저장한다.
 export default function ProfileSetup() {
   const { profile, refreshProfile } = useAuth();
   const [error, setError] = useState<string>();
-  const [focused, setFocused] = useState(false);
   const { control, handleSubmit, formState } = useForm({
     resolver: zodResolver(schema),
     mode: 'onChange',
@@ -39,43 +40,39 @@ export default function ProfileSetup() {
   const disabled = !formState.isValid || formState.isSubmitting;
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-5">
-      <View className="flex-1 gap-2 pt-6">
-        <Text className="mb-4 font-bold text-[22px] text-ink-900">닉네임을 확인해 주세요</Text>
-        <Controller
-          control={control}
-          name="nickname"
-          render={({ field }) => (
-            <TextInput
-              accessibilityLabel="닉네임"
-              value={field.value}
-              onChangeText={field.onChange}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              maxLength={12}
-              placeholder="1~12자"
-              className={`h-12 rounded-lg border px-4 text-base text-ink-900 ${
-                invalid ? 'border-minus' : focused ? 'border-sky-800 bg-sky-100' : 'border-input-line bg-white'
-              }`}
-            />
-          )}
-        />
-        {invalid && <Text className="text-sm text-minus">닉네임은 1~12자로 입력해 주세요</Text>}
-        <Text className="text-[13px] text-ink-500">받을 계좌는 나중에 등록할 수 있어요</Text>
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
+      <View className="flex-1 gap-7 px-5 pt-[60px]">
+        <View className="gap-1.5">
+          <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] leading-[34px] text-ink">
+            닉네임을 확인해 주세요
+          </Text>
+          <Text className="text-[15px] text-ink-500">받을 계좌는 나중에 등록할 수 있어요</Text>
+        </View>
+        <View className="gap-2">
+          <Text className="font-semibold text-[13px] text-ink-500">닉네임</Text>
+          <Controller
+            control={control}
+            name="nickname"
+            render={({ field }) => (
+              <TextField
+                accessibilityLabel="닉네임"
+                value={field.value}
+                onChangeText={field.onChange}
+                maxLength={12}
+                placeholder="1~12자"
+                invalid={invalid}
+                right={<Text className="font-medium text-[13px] text-ink-400">{`${field.value.length}/12`}</Text>}
+              />
+            )}
+          />
+          {invalid && <Text className="text-[13px] text-danger">닉네임은 1~12자로 입력해 주세요</Text>}
+        </View>
       </View>
-      <View className="gap-2 pb-4">
-        {error && <Text className="text-[13px] text-minus">{error}</Text>}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          onPress={submitTo('/payout-account')}
-          className={`h-14 items-center justify-center rounded-xl bg-sky-200 ${disabled ? 'opacity-40' : ''}`}
-        >
-          <Text className="font-semibold text-base text-ink-900">받을 계좌 등록(선택)</Text>
-        </Pressable>
+      <BottomBar>
+        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+        <PrimaryButton title="받을 계좌 등록(선택)" variant="sky" disabled={disabled} onPress={submitTo('/payout-account')} />
         <PrimaryButton title="시작하기" disabled={disabled} onPress={submitTo('/')} />
-      </View>
+      </BottomBar>
     </SafeAreaView>
   );
 }
