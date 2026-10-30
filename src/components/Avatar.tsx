@@ -26,3 +26,12 @@ export function Avatar({ name, colorIndex, guest, size = 24 }: Props) {
     </View>
   );
 }
+
+// 게스트 이름 옆 칩(UI_GUIDE: 12 SemiBold, #EEF2F5 / #33475B).
+export function GuestChip() {
+  return (
+    <View className="rounded-md bg-pending-bg px-1.5 py-0.5">
+      <Text className="font-semibold text-xs text-pending-fg">게스트</Text>
+    </View>
+  );
+}

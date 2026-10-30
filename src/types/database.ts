@@ -526,9 +526,32 @@ isOneToOne: false
             "_allocate_items":
 { Args: { "p_expense_id": string }; Returns: undefined
                            },
+"_check_guest_rep":
+{ Args: { "p_rep": string,"p_room_id": string }; Returns: undefined
+                           },
 "_expense_snapshot":
 { Args: { "p_expense_id": string }; Returns: Json
                            },
+"_lock_guest":
+{ Args: { "p_member_id": string }; Returns: {
+              "created_at": string,
+"created_by": string | null,
+"guest_name": string | null,
+"id": string,
+"joined_at": string,
+"kind": string,
+"left_at": string | null,
+"removed_by": string | null,
+"representative_member_id": string | null,
+"room_id": string,
+"user_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "room_members"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "_lock_transfer":
 { Args: { "p_id": string,"p_side": string }; Returns: {
               "amount_krw": number,
@@ -559,6 +582,9 @@ isOneToOne: false
                            },
 "_record_history":
 { Args: { "p_action": string,"p_expense_id": string }; Returns: undefined
+                           },
+"add_guest":
+{ Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
                            },
 "cancel_transfer":
 { Args: { "p_id": string }; Returns: undefined
@@ -620,6 +646,9 @@ isOneToOne: false
 "reject_transfer":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"remove_guest":
+{ Args: { "p_member_id": string }; Returns: undefined
+                           },
 "request_payout_account":
 { Args: { "p_owner_member_id": string,"p_room_id": string }; Returns: undefined
                            },
@@ -636,6 +665,9 @@ isOneToOne: false
                            },
 "set_payout_account":
 { Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined
+                           },
+"update_guest":
+{ Args: { "p_member_id": string,"p_name"?: string,"p_representative_member_id"?: string }; Returns: undefined
                            },
 "update_room":
 { Args: { "p_base_currency": string,"p_end_date": string,"p_name": string,"p_room_id": string,"p_start_date": string }; Returns: undefined

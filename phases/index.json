@@ -49,7 +49,7 @@
     },
     {
       "dir": "9-guest",
-      "status": "pending"
+      "status": "blocked"
     },
     {
       "dir": "10-pool-wallet",

@@ -5,22 +5,34 @@
     {
       "step": 0,
       "name": "guest-db",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:12:20+0900",
+      "summary": "supabase/migrations/20261030020000_guest.sql: add_guest(p_room_id uuid, p_name text, p_representative_member_id uuid=null)→uuid(대표자 기본=호출자, guest_added 이벤트), update_guest(p_member_id uuid, p_name text=null, p_representative_member_id uuid=null)→void(NULL=유지, 대표자 변경 시 guest_rep_change {from,to}), remove_guest(p_member_id uuid)→void(결제자·대상·지정·공금입금 참조 시 GUEST_IN_USE, 미참조면 하드 삭제 + room_events.target_member_id null). 에러: INVALID_INPUT(이름 trim 1~12·대표자가 user 아님), MEMBER_LEFT(나간 대표자), FORBIDDEN(user 행·비멤버). pgTAP 080_guest(31). src/types/database.ts 재생성",
+      "completed_at": "2026-10-30T03:18:31+0900"
     },
     {
       "step": 1,
       "name": "guest-view-lib",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:18:32+0900",
+      "summary": "src/lib/guestView.ts(+test 10): memberDisplayName(row,names)→'엄마(게스트 · 대표 민지)'(user는 이름), guestShareNote(repId,rows,names)→'엄마·아빠 몫 포함'|null, repChangeWarning(guest,newRep)→'엄마의 정산 금액이 지훈 님에게 옮겨져요', orderBalanceRows(rows)→user 순서 유지+각 user 뒤 대표 게스트, 대표자 없는 게스트는 끝. 금액(net) 미변경",
+      "completed_at": "2026-10-30T03:20:40+0900"
     },
     {
       "step": 2,
       "name": "guest-screens",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-10-30T03:20:40+0900",
+      "summary": "api.addGuest({roomId,name,representativeMemberId?})→MemberId·updateGuest({memberId,name?,representativeMemberId?})·removeGuest(memberId), src/hooks/useGuests.ts(useAddGuest/useUpdateGuest/useRemoveGuest: members·balances·events·rooms 무효화), app/(app)/rooms/[roomId]/members.tsx(활성 멤버 목록·[게스트 추가]·[초대하기], 게스트 탭→GuestSheet 이름·대표자(user만, repChangeWarning Alert 확인)·삭제(GUEST_IN_USE 메시지)), 장부 홈 우상단 방 메뉴(BottomSheet)→멤버, Avatar.tsx에 GuestChip export, review 결제자 '(게스트)'·대상 인원 GuestChip, settle: orderBalanceRows+BalanceTable memberDisplayName+카드 guestShareNote",
+      "completed_at": "2026-10-30T03:24:22+0900"
     },
     {
       "step": 3,
       "name": "guest-manual-qa",
-      "status": "pending"
+      "status": "blocked",
+      "started_at": "2026-10-30T03:24:22+0900",
+      "blocked_reason": "manual QA"
     }
-  ]
+  ],
+  "created_at": "2026-10-30T03:12:20+0900"
 }
