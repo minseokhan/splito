@@ -1,15 +1,38 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChatBubble } from 'iconoir-react-native';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/BottomSheet';
+import { Icon } from '@/components/Icon';
 import { InvitePasteBox } from '@/components/InvitePasteBox';
+import { SplitoSymbol, Wordmark } from '@/components/Logo';
 import { toUserError } from '@/lib/errors';
 import { signInWithProvider } from '@/services/auth';
+import { colors } from '@/theme/tokens';
+
+// 브랜드 가이드 색(카카오 #FEE500/#191600, 네이버 #03C75A/흰색). 하늘색으로 바꾸지 않는다.
+function SnsButton({ label, icon, box, text, busy, onPress }: { label: string; icon: ReactNode; box: string; text: string; busy: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: busy }}
+      disabled={busy}
+      onPress={onPress}
+      className={`h-14 flex-row items-center justify-center gap-2 rounded-button active:translate-y-px ${box}`}
+    >
+      {busy ? <ActivityIndicator color={text === 'text-white' ? '#FFFFFF' : colors.kakao.text} /> : icon}
+      <Text className={`font-bold text-[17px] ${text}`}>{label}</Text>
+    </Pressable>
+  );
+}
 
 export default function Login() {
+  const insets = useSafeAreaInsets();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const signIn = async (provider: 'kakao' | 'custom:naver') => {
     setError(undefined);
@@ -25,36 +48,51 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-5">
-      <View className="flex-1 justify-center">
-        <Text className="font-bold text-[22px] text-ink-900">스플리토</Text>
-        <Text className="mt-2 text-[15px] text-ink-700">누가 결제했든, 올리면 한 번에 정산돼요</Text>
-      </View>
-      <View className="gap-2 pb-4">
-        {error && <Text className="text-[13px] text-minus">{error}</Text>}
-        {/* 카카오 브랜드 가이드: #FEE500 배경, 검정 85% 글자. 하늘색으로 바꾸지 않는다. */}
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => signIn('kakao')}
-          className={`h-[52px] items-center justify-center rounded-xl bg-[#FEE500] ${busy ? 'opacity-40' : ''}`}
+    <View className="flex-1 bg-white">
+      <View className="flex-1 items-center justify-center gap-5 rounded-b-[40px] bg-sky-100" style={{ paddingTop: insets.top + 40 }}>
+        <View
+          className="h-[150px] w-[150px] items-center justify-center rounded-full bg-white"
+          style={{ boxShadow: '0 10px 32px -4px rgba(8,116,187,.18)' }}
         >
-          <Text className="font-semibold text-base text-black/85">카카오 로그인</Text>
-        </Pressable>
-        {/* 네이버 브랜드 가이드: #03C75A 배경, 흰 로고·글자. */}
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => signIn('custom:naver')}
-          className={`h-[52px] items-center justify-center rounded-xl bg-[#03C75A] ${busy ? 'opacity-40' : ''}`}
-        >
-          <Text className="font-semibold text-base text-white">네이버 로그인</Text>
-        </Pressable>
-        {/* 앱 미설치 → 설치 후 첫 실행: 저장된 초대는 로그인 뒤 resolveEntryRoute의 join 분기가 처리한다. */}
-        <View className="pt-6">
-          <InvitePasteBox />
+          <SplitoSymbol size={118} blush />
+        </View>
+        <Wordmark size={44} />
+        <View className="items-center gap-1.5 px-8 pb-10">
+          <Text style={{ letterSpacing: -0.44 }} className="text-center font-bold text-[22px] text-ink">
+            누가 냈든, 한 번에 정산
+          </Text>
+          <Text className="text-center text-[15px] leading-[22px] text-ink-500">
+            {'영수증 사진·카드 문자·말 한마디로 올리면\n최소 송금으로 정리해드려요'}
+          </Text>
         </View>
       </View>
-    </SafeAreaView>
+      <View className="gap-2.5 px-5 pt-7" style={{ paddingBottom: Math.max(insets.bottom + 10, 44) }}>
+        {error && <Text className="text-center text-[13px] text-danger">{error}</Text>}
+        <SnsButton
+          label="카카오로 시작하기"
+          icon={<Icon as={ChatBubble} size={20} color={colors.kakao.text} />}
+          box="bg-kakao active:bg-[#F2DA00]"
+          text="text-kakao-text"
+          busy={busy}
+          onPress={() => signIn('kakao')}
+        />
+        <SnsButton
+          label="네이버로 시작하기"
+          icon={<Text className="font-extrabold text-lg text-white">N</Text>}
+          box="bg-naver active:bg-[#02B350]"
+          text="text-white"
+          busy={busy}
+          onPress={() => signIn('custom:naver')}
+        />
+        <Text className="mt-1.5 text-center text-xs text-ink-400">가입 시 이용약관 및 개인정보 처리방침에 동의하게 돼요</Text>
+        {/* 앱 미설치 → 설치 후 첫 실행: 저장된 초대는 로그인 뒤 resolveEntryRoute의 join 분기가 처리한다. */}
+        <Pressable accessibilityRole="button" onPress={() => setInviteOpen(true)} hitSlop={8} className="self-center py-1">
+          <Text className="font-semibold text-[13px] text-primary-text">초대 링크를 받으셨나요?</Text>
+        </Pressable>
+      </View>
+      <BottomSheet visible={inviteOpen} onClose={() => setInviteOpen(false)}>
+        <InvitePasteBox />
+      </BottomSheet>
+    </View>
   );
 }

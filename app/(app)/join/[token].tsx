@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/Avatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useInvitePreview, useJoinRoom } from '@/hooks/useRooms';
 import type { UserError } from '@/lib/errors';
@@ -48,35 +49,40 @@ export default function JoinSheet() {
   const p = preview.data;
 
   return (
-    <View className="flex-1 justify-end bg-black/40">
-      <SafeAreaView edges={['bottom']} className="rounded-t-2xl bg-white px-5 pb-4">
-        <View className="mb-4 mt-2 h-1 w-10 self-center rounded-full bg-line" />
+    <View className="flex-1 justify-end bg-[rgba(19,25,39,0.45)]">
+      <SafeAreaView edges={['bottom']} className="gap-[18px] rounded-t-hero bg-white px-5 pb-4 pt-3">
+        <View className="h-[5px] w-10 self-center rounded-full bg-line" />
         {invalid ? (
-          <Text className="mb-6 text-[15px] text-ink-700">{INVALID}</Text>
+          <Text className="text-[15px] leading-[22px] text-ink-700">{INVALID}</Text>
         ) : p ? (
-          <View className="mb-6 gap-2">
-            <Text className="font-bold text-[22px] text-ink-900">{p.roomName} 여행에 참여할까요?</Text>
-            <Text className="text-[13px] text-ink-500">
-              {p.inviterNickname ? `${p.inviterNickname}님이 초대했어요 · ` : ''}
-              {p.memberCount}명 참여 중
-            </Text>
+          <View className="flex-row items-center gap-3.5">
+            <Avatar name={p.inviterNickname || p.roomName} colorIndex={0} size={48} />
+            <View className="flex-1 gap-1">
+              <Text className="font-bold text-xl text-ink">{p.roomName} 여행에 참여할까요?</Text>
+              <Text className="text-sm text-ink-500">
+                {p.inviterNickname ? `${p.inviterNickname}님이 초대했어요 · ` : ''}
+                {p.memberCount}명 참여 중
+              </Text>
+            </View>
           </View>
         ) : error ? (
-          <Text className="mb-6 text-[15px] text-ink-700">{error.message}</Text>
+          <Text className="text-[15px] leading-[22px] text-ink-700">{error.message}</Text>
         ) : (
-          <Text className="mb-6 text-[15px] text-ink-500">초대를 확인하고 있어요</Text>
+          <Text className="text-[15px] text-ink-500">초대를 확인하고 있어요</Text>
         )}
-        {error && !invalid && !p ? (
-          <PrimaryButton title="다시 시도" onPress={() => preview.refetch()} />
-        ) : !invalid ? (
-          <>
-            {join.error && !invalid && <Text className="mb-2 text-center text-[13px] text-[#D93A3A]">{error?.message}</Text>}
-            <PrimaryButton title="참여하기" onPress={submit} disabled={!p || join.isPending} />
-          </>
-        ) : null}
-        <Pressable accessibilityRole="button" onPress={close} className="h-11 items-center justify-center">
-          <Text className="font-medium text-sky-900">{invalid ? '확인' : '나중에'}</Text>
-        </Pressable>
+        <View className="gap-1">
+          {error && !invalid && !p ? (
+            <PrimaryButton title="다시 시도" onPress={() => preview.refetch()} />
+          ) : !invalid ? (
+            <>
+              {join.error && !invalid && <Text className="mb-2 text-center text-[13px] text-danger">{error?.message}</Text>}
+              <PrimaryButton title="참여하기" onPress={submit} loading={join.isPending} disabled={!p} />
+            </>
+          ) : null}
+          <Pressable accessibilityRole="button" onPress={close} className="h-11 items-center justify-center">
+            <Text className="font-semibold text-[15px] text-ink-500">{invalid ? '확인' : '나중에'}</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     </View>
   );

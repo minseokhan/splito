@@ -1,16 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
+import { Bell, Check, Eye, Lock, NavArrowDown } from 'iconoir-react-native';
 import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 import { BottomSheet } from '@/components/BottomSheet';
-import { PrimaryButton } from '@/components/PrimaryButton';
+import { Icon } from '@/components/Icon';
+import { SplitoSymbol } from '@/components/Logo';
+import { NavBar } from '@/components/NavBar';
+import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
+import { TextField } from '@/components/TextField';
 import { useMyPayoutAccount, useSetPayoutAccount } from '@/hooks/usePayoutAccount';
 import { BANKS, accountNumberSchema } from '@/lib/bank';
 import { toUserError } from '@/lib/errors';
+import { colors } from '@/theme/tokens';
 
 // 계좌번호는 폼 상태에만 둔다. AsyncStorage·draft·로그에 남기지 않는다(PRD §7.3).
 const schema = z.object({
@@ -20,6 +26,30 @@ const schema = z.object({
 });
 
 const done = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+function Label({ children }: { children: string }) {
+  return <Text className="font-semibold text-[13px] text-ink-500">{children}</Text>;
+}
+
+function Notes() {
+  // 원문 조회는 서버가 payout_reveals + 방 활동(room_event)으로 남긴다. 푸시 알림은 없다.
+  const lines = [
+    { icon: Eye, text: '나에게 줄 돈이 있는 사람에게만 계좌번호 전체가 보여요. 그 외에는 가려서 보여드려요.' },
+    { icon: Bell, text: '누군가 계좌를 확인하면 여행 활동에 기록돼요.' },
+  ];
+  return (
+    <View className="gap-3">
+      {lines.map((l) => (
+        <View key={l.text} className="flex-row items-start gap-2.5">
+          <View className="mt-px">
+            <Icon as={l.icon} size={20} color={colors.primary.text} />
+          </View>
+          <Text className="flex-1 text-sm leading-[21px] text-ink-700">{l.text}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export default function PayoutAccountScreen() {
   const { data: current, isLoading } = useMyPayoutAccount();
@@ -53,82 +83,93 @@ export default function PayoutAccountScreen() {
   const showForm = !current || editing;
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-5">
-      <ScrollView contentContainerClassName="gap-2 pt-6" keyboardShouldPersistTaps="handled">
-        <Text className="mb-2 font-bold text-[22px] text-ink-900">받을 계좌</Text>
-        <Text className="mb-4 text-[13px] text-ink-500">정산에서 나에게 줄 돈이 있는 분에게만 계좌번호가 보여요</Text>
-        {current && (
-          <View className="mb-4 rounded-lg border border-line px-4 py-3">
-            <Text className="font-semibold text-base text-ink-900">{current.bankName}</Text>
-            <Text className="text-[15px] text-ink-700">
-              ****-**-***{current.accountLast4} · {current.holderName}
-            </Text>
-          </View>
-        )}
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
+      <NavBar title="받을 계좌" onBack={editing ? () => setEditing(false) : undefined} />
+      <ScrollView contentContainerClassName="gap-[22px] px-5 pt-3" contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         {showForm ? (
           <>
-            <Text className="text-[13px] text-ink-500">은행</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="은행 선택"
-              onPress={() => setBankOpen(true)}
-              className="h-12 justify-center rounded-lg border border-input-line px-4"
-            >
-              <Text className={`text-base ${bank ? 'text-ink-900' : 'text-ink-500'}`}>{bank?.name ?? '은행을 골라주세요'}</Text>
-            </Pressable>
-            <Text className="mt-2 text-[13px] text-ink-500">예금주</Text>
-            <Controller
-              control={control}
-              name="holderName"
-              render={({ field }) => (
-                <TextInput
-                  accessibilityLabel="예금주"
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  maxLength={20}
-                  className="h-12 rounded-lg border border-input-line px-4 text-base text-ink-900"
-                />
-              )}
-            />
-            <Text className="mt-2 text-[13px] text-ink-500">계좌번호</Text>
-            <Controller
-              control={control}
-              name="accountNumber"
-              render={({ field, fieldState }) => {
-                const invalid = !!fieldState.error && field.value !== '';
-                return (
-                  <>
-                    <TextInput
-                      accessibilityLabel="계좌번호"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      keyboardType="number-pad"
-                      autoComplete="off"
-                      maxLength={30}
-                      placeholder="숫자만 입력해도 돼요"
-                      className={`h-12 rounded-lg border px-4 text-base text-ink-900 ${invalid ? 'border-minus' : 'border-input-line'}`}
-                    />
-                    {invalid && <Text className="text-sm text-minus">계좌번호는 숫자 8~20자리로 입력해 주세요</Text>}
-                  </>
-                );
-              }}
-            />
+            <View className="gap-2">
+              <Label>은행</Label>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="은행 선택"
+                onPress={() => setBankOpen(true)}
+                className="h-[54px] flex-row items-center justify-between rounded-input border-[1.5px] border-line px-4"
+              >
+                <Text className={`font-semibold text-[17px] ${bank ? 'text-ink' : 'text-ink-300'}`}>{bank?.name ?? '은행을 골라주세요'}</Text>
+                <Icon as={NavArrowDown} size={20} color={colors.ink[300]} />
+              </Pressable>
+            </View>
+            <View className="gap-2">
+              <Label>예금주</Label>
+              <Controller
+                control={control}
+                name="holderName"
+                render={({ field }) => (
+                  <TextField accessibilityLabel="예금주" value={field.value} onChangeText={field.onChange} maxLength={20} />
+                )}
+              />
+            </View>
+            <View className="gap-2">
+              <Label>계좌번호</Label>
+              <Controller
+                control={control}
+                name="accountNumber"
+                render={({ field, fieldState }) => {
+                  const invalid = !!fieldState.error && field.value !== '';
+                  return (
+                    <>
+                      <TextField
+                        accessibilityLabel="계좌번호"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        keyboardType="number-pad"
+                        autoComplete="off"
+                        maxLength={30}
+                        placeholder="숫자만 입력해도 돼요"
+                        invalid={invalid}
+                      />
+                      {invalid && <Text className="text-[13px] text-danger">계좌번호는 숫자 8~20자리로 입력해 주세요</Text>}
+                    </>
+                  );
+                }}
+              />
+            </View>
+            <Notes />
           </>
         ) : (
-          <Pressable accessibilityRole="button" onPress={() => setEditing(true)} className="h-11 justify-center">
-            <Text className="font-medium text-sky-900">계좌 수정하기</Text>
-          </Pressable>
+          <>
+            <View className="gap-7 overflow-hidden rounded-card-lg bg-ink p-[22px]">
+              <View className="absolute" style={{ right: -30, bottom: -40, opacity: 0.9 }}>
+                <SplitoSymbol size={150} />
+              </View>
+              <View className="flex-row items-center justify-between">
+                <Text className="font-bold text-[15px] text-white">{current.bankName}</Text>
+                <View className="flex-row items-center gap-1 rounded-badge px-2 py-1" style={{ backgroundColor: 'rgba(255,255,255,.14)' }}>
+                  <Icon as={Lock} size={13} color="#FFFFFF" />
+                  <Text className="font-bold text-xs text-white">암호화 저장</Text>
+                </View>
+              </View>
+              <View className="gap-1">
+                <Text style={{ letterSpacing: 0.88 }} className="font-bold text-[22px] text-white">
+                  ****-****-{current.accountLast4}
+                </Text>
+                <Text className="text-sm text-on-dark-sub">예금주 {current.holderName}</Text>
+              </View>
+            </View>
+            <Notes />
+          </>
         )}
       </ScrollView>
-      <View className="gap-2 pb-4">
-        {error && <Text className="text-[13px] text-minus">{error}</Text>}
+      <BottomBar>
+        {error && <Text className="text-[13px] text-danger">{error}</Text>}
         {showForm ? (
-          <PrimaryButton title="저장" disabled={!formState.isValid || formState.isSubmitting} onPress={submit} />
+          <PrimaryButton title="저장" disabled={!formState.isValid} loading={formState.isSubmitting} onPress={submit} />
         ) : (
-          <PrimaryButton title="확인" onPress={done} />
+          <PrimaryButton title="계좌 변경하기" variant="muted" onPress={() => setEditing(true)} />
         )}
-      </View>
-      <BottomSheet visible={bankOpen} onClose={() => setBankOpen(false)}>
+      </BottomBar>
+      <BottomSheet visible={bankOpen} onClose={() => setBankOpen(false)} title="은행 선택">
         <ScrollView className="max-h-96">
           {BANKS.map((b) => (
             <Pressable
@@ -138,9 +179,10 @@ export default function PayoutAccountScreen() {
                 setValue('bankCode', b.code, { shouldValidate: true });
                 setBankOpen(false);
               }}
-              className="h-12 justify-center"
+              className="h-[52px] flex-row items-center justify-between"
             >
-              <Text className="text-base text-ink-900">{b.name}</Text>
+              <Text className={`text-base ${b.code === bankCode ? 'font-bold text-primary-text' : 'text-ink'}`}>{b.name}</Text>
+              {b.code === bankCode && <Icon as={Check} size={20} color={colors.primary.text} />}
             </Pressable>
           ))}
         </ScrollView>
