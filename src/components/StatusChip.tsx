@@ -2,18 +2,22 @@ import { Text, View } from 'react-native';
 
 import type { RoomStatus } from '@/types/domain';
 
-const STYLE: Record<RoomStatus, { label: string; bg: string; fg: string }> = {
-  settled: { label: '정산 완료', bg: 'bg-done-bg', fg: 'text-done-fg' },
-  settling: { label: '정산 중', bg: 'bg-sky-200', fg: 'text-ink-900' },
-  shared: { label: '함께 기록 중', bg: 'bg-sky-100', fg: 'text-ink-700' },
-  solo: { label: '기록 중', bg: 'bg-pending-bg', fg: 'text-pending-fg' },
+export const STATUS_LABEL: Record<RoomStatus, string> = {
+  settled: '정산 완료',
+  settling: '정산 중',
+  shared: '함께 기록 중',
+  solo: '기록 중',
 };
 
-export function StatusChip({ status }: { status: RoomStatus }) {
-  const s = STYLE[status];
+// 상태 칩 12/800, 흰 배경 radius 8, padding 4×8. 정산 중만 primary-text, 그 외 ink-500.
+export function StatusChip({ status, suffix }: { status: RoomStatus; suffix?: string }) {
+  const fg = status === 'settling' ? 'text-primary-text' : status === 'settled' ? 'text-success' : 'text-ink-500';
   return (
-    <View className={`self-start rounded-md px-2 py-1 ${s.bg}`}>
-      <Text className={`font-semibold text-xs ${s.fg}`}>{s.label}</Text>
+    <View className="self-start rounded-badge bg-white px-2 py-1">
+      <Text className={`font-extrabold text-xs ${fg}`}>
+        {STATUS_LABEL[status]}
+        {suffix ? ` · ${suffix}` : ''}
+      </Text>
     </View>
   );
 }

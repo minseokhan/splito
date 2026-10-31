@@ -1,9 +1,13 @@
+import { Check } from 'iconoir-react-native';
 import { Pressable, Text, View } from 'react-native';
+
+import { colors } from '@/theme/tokens';
 
 import { Avatar } from './Avatar';
 import type { AvatarPerson } from './AvatarStack';
 import { BottomSheet } from './BottomSheet';
-import { Checkbox } from './Checkbox';
+import { Icon } from './Icon';
+import { PrimaryButton } from './PrimaryButton';
 
 type Props = {
   visible: boolean;
@@ -16,20 +20,35 @@ type Props = {
 
 export function AssigneeSheet({ visible, people, selected, summary, onToggle, onClose }: Props) {
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
-      <Text className="font-semibold text-[17px] text-ink-900">누가 나눌까요?</Text>
-      <Text className="mt-1 text-[13px] text-ink-500">{selected.length ? summary : `아무도 고르지 않으면 전원 · ${summary}`}</Text>
-      <View className="mt-4">
-        {people.map((p) => (
-          <View key={p.id} className="flex-row items-center gap-3">
-            <Avatar name={p.name} colorIndex={p.colorIndex} guest={p.guest} size={32} />
-            <Checkbox label={p.guest ? `${p.name}(게스트)` : p.name} checked={selected.includes(p.id)} onChange={() => onToggle(p.id)} />
-          </View>
-        ))}
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title="누가 나눌까요?"
+      subtitle={selected.length ? summary : `아무도 고르지 않으면 전원 · ${summary}`}
+    >
+      <View>
+        {people.map((p) => {
+          const on = selected.includes(p.id);
+          const label = p.guest ? `${p.name}(게스트)` : p.name;
+          return (
+            <Pressable
+              key={p.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+              accessibilityLabel={label}
+              onPress={() => onToggle(p.id)}
+              className="min-h-14 flex-row items-center gap-3"
+            >
+              <Avatar name={p.name} colorIndex={p.colorIndex} guest={p.guest} size={36} />
+              <Text className="flex-1 font-semibold text-base text-ink">{label}</Text>
+              <View className={`h-6 w-6 items-center justify-center rounded-full ${on ? 'bg-primary' : 'border-[1.5px] border-line-off'}`}>
+                {on && <Icon as={Check} size={16} color={colors.primary.on} />}
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
-      <Pressable accessibilityRole="button" onPress={onClose} className="mt-4 h-14 items-center justify-center rounded-xl bg-sky-200">
-        <Text className="font-semibold text-base text-ink-900">완료</Text>
-      </Pressable>
+      <PrimaryButton title="완료" onPress={onClose} />
     </BottomSheet>
   );
 }

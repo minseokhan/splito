@@ -1,5 +1,6 @@
 import {
   allocateLargestRemainder,
+  unitName,
   floorDiv,
   formatForeign,
   formatKrw,
@@ -162,5 +163,16 @@ describe('fxBasisLabel', () => {
     expect(fxBasisLabel({ source: 'card_krw', currency: 'USD' })).toBe('승인 문자 청구액 · 승인 시점 금액');
     expect(fxBasisLabel({ source: 'manual', rate: 25, currency: 'TWD' })).toBe('수동 입력');
     expect(fxBasisLabel({ source: 'pending', currency: 'USD' })).toBe('환율 대기');
+  });
+});
+
+describe('unitName', () => {
+  test('통화 이름의 마지막 단어(원·엔)를 짧은 이름으로 쓴다', () => {
+    expect(unitName('KRW', '대한민국 원')).toBe('원');
+    expect(unitName('JPY', '일본 엔')).toBe('엔');
+    expect(unitName('USD', '미국 달러')).toBe('달러');
+  });
+  test('USD가 아닌 달러는 나라 이름까지 쓴다', () => {
+    expect(unitName('AUD', '호주 달러')).toBe('호주 달러');
   });
 });

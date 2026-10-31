@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@main/css/iconoir.css">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EEF2F6;font-family:"Pretendard Variable",Pretendard,sans-serif;color:#131927;-webkit-font-smoothing:antialiased}a{color:#0874BB}a:hover{color:#065C94}input{font-family:inherit}*{scrollbar-width:none}*::-webkit-scrollbar{width:0;height:0}</style>
+</helmet>
+<section style="padding:64px;display:flex;flex-direction:column;gap:40px;font-family:'Pretendard Variable',Pretendard,sans-serif">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:28px;font-weight:700;letter-spacing:-0.02em">Splito 앱 · 화면 디자인</div>
+    <div style="font-size:15px;color:#535764">확정안 · 홈 B안 + 정산 A안. 왼쪽 목록이나 화면을 눌러 이동하세요.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+    <div id="1a" style="display:flex;gap:28px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:6px;width:170px;padding-top:8px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><div style="font-size:12px;font-weight:700;background:#131927;color:#fff;padding:4px 10px;border-radius:999px">1a</div><div style="font-size:15px;font-weight:700">프로토타입</div></div>
+        <sc-for list="{{ jump }}" as="j" hint-placeholder-count="9">
+          <div onClick="{{ j.go }}" style="cursor:pointer;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:600;background:{{ j.bg }};color:{{ j.fg }}">{{ j.label }}</div>
+        </sc-for>
+      </div>
+
+      <div style="width:390px;height:844px;border-radius:54px;background:#fff;box-shadow:0 0 0 11px #131927,0 40px 80px -20px rgba(19,25,39,.45);position:relative;overflow:hidden;flex-shrink:0">
+        <div style="position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 38px;font-size:16px;font-weight:600;z-index:5">9:41<div style="width:26px;height:13px;border-radius:4px;border:1.5px solid #131927;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:#131927;border-radius:1.5px"></div></div></div>
+
+        <sc-if value="{{ is.login }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;inset:0;background:#fff;display:flex;flex-direction:column">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#E6F6FF;border-radius:0 0 40px 40px;padding-top:40px">
+              <div style="width:150px;height:150px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 32px -4px rgba(8,116,187,.18)"><svg width="118" height="118" viewBox="0 0 120 120"><path d="M70.1 49.9L77 27.6A42 42 0 1 0 92.4 43Z" fill="#36B6FF" stroke="#36B6FF" stroke-width="4" stroke-linejoin="round"></path><circle cx="42" cy="66" r="5" fill="#131927"></circle><circle cx="70" cy="66" r="5" fill="#131927"></circle><path d="M48 80Q56 88 64 80" stroke="#131927" stroke-width="4.5" stroke-linecap="round" fill="none"></path><ellipse cx="31" cy="78" rx="5.5" ry="3.2" fill="#fff" opacity=".55"></ellipse><ellipse cx="81" cy="78" rx="5.5" ry="3.2" fill="#fff" opacity=".55"></ellipse></svg></div>
+              <div style="font-family:Fredoka;font-weight:700;font-size:44px;color:#36B6FF;line-height:1">splito</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 32px 40px">
+                <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;text-align:center">누가 냈든, 한 번에 정산</div>
+                <div style="font-size:15px;color:#535764;text-align:center;line-height:22px">영수증 사진·카드 문자·말 한마디로 올리면<br>최소 송금으로 정리해드려요</div>
+              </div>
+            </div>
+            <div style="padding:28px 20px 44px;display:flex;flex-direction:column;gap:10px">
+              <div onClick="{{ go.terms }}" style="cursor:pointer;height:56px;border-radius:16px;background:#FEE500;color:#191600;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:700"><i class="iconoir-chat-bubble" style="font-size:20px"></i>카카오로 시작하기</div>
+              <div onClick="{{ go.terms }}" style="cursor:pointer;height:56px;border-radius:16px;background:#03C75A;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:700"><div style="font-weight:900;font-size:18px">N</div>네이버로 시작하기</div>
+              <div style="font-size:12px;color:#6B7080;text-align:center;margin-top:6px">가입 시 이용약관 및 개인정보 처리방침에 동의하게 돼요</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.terms }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#fff;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;padding:0 12px"><i onClick="{{ go.login }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i></div>
+            <div style="flex:1;overflow-y:auto;padding:8px 20px 140px;display:flex;flex-direction:column;gap:28px">
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:34px">거의 다 왔어요</div><div style="font-size:15px;color:#535764">닉네임을 확인하고 약관에 동의해주세요</div></div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:13px;font-weight:600;color:#535764">닉네임</div>
+                <div style="height:54px;border-radius:14px;border:1.5px solid #36B6FF;box-shadow:0 0 0 4px rgba(54,182,255,.18);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:17px;font-weight:600">민지<div style="font-size:13px;color:#6B7080;font-weight:500">2/12</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;border-radius:18px;background:#F6F8FA;padding:6px">
+                <div onClick="{{ toggleAll }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 12px;background:#fff;border-radius:14px;box-shadow:0 2px 4px -2px rgba(19,25,39,.08)">
+                  <div style="width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:{{ allBg }};color:#fff"><i class="iconoir-check" style="font-size:16px"></i></div>
+                  <div style="font-size:16px;font-weight:700">전체 동의하기</div>
+                </div>
+                <sc-for list="{{ agreeItems }}" as="a" hint-placeholder-count="4">
+                  <div onClick="{{ a.toggle }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px">
+                    <i class="iconoir-check" style="font-size:20px;color:{{ a.fg }}"></i>
+                    <div style="flex:1;font-size:15px">{{ a.label }} <span style="color:{{ a.tagColor }};font-weight:600">{{ a.tag }}</span></div>
+                    <i class="iconoir-nav-arrow-right" style="font-size:18px;color:#A0A4AE"></i>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:13px;color:#6B7080;line-height:19px">영수증 이미지는 AI 인식을 위해 Anthropic(미국)으로 전송돼요. 받을 계좌는 나중에 등록해도 돼요.</div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 40px;background:#fff">
+              <div onClick="{{ finishSignup }}" style="cursor:pointer;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;background:{{ signupBg }};color:{{ signupFg }}">시작하기</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.home }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#fff;display:flex;flex-direction:column">
+            <div style="flex:1;overflow-y:auto;padding:10px 20px 130px;display:flex;flex-direction:column;gap:22px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:8px"><svg width="34" height="34" viewBox="0 0 120 120"><path d="M70.1 49.9L77 27.6A42 42 0 1 0 92.4 43Z" fill="#36B6FF" stroke="#36B6FF" stroke-width="4" stroke-linejoin="round"></path><circle cx="42" cy="66" r="5" fill="#131927"></circle><circle cx="70" cy="66" r="5" fill="#131927"></circle><path d="M48 80Q56 88 64 80" stroke="#131927" stroke-width="4.5" stroke-linecap="round" fill="none"></path></svg><div style="font-family:Fredoka;font-weight:700;font-size:26px;color:#36B6FF">splito</div></div>
+                <div style="display:flex;gap:6px;color:#353A47"><i onClick="{{ go.account }}" class="iconoir-bank" style="font-size:24px;cursor:pointer;padding:6px"></i><i onClick="{{ go.settings }}" class="iconoir-user" style="font-size:24px;cursor:pointer;padding:6px"></i></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:15px;color:#535764">민지님, 안녕하세요</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.03em;line-height:34px">진행 중인 여행이<br>2개 있어요</div></div>
+              <div style="display:flex;gap:12px;overflow-x:auto;margin:0 -20px;padding:0 20px">
+                <div onClick="{{ go.detail }}" style="cursor:pointer;width:260px;flex-shrink:0;border-radius:28px;background:#36B6FF;padding:20px;display:flex;flex-direction:column;gap:56px;position:relative;overflow:hidden">
+                  <div style="position:absolute;right:-24px;top:-20px;opacity:.35"><svg width="150" height="150" viewBox="0 0 120 120"><path d="M70.1 49.9L77 27.6A42 42 0 1 0 92.4 43Z" fill="#fff"></path></svg></div>
+                  <div style="display:flex;flex-direction:column;gap:6px;position:relative;color:#0B2B45"><div style="font-size:12px;font-weight:800;background:#fff;color:#0874BB;padding:4px 8px;border-radius:8px;align-self:flex-start">정산 중 · JPY</div><div style="font-size:22px;font-weight:800;margin-top:8px">오사카 먹방 여행</div><div style="font-size:14px">10.20 – 10.23 · 4명</div></div>
+                  <div onClick="{{ goSettleStop }}" style="background:#fff;border-radius:18px;padding:14px;display:flex;justify-content:space-between;align-items:center;position:relative"><div style="font-size:13px;color:#535764">내가 보낼 돈</div><div style="font-size:18px;font-weight:800;color:#D92D20">36,364원</div></div>
+                </div>
+                <div onClick="{{ go.detail }}" style="cursor:pointer;width:260px;flex-shrink:0;border-radius:28px;background:#E6F6FF;padding:20px;display:flex;flex-direction:column;gap:56px">
+                  <div style="display:flex;flex-direction:column;gap:6px;color:#0B2B45"><div style="font-size:12px;font-weight:800;background:#fff;color:#535764;padding:4px 8px;border-radius:8px;align-self:flex-start">기록 중 · KRW</div><div style="font-size:22px;font-weight:800;margin-top:8px">제주 동아리 MT</div><div style="font-size:14px">11.14 – 11.16 · 6명</div></div>
+                  <div style="background:#fff;border-radius:18px;padding:14px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:13px;color:#535764">정산할 돈</div><div style="font-size:18px;font-weight:800">0원</div></div>
+                </div>
+                <div onClick="{{ go.create }}" style="cursor:pointer;width:120px;flex-shrink:0;border-radius:28px;border:2px dashed #B8E5FF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#0874BB;font-size:14px;font-weight:700"><i class="iconoir-plus" style="font-size:26px"></i>새 여행</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:700">최근 기록</div><div onClick="{{ go.detail }}" style="cursor:pointer;font-size:14px;color:#0874BB;font-weight:600">전체 보기</div></div>
+                <div style="display:flex;gap:12px;align-items:center;padding:10px 0"><div style="width:44px;height:44px;border-radius:14px;background:#F0F3F7;color:#0874BB;display:flex;align-items:center;justify-content:center"><i class="iconoir-camera" style="font-size:21px"></i></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><div style="font-size:15px;font-weight:700">쿠시카츠 다루마</div><div style="font-size:13px;color:#6B7080">지훈 결제 · 오사카</div></div><div style="font-size:15px;font-weight:700">81,000원</div></div>
+                <div style="display:flex;gap:12px;align-items:center;padding:10px 0"><div style="width:44px;height:44px;border-radius:14px;background:#F0F3F7;color:#0874BB;display:flex;align-items:center;justify-content:center"><i class="iconoir-message-text" style="font-size:21px"></i></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><div style="font-size:15px;font-weight:700">USJ 입장권</div><div style="font-size:13px;color:#6B7080">서연 결제 · 오사카</div></div><div style="font-size:15px;font-weight:700">396,000원</div></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:#F6F8FA;border-radius:16px;padding:14px 16px"><div style="font-size:14px;color:#535764">정산 완료한 여행 1개</div><i class="iconoir-nav-arrow-right" style="font-size:18px;color:#A0A4AE"></i></div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 40px;display:flex;gap:10px;background:linear-gradient(rgba(255,255,255,0),#fff 30%)">
+              <div onClick="{{ go.add }}" style="cursor:pointer;flex:1;height:56px;border-radius:16px;background:#131927;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:17px;font-weight:700"><i class="iconoir-camera" style="font-size:22px"></i>지출 올리기</div>
+              <div onClick="{{ go.create }}" style="cursor:pointer;width:56px;height:56px;border-radius:16px;background:#36B6FF;color:#0B2B45;display:flex;align-items:center;justify-content:center"><i class="iconoir-plus" style="font-size:26px"></i></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.create }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#fff;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;padding:0 12px;gap:4px"><i onClick="{{ go.home }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i><div style="font-size:17px;font-weight:700">새 여행</div></div>
+            <div style="flex:1;overflow-y:auto;padding:12px 20px 140px;display:flex;flex-direction:column;gap:28px">
+              <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:34px">어디로 떠나나요?</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:13px;font-weight:600;color:#535764">여행 이름</div>
+                <input value="{{ tripName }}" onChange="{{ onTripName }}" placeholder="예: 오사카 먹방 여행" style="height:54px;border-radius:14px;border:1.5px solid #E4E7EC;padding:0 16px;font-size:17px;font-weight:600;outline:none;color:#131927" style-focus="border-color:#36B6FF;box-shadow:0 0 0 4px rgba(54,182,255,.18)">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="font-size:13px;font-weight:600;color:#535764">기본 통화</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ currencies }}" as="c" hint-placeholder-count="6">
+                    <div onClick="{{ c.pick }}" style="cursor:pointer;height:44px;padding:0 14px;border-radius:12px;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;border:1.5px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }}">{{ c.code }}<span style="font-weight:500;font-size:13px;opacity:.75">{{ c.label }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:13px;font-weight:600;color:#535764">기간 <span style="color:#A0A4AE;font-weight:500">선택</span></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="flex:1;height:54px;border-radius:14px;background:#F6F8FA;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:16px;font-weight:600"><i class="iconoir-calendar" style="font-size:18px;color:#0874BB"></i>10월 20일</div>
+                  <div style="color:#A0A4AE">–</div>
+                  <div style="flex:1;height:54px;border-radius:14px;background:#F6F8FA;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:16px;font-weight:600"><i class="iconoir-calendar" style="font-size:18px;color:#0874BB"></i>10월 23일</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;background:#E6F6FF;border-radius:16px;padding:14px 16px">
+                <svg width="40" height="40" viewBox="0 0 120 120" style="flex-shrink:0"><path d="M70.1 49.9L77 27.6A42 42 0 1 0 92.4 43Z" fill="#36B6FF" stroke="#36B6FF" stroke-width="4" stroke-linejoin="round"></path><circle cx="42" cy="66" r="5" fill="#131927"></circle><circle cx="70" cy="66" r="5" fill="#131927"></circle><path d="M48 80Q56 88 64 80" stroke="#131927" stroke-width="4.5" stroke-linecap="round" fill="none"></path></svg>
+                <div style="font-size:14px;line-height:20px;color:#0B2B45">처음엔 나 혼자인 가계부로 시작해요. 만든 뒤 링크로 동행을 초대할 수 있어요.</div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 40px;background:#fff">
+              <div onClick="{{ go.detail }}" style="cursor:pointer;height:56px;border-radius:16px;background:#36B6FF;color:#0B2B45;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">만들기</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.detail }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#F6F8FA;display:flex;flex-direction:column">
+            <div style="flex:1;overflow-y:auto;padding-bottom:130px">
+              <div style="background:#36B6FF;padding:0 20px 22px;border-radius:0 0 28px 28px;display:flex;flex-direction:column;gap:16px">
+                <div style="height:52px;display:flex;align-items:center;justify-content:space-between;margin:0 -8px;color:#0B2B45"><i onClick="{{ go.home }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i><div style="font-size:17px;font-weight:700">오사카 먹방 여행</div><i class="iconoir-more-horiz" style="font-size:26px;padding:8px"></i></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between">
+                  <div style="display:flex;flex-direction:column;gap:2px;color:#0B2B45">
+                    <div style="font-size:14px;font-weight:600">총 지출 · 10.20 – 10.23</div>
+                    <div style="font-size:32px;font-weight:800;letter-spacing:-0.03em">1,110,630원</div>
+                  </div>
+                  <div style="display:flex">
+                    <sc-for list="{{ people }}" as="p" hint-placeholder-count="4">
+                      <div style="width:32px;height:32px;border-radius:999px;border:2.5px solid #36B6FF;margin-left:-8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:{{ p.tint }};color:{{ p.fg }}">{{ p.initial }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+                  <div onClick="{{ go.settle }}" style="cursor:pointer;background:#fff;border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:13px;font-weight:700"><i class="iconoir-coins" style="font-size:22px;color:#0874BB"></i>정산 보기</div>
+                  <div style="background:rgba(255,255,255,.55);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:13px;font-weight:700;color:#0B2B45"><i class="iconoir-wallet" style="font-size:22px"></i>공금 지갑</div>
+                  <div onClick="{{ showInvite }}" style="cursor:pointer;background:rgba(255,255,255,.55);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:13px;font-weight:700;color:#0B2B45"><i class="iconoir-user-plus" style="font-size:22px"></i>초대하기</div>
+                </div>
+              </div>
+              <div style="padding:20px 20px 0;display:flex;flex-direction:column;gap:22px">
+                <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#535764;padding:0 4px">{{ g.label }}<span style="font-weight:600">{{ g.sum }}</span></div>
+                    <div style="background:#fff;border-radius:20px;padding:4px 16px;box-shadow:0 2px 4px -2px rgba(19,25,39,.06)">
+                      <sc-for list="{{ g.items }}" as="e" hint-placeholder-count="2">
+                        <div style="display:flex;gap:12px;align-items:center;padding:14px 0;border-bottom:{{ e.border }}">
+                          <div style="width:44px;height:44px;border-radius:14px;background:#F0F3F7;color:#0874BB;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="{{ e.icon }}" style="font-size:21px"></i></div>
+                          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                            <div style="display:flex;gap:6px;align-items:center"><div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</div><sc-if value="{{ e.check }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;font-weight:700;color:#B54708;background:#FEF0C7;padding:2px 6px;border-radius:6px;flex-shrink:0">확인필요</div></sc-if></div>
+                            <div style="font-size:13px;color:#6B7080">{{ e.who }}</div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+                            <div style="font-size:16px;font-weight:700">{{ e.krw }}</div>
+                            <div style="font-size:12px;color:#6B7080">{{ e.orig }}</div>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 40px;background:linear-gradient(rgba(246,248,250,0),#F6F8FA 30%)">
+              <div onClick="{{ go.add }}" style="cursor:pointer;height:56px;border-radius:16px;background:#131927;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:700"><i class="iconoir-plus" style="font-size:22px"></i>지출 올리기</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.addMethod }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#fff;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;padding:0 12px"><i onClick="{{ go.detail }}" class="iconoir-xmark" style="font-size:26px;cursor:pointer;padding:8px"></i></div>
+            <div style="padding:8px 20px;display:flex;flex-direction:column;gap:24px">
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em">어떻게 올릴까요?</div><div style="font-size:15px;color:#535764">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</div></div>
+              <div onClick="{{ go.addBoxes }}" style="cursor:pointer;border-radius:24px;background:#36B6FF;padding:22px;display:flex;align-items:center;gap:16px">
+                <div style="width:56px;height:56px;border-radius:18px;background:#fff;color:#0874BB;display:flex;align-items:center;justify-content:center"><i class="iconoir-camera" style="font-size:28px"></i></div>
+                <div style="flex:1;color:#0B2B45"><div style="font-size:18px;font-weight:800">영수증 찍기</div><div style="font-size:14px;margin-top:3px">사진 한 장이면 품목·번역까지</div></div>
+                <i class="iconoir-nav-arrow-right" style="font-size:22px;color:#0B2B45"></i>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+                <div onClick="{{ go.addBoxes }}" style="cursor:pointer;border-radius:20px;background:#F6F8FA;padding:18px 12px;display:flex;flex-direction:column;gap:10px;align-items:flex-start"><i class="iconoir-message-text" style="font-size:24px;color:#0874BB"></i><div style="font-size:15px;font-weight:700;line-height:20px">카드 문자<br>붙여넣기</div></div>
+                <div onClick="{{ go.addBoxes }}" style="cursor:pointer;border-radius:20px;background:#F6F8FA;padding:18px 12px;display:flex;flex-direction:column;gap:10px;align-items:flex-start"><i class="iconoir-microphone" style="font-size:24px;color:#0874BB"></i><div style="font-size:15px;font-weight:700;line-height:20px">말로<br>입력</div></div>
+                <div onClick="{{ go.addBoxes }}" style="cursor:pointer;border-radius:20px;background:#F6F8FA;padding:18px 12px;display:flex;flex-direction:column;gap:10px;align-items:flex-start"><i class="iconoir-edit-pencil" style="font-size:24px;color:#0874BB"></i><div style="font-size:15px;font-weight:700;line-height:20px">직접<br>입력</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+                <div style="font-size:13px;font-weight:700;color:#535764">말로 입력 예시</div>
+                <div style="border-radius:16px;border:1.5px dashed #B8E5FF;padding:14px 16px;font-size:15px;color:#0B2B45;line-height:22px">“카레 1만 1천 원, 덮밥 1만 5천 원, 닭꼬치 6천 원”<div style="font-size:13px;color:#6B7080;margin-top:4px">→ 품목 박스 3개가 만들어져요</div></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.addBoxes }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#F6F8FA;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#F6F8FA"><i onClick="{{ go.add }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i><div style="font-size:17px;font-weight:700">확인하고 나누기</div><div style="width:44px"></div></div>
+            <div style="flex:1;overflow-y:auto;padding:4px 20px 140px;display:flex;flex-direction:column;gap:14px">
+              <sc-if value="{{ showDup }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;gap:10px;align-items:center;background:#FFF6E5;border-radius:16px;padding:12px 14px">
+                  <i class="iconoir-copy" style="font-size:20px;color:#B54708"></i>
+                  <div style="flex:1;font-size:13px;line-height:18px;color:#5C2D04">지훈님이 올린 <b>이치란 ¥4,280</b>과 같은 결제 같아요</div>
+                  <div onClick="{{ mergeDup }}" style="cursor:pointer;font-size:13px;font-weight:700;color:#B54708;padding:6px 10px;background:#fff;border-radius:8px">합치기</div>
+                </div>
+              </sc-if>
+              <div style="background:#fff;border-radius:20px;padding:18px;display:flex;gap:14px;align-items:center">
+                <div style="width:56px;height:68px;border-radius:10px;background:repeating-linear-gradient(0deg,#F0F3F7 0 6px,#fff 6px 10px);border:1px solid #E4E7EC;flex-shrink:0"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                  <div style="font-size:17px;font-weight:700">이치란 라멘 도톤보리점</div>
+                  <div style="font-size:14px;color:#535764">10월 21일 · ¥4,280 → <b style="color:#131927">38,950원</b></div>
+                  <div style="font-size:12px;color:#0874BB">10/21 매매기준율 · 100엔 = 910.05원</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0">
+                <div style="font-size:14px;font-weight:700">결제한 사람</div>
+                <div style="display:flex;gap:6px">
+                  <sc-for list="{{ payers }}" as="p" hint-placeholder-count="3">
+                    <div onClick="{{ p.pick }}" style="cursor:pointer;height:32px;padding:0 12px;border-radius:999px;display:flex;align-items:center;font-size:13px;font-weight:700;background:{{ p.bg }};color:{{ p.fg }}">{{ p.name }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="font-size:13px;color:#6B7080;padding:0 4px">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</div>
+              <sc-for list="{{ boxes }}" as="b" hint-placeholder-count="4">
+                <div style="background:#fff;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;border:1.5px solid {{ b.border }}">
+                  <div style="display:flex;justify-content:space-between;gap:10px">
+                    <div style="display:flex;flex-direction:column;gap:2px">
+                      <div style="display:flex;gap:6px;align-items:center"><div style="font-size:16px;font-weight:700">{{ b.name }}</div><sc-if value="{{ b.check }}" hint-placeholder-val="{{ false }}"><div onClick="{{ b.clear }}" style="cursor:pointer;font-size:11px;font-weight:700;color:#B54708;background:#FEF0C7;padding:2px 6px;border-radius:6px">확인필요</div></sc-if></div>
+                      <div style="font-size:12px;color:#6B7080">{{ b.orig }}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div style="font-size:16px;font-weight:700">{{ b.krw }}</div><div style="font-size:12px;color:#6B7080">{{ b.amt }}</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <div style="display:flex;gap:6px">
+                      <sc-for list="{{ b.people }}" as="c" hint-placeholder-count="4">
+                        <div onClick="{{ c.toggle }}" style="cursor:pointer;height:34px;padding:0 11px;border-radius:999px;display:flex;align-items:center;font-size:13px;font-weight:700;border:1.5px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }}">{{ c.name }}</div>
+                      </sc-for>
+                    </div>
+                    <div style="font-size:12px;color:#535764;font-weight:600;text-align:right">{{ b.split }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 40px;background:#fff;box-shadow:0 -8px 20px -12px rgba(19,25,39,.15)">
+              <div onClick="{{ saveExpense }}" style="cursor:pointer;height:56px;border-radius:16px;background:#36B6FF;color:#0B2B45;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">38,950원 저장하기</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.settle }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#F6F8FA;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px"><i onClick="{{ go.detail }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i><div style="font-size:17px;font-weight:700">정산</div><div style="width:44px"></div></div>
+            <div style="flex:1;overflow-y:auto;padding:4px 20px 40px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:center;gap:14px;padding:6px 4px 4px">
+                <svg width="64" height="64" viewBox="0 0 120 120" style="flex-shrink:0"><path d="M70.1 49.9L77 27.6A42 42 0 1 0 92.4 43Z" fill="#36B6FF" stroke="#36B6FF" stroke-width="4" stroke-linejoin="round"></path><circle cx="42" cy="66" r="5" fill="#131927"></circle><circle cx="70" cy="66" r="5" fill="#131927"></circle><path d="M48 80Q56 88 64 80" stroke="#131927" stroke-width="4.5" stroke-linecap="round" fill="none"></path><ellipse cx="31" cy="78" rx="5.5" ry="3.2" fill="#fff" opacity=".55"></ellipse><ellipse cx="81" cy="78" rx="5.5" ry="3.2" fill="#fff" opacity=".55"></ellipse></svg>
+                <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:22px;font-weight:800;letter-spacing:-0.02em">송금 2번이면 끝나요</div><div style="font-size:14px;color:#535764">{{ settleSub }}</div></div>
+              </div>
+              <sc-for list="{{ transfers }}" as="t" hint-placeholder-count="2">
+                <div style="background:#fff;border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px;border:2px solid {{ t.border }}">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:38px;height:38px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:{{ t.fromTint }};color:{{ t.fromFg }}">{{ t.fromInitial }}</div>
+                    <i class="iconoir-arrow-right" style="font-size:18px;color:#A0A4AE"></i>
+                    <div style="width:38px;height:38px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:{{ t.toTint }};color:{{ t.toFg }}">{{ t.toInitial }}</div>
+                    <div style="flex:1;font-size:15px;font-weight:600">{{ t.label }}</div>
+                    <div style="font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px;background:{{ t.stBg }};color:{{ t.stFg }}">{{ t.status }}</div>
+                  </div>
+                  <div style="font-size:28px;font-weight:800;letter-spacing:-0.02em">{{ t.amount }}</div>
+                  <sc-if value="{{ t.mine }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                      <div style="display:flex;align-items:center;gap:10px;background:#F6F8FA;border-radius:14px;padding:12px 14px">
+                        <i class="iconoir-bank" style="font-size:20px;color:#0874BB"></i>
+                        <div style="flex:1;font-size:14px;line-height:20px"><b>카카오뱅크</b> 3333-01-5521234<br><span style="color:#6B7080">예금주 김서연</span></div>
+                        <div onClick="{{ copyInfo }}" style="cursor:pointer;font-size:13px;font-weight:700;color:#0874BB;display:flex;align-items:center;gap:4px;padding:6px 8px"><i class="iconoir-copy" style="font-size:16px"></i>복사</div>
+                      </div>
+                      <sc-if value="{{ t.canSend }}" hint-placeholder-val="{{ true }}">
+                        <div onClick="{{ markSent }}" style="cursor:pointer;height:52px;border-radius:14px;background:#131927;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">보냈어요</div>
+                      </sc-if>
+                      <sc-if value="{{ t.sentState }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;gap:8px">
+                          <div style="flex:1;height:52px;border-radius:14px;background:#E6F6FF;color:#0874BB;display:flex;align-items:center;justify-content:center;gap:6px;font-size:15px;font-weight:700"><i class="iconoir-check" style="font-size:18px"></i>서연님 확인을 기다려요</div>
+                          <div onClick="{{ cancelSent }}" style="cursor:pointer;height:52px;padding:0 16px;border-radius:14px;background:#F0F3F7;color:#535764;display:flex;align-items:center;font-size:15px;font-weight:700">취소</div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 0"><div style="font-size:16px;font-weight:700">사람별 내역</div><div style="font-size:12px;color:#6B7080">낸 돈 − 부담액</div></div>
+              <div style="background:#fff;border-radius:20px;padding:4px 16px">
+                <sc-for list="{{ balances }}" as="p" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:{{ p.border }}">
+                    <div style="width:36px;height:36px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:{{ p.tint }};color:{{ p.fg }}">{{ p.initial }}</div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:15px;font-weight:700">{{ p.name }} <span style="font-size:12px;font-weight:500;color:#6B7080">{{ p.sub }}</span></div><div style="font-size:12px;color:#6B7080">낸 돈 {{ p.paid }} · 부담 {{ p.share }}</div></div>
+                    <div style="font-size:15px;font-weight:800;color:{{ p.netColor }}">{{ p.net }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:12px;color:#6B7080;line-height:18px;padding:0 4px">엄마(게스트)의 금액은 대표자 민지님 송금에 합쳐졌어요. 모든 참여자가 같은 결과를 봐요.</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.account }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#fff;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;padding:0 12px;gap:4px"><i onClick="{{ back }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i><div style="font-size:17px;font-weight:700">받을 계좌</div></div>
+            <div style="flex:1;overflow-y:auto;padding:12px 20px 140px;display:flex;flex-direction:column;gap:22px">
+              <div style="border-radius:24px;background:#131927;color:#fff;padding:22px;display:flex;flex-direction:column;gap:28px;position:relative;overflow:hidden">
+                <div style="position:absolute;right:-30px;bottom:-40px;opacity:.9"><svg width="150" height="150" viewBox="0 0 120 120"><path d="M70.1 49.9L77 27.6A42 42 0 1 0 92.4 43Z" fill="#36B6FF" stroke="#36B6FF" stroke-width="4" stroke-linejoin="round"></path><circle cx="42" cy="66" r="5" fill="#131927"></circle><circle cx="70" cy="66" r="5" fill="#131927"></circle><path d="M48 80Q56 88 64 80" stroke="#131927" stroke-width="4.5" stroke-linecap="round" fill="none"></path></svg></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;position:relative"><div style="font-size:15px;font-weight:700">토스뱅크</div><div style="font-size:12px;font-weight:700;background:rgba(255,255,255,.14);padding:4px 8px;border-radius:8px;display:flex;align-items:center;gap:4px"><i class="iconoir-lock" style="font-size:13px"></i>암호화 저장</div></div>
+                <div style="display:flex;flex-direction:column;gap:4px;position:relative"><div style="font-size:22px;font-weight:700;letter-spacing:0.04em">1000-****-5678</div><div style="font-size:14px;color:#B8C0CC">예금주 이민지</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:10px;align-items:flex-start"><i class="iconoir-eye" style="font-size:20px;color:#0874BB;margin-top:1px"></i><div style="font-size:14px;line-height:21px;color:#353A47">나에게 줄 돈이 있는 사람에게만 계좌번호 전체가 보여요. 그 외에는 가려서 보여드려요.</div></div>
+                <div style="display:flex;gap:10px;align-items:flex-start"><i class="iconoir-bell" style="font-size:20px;color:#0874BB;margin-top:1px"></i><div style="font-size:14px;line-height:21px;color:#353A47">누군가 계좌를 확인하면 알려드려요.</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="font-size:13px;font-weight:700;color:#535764">최근 확인 기록</div>
+                <div style="display:flex;align-items:center;gap:12px;background:#F6F8FA;border-radius:16px;padding:14px">
+                  <div style="width:36px;height:36px;border-radius:999px;background:#FFE7BF;color:#8A5300;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">지</div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:14px;font-weight:600">지훈님이 정산을 위해 계좌를 확인했어요</div><div style="font-size:12px;color:#6B7080">오사카 먹방 여행 · 10분 전</div></div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 20px 40px;background:#fff">
+              <div style="height:56px;border-radius:16px;background:#F0F3F7;color:#131927;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">계좌 변경하기</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ is.settings }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;padding-top:50px;background:#F6F8FA;display:flex;flex-direction:column">
+            <div style="height:52px;display:flex;align-items:center;padding:0 12px;gap:4px"><i onClick="{{ go.home }}" class="iconoir-nav-arrow-left" style="font-size:28px;cursor:pointer;padding:8px"></i><div style="font-size:17px;font-weight:700">내 정보</div></div>
+            <div style="flex:1;overflow-y:auto;padding:8px 20px 40px;display:flex;flex-direction:column;gap:16px">
+              <div style="background:#fff;border-radius:22px;padding:20px;display:flex;align-items:center;gap:14px">
+                <div style="width:60px;height:60px;border-radius:999px;background:#E6F6FF;color:#0874BB;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">민</div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="font-size:19px;font-weight:700">민지</div><div style="font-size:13px;color:#6B7080;display:flex;align-items:center;gap:6px"><div style="width:16px;height:16px;border-radius:5px;background:#FEE500"></div>카카오로 로그인</div></div>
+                <div style="font-size:14px;font-weight:700;color:#0874BB">닉네임 수정</div>
+              </div>
+              <div style="background:#fff;border-radius:22px;padding:4px 0">
+                <div onClick="{{ go.account }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:16px 20px"><i class="iconoir-bank" style="font-size:22px;color:#535764"></i><div style="flex:1;font-size:16px;font-weight:600">받을 계좌</div><div style="font-size:14px;color:#6B7080">토스뱅크 5678</div><i class="iconoir-nav-arrow-right" style="font-size:18px;color:#A0A4AE"></i></div>
+                <div style="display:flex;align-items:center;gap:12px;padding:16px 20px"><i class="iconoir-page" style="font-size:22px;color:#535764"></i><div style="flex:1;font-size:16px;font-weight:600">이용약관</div><i class="iconoir-nav-arrow-right" style="font-size:18px;color:#A0A4AE"></i></div>
+                <div style="display:flex;align-items:center;gap:12px;padding:16px 20px"><i class="iconoir-shield-check" style="font-size:22px;color:#535764"></i><div style="flex:1;font-size:16px;font-weight:600">개인정보 처리방침</div><i class="iconoir-nav-arrow-right" style="font-size:18px;color:#A0A4AE"></i></div>
+                <div style="display:flex;align-items:center;gap:12px;padding:16px 20px"><i class="iconoir-mail" style="font-size:22px;color:#535764"></i><div style="flex:1;font-size:16px;font-weight:600">마케팅 정보 수신</div><div style="width:46px;height:28px;border-radius:999px;background:#E4E7EC;padding:3px;box-sizing:border-box"><div style="width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(19,25,39,.2)"></div></div></div>
+              </div>
+              <div style="background:#fff;border-radius:22px;padding:4px 0">
+                <div onClick="{{ go.login }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:16px 20px"><i class="iconoir-log-out" style="font-size:22px;color:#535764"></i><div style="flex:1;font-size:16px;font-weight:600">로그아웃</div></div>
+                <div style="display:flex;align-items:center;gap:12px;padding:16px 20px"><i class="iconoir-user-xmark" style="font-size:22px;color:#C4320A"></i><div style="flex:1;font-size:16px;font-weight:600;color:#C4320A">회원 탈퇴</div></div>
+              </div>
+              <div style="font-size:12px;color:#6B7080;line-height:18px;padding:0 4px">정산이 남은 여행이 있으면 탈퇴할 수 없어요. 오사카 먹방 여행 정산을 먼저 마쳐주세요.</div>
+              <div style="font-size:12px;color:#A0A4AE;text-align:center">버전 0.9.0</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ inviteOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ hideInvite }}" style="position:absolute;inset:0;background:rgba(19,25,39,.45);z-index:8"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:12px 20px 40px;z-index:9;display:flex;flex-direction:column;gap:18px">
+            <div style="width:40px;height:5px;border-radius:999px;background:#E4E7EC;align-self:center"></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:20px;font-weight:700">동행 초대하기</div><div style="font-size:14px;color:#535764">링크를 받은 사람은 바로 이 장부에 참여해요</div></div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+              <div style="border-radius:18px;background:#FEE500;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#191600"><i class="iconoir-chat-bubble" style="font-size:24px"></i>카카오톡</div>
+              <div style="border-radius:18px;background:#F6F8FA;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:700"><i class="iconoir-qr-code" style="font-size:24px;color:#0874BB"></i>QR 보기</div>
+              <div onClick="{{ copyLink }}" style="cursor:pointer;border-radius:18px;background:#F6F8FA;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:700"><i class="iconoir-link" style="font-size:24px;color:#0874BB"></i>링크 복사</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:16px;border:1.5px solid #E4E7EC;padding:14px">
+              <i class="iconoir-user-plus" style="font-size:22px;color:#0874BB"></i>
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:15px;font-weight:700">앱 없는 동행 추가</div><div style="font-size:12px;color:#6B7080">이름만으로 게스트를 추가해요</div></div>
+              <i class="iconoir-nav-arrow-right" style="font-size:18px;color:#A0A4AE"></i>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:#131927;color:#fff;font-size:14px;font-weight:600;padding:12px 18px;border-radius:999px;white-space:nowrap;z-index:10;display:flex;align-items:center;gap:8px"><i class="iconoir-check-circle" style="font-size:18px;color:#80D1FF"></i>{{ toast }}</div>
+        </sc-if>
+        <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:999px;background:#131927;z-index:11"></div>
+      </div>
+    </div>
+
+    
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PEOPLE = [
+  { name: '민지', tint: '#E6F6FF', fg: '#0874BB' },
+  { name: '지훈', tint: '#FFE7BF', fg: '#8A5300' },
+  { name: '서연', tint: '#E6E3FF', fg: '#4B3FB5' },
+  { name: '엄마', tint: '#FFE2E8', fg: '#A8324F' },
+];
+const P = Object.fromEntries(PEOPLE.map(p => [p.name, p]));
+const BOXES = [
+  { id: 1, name: '라멘 ×2', orig: 'ラーメン ×2', amt: '¥2,180', krw: 19840, who: [], check: false },
+  { id: 2, name: '차슈 추가', orig: 'チャーシュー追加', amt: '¥390', krw: 3550, who: ['민지'], check: false },
+  { id: 3, name: '생맥주 ×2', orig: '生ビール ×2', amt: '¥1,200', krw: 10920, who: ['민지', '지훈'], check: true },
+  { id: 4, name: '기타 (세금·봉사료)', orig: '영수증 합계와의 차액', amt: '¥510', krw: 4640, who: [], check: true },
+];
+const won = n => n.toLocaleString('ko-KR') + '원';
+const LABELS = { login: '로그인', terms: '가입 · 약관', home: '내 여행 (홈)', create: '여행 만들기', detail: '여행 상세', add: '지출 추가', addBoxes: '품목 나누기', settle: '정산 결과', account: '받을 계좌', settings: '내 정보' };
+
+class Component extends DCLogic {
+  state = { screen: 'login', prev: 'home', tab: 'ongoing', agree: { terms: false, age: false, abroad: false, mkt: false }, tripName: '', currency: 'JPY', payer: '민지', boxes: BOXES, sent: false, toast: null, dup: true, invite: false, saved: false };
+
+  go = s => () => this.setState(st => ({ screen: s, prev: st.screen, invite: false }));
+  flash = msg => { this.setState({ toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 1800); };
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  renderVals() {
+    const s = this.state;
+    const scr = s.screen;
+    const is = Object.fromEntries(Object.keys(LABELS).map(k => [k, scr === k]));
+    is.addMethod = scr === 'add';
+    const go = Object.fromEntries(Object.keys(LABELS).map(k => [k, this.go(k)]));
+
+    const jump = Object.entries(LABELS).map(([k, label]) => ({ label, go: this.go(k), bg: scr === k ? '#131927' : 'transparent', fg: scr === k ? '#fff' : '#535764' }));
+
+    const items = [['terms', '서비스 이용약관', true], ['age', '만 14세 이상이에요', true], ['abroad', '개인정보 국외 이전 고지 확인', true], ['mkt', '마케팅 정보 수신', false]];
+    const agreeItems = items.map(([k, label, req]) => ({ label, tag: req ? '(필수)' : '(선택)', tagColor: req ? '#0874BB' : '#A0A4AE', fg: s.agree[k] ? '#36B6FF' : '#D0D5DD', toggle: () => this.setState(st => ({ agree: { ...st.agree, [k]: !st.agree[k] } })) }));
+    const all = Object.values(s.agree).every(Boolean);
+    const reqOk = s.agree.terms && s.agree.age && s.agree.abroad;
+
+    const tabOn = { bg: '#fff', fg: '#131927', sh: '0 2px 4px -2px rgba(19,25,39,.12)' }, tabOff = { bg: 'transparent', fg: '#6B7080', sh: 'none' };
+    const ongoing = [
+      { name: '오사카 먹방 여행', date: '10.20 – 10.23', cur: 'JPY', members: 4, status: '정산 중', badgeBg: '#E6F6FF', badgeFg: '#0874BB', amountLabel: '내가 보낼 돈', amount: '36,364원', amountColor: '#D92D20', go: this.go('detail') },
+      { name: '제주 동아리 MT', date: '11.14 – 11.16', cur: 'KRW', members: 6, status: '기록 중', badgeBg: '#F0F3F7', badgeFg: '#535764', amountLabel: '정산할 돈 없음', amount: '0원', amountColor: '#131927', go: this.go('detail') },
+    ];
+    const done = [{ name: '강릉 가족여행', date: '08.02 – 08.04', cur: 'KRW', members: 5, status: '정산 완료', badgeBg: '#DCFAE6', badgeFg: '#067647', amountLabel: '모두 정산했어요', amount: '0원', amountColor: '#131927', go: this.go('detail') }];
+
+    const curs = [['KRW', '원'], ['JPY', '엔'], ['USD', '달러'], ['EUR', '유로'], ['THB', '바트'], ['VND', '동']];
+    const currencies = curs.map(([code, label]) => { const on = s.currency === code; return { code, label, border: on ? '#36B6FF' : '#E4E7EC', bg: on ? '#E6F6FF' : '#fff', fg: on ? '#0874BB' : '#353A47', pick: () => this.setState({ currency: code }) }; });
+
+    const mk = (icon, title, who, krw, orig, check) => ({ icon, title, who, krw, orig, check });
+    const g1 = [mk('iconoir-camera', '쿠시카츠 다루마', '지훈 결제 · 지훈 기록', '81,000원', '¥8,900', true), mk('iconoir-message-text', 'USJ 입장권', '서연 결제 · 서연 기록', '396,000원', '원화결제', false)];
+    const g2 = [mk('iconoir-message-text', '돈키호테 도톤보리', '지훈 결제 · 민지 기록', '114,680원', '¥12,600', false), mk('iconoir-camera', '이치란 라멘', '민지 결제 · 민지 기록 · 댓글 2', '38,950원', '¥4,280', false)];
+    if (s.saved) g2.unshift(mk('iconoir-camera', '이치란 라멘 (방금)', s.payer + ' 결제 · 민지 기록', '38,950원', '¥4,280', false));
+    const g3 = [mk('iconoir-edit-pencil', '난바 숙소 3박', '민지 결제 · 민지 기록', '480,000원', '원화결제', false)];
+    const border = arr => arr.map((e, i) => ({ ...e, border: i === arr.length - 1 ? 'none' : '1px solid #F0F3F7' }));
+    const groups = [{ label: '10월 22일 수요일', sum: '477,000원', items: border(g1) }, { label: '10월 21일 화요일', sum: '153,630원', items: border(g2) }, { label: '여행 전', sum: '480,000원', items: border(g3) }];
+
+    const payers = ['민지', '지훈', '서연'].map(n => ({ name: n, bg: s.payer === n ? '#131927' : '#fff', fg: s.payer === n ? '#fff' : '#535764', pick: () => this.setState({ payer: n }) }));
+    const boxes = s.boxes.map(b => ({
+      ...b, krw: won(b.krw), border: b.check ? '#FEDF89' : 'transparent',
+      split: b.who.length ? `${b.who.length}명 · 1인 ${won(Math.floor(b.krw / b.who.length))}` : '전원 1/N',
+      clear: () => this.setState(st => ({ boxes: st.boxes.map(x => x.id === b.id ? { ...x, check: false } : x) })),
+      people: PEOPLE.map(p => { const on = b.who.includes(p.name); return { name: p.name, border: on ? p.fg : '#E4E7EC', bg: on ? p.tint : '#fff', fg: on ? p.fg : '#A0A4AE', toggle: () => this.setState(st => ({ boxes: st.boxes.map(x => x.id === b.id ? { ...x, who: on ? x.who.filter(w => w !== p.name) : [...x.who, p.name] } : x) })) }; }),
+    }));
+
+    const transfers = [
+      { fromInitial: '지', fromTint: P['지훈'].tint, fromFg: P['지훈'].fg, toInitial: '서', toTint: P['서연'].tint, toFg: P['서연'].fg, label: '지훈 → 서연', amount: '81,978원', status: '받았어요', stBg: '#DCFAE6', stFg: '#067647', border: 'transparent', mine: false, canSend: false, sentState: false },
+      { fromInitial: '나', fromTint: P['민지'].tint, fromFg: P['민지'].fg, toInitial: '서', toTint: P['서연'].tint, toFg: P['서연'].fg, label: '나 → 서연', amount: '36,364원', status: s.sent ? '확인 대기' : '보낼 차례', stBg: s.sent ? '#FEF0C7' : '#E6F6FF', stFg: s.sent ? '#B54708' : '#0874BB', border: s.sent ? 'transparent' : '#36B6FF', mine: true, canSend: !s.sent, sentState: s.sent },
+    ];
+    const bal = [['민지', '', '518,950', '277,657', '+241,293', '#0874BB'], ['서연', '', '396,000', '277,658', '+118,342', '#0874BB'], ['지훈', '', '195,680', '277,658', '−81,978', '#D92D20'], ['엄마', '게스트 · 대표 민지', '0', '277,657', '−277,657', '#D92D20']];
+    const balances = bal.map(([name, sub, paid, share, net, netColor], i) => ({ name, sub, paid, share, net, netColor, initial: name[0], tint: P[name].tint, fg: P[name].fg, border: i === bal.length - 1 ? 'none' : '1px solid #F0F3F7' }));
+
+    return {
+      is, go, jump, agreeItems,
+      allBg: all ? '#36B6FF' : '#D0D5DD',
+      toggleAll: () => this.setState({ agree: { terms: !all, age: !all, abroad: !all, mkt: !all } }),
+      signupBg: reqOk ? '#36B6FF' : '#E4E7EC', signupFg: reqOk ? '#0B2B45' : '#A0A4AE',
+      finishSignup: () => reqOk && this.setState({ screen: 'home' }),
+      tabA: s.tab === 'ongoing' ? tabOn : tabOff, tabB: s.tab === 'done' ? tabOn : tabOff,
+      setTabOngoing: () => this.setState({ tab: 'ongoing' }), setTabDone: () => this.setState({ tab: 'done' }),
+      trips: s.tab === 'ongoing' ? ongoing : done,
+      tripName: s.tripName, onTripName: e => this.setState({ tripName: e.target.value }),
+      currencies,
+      people: PEOPLE.map(p => ({ ...p, initial: p.name[0] })),
+      groups, payers, boxes,
+      showDup: s.dup, mergeDup: () => { this.setState({ dup: false }); this.flash('지훈님 기록과 합쳤어요'); },
+      saveExpense: () => { this.setState({ screen: 'detail', saved: true }); this.flash('지출을 저장했어요'); },
+      transfers, balances,
+      settleSub: s.sent ? '서연님이 확인하면 정산 완료예요' : '나는 서연님에게 36,364원 보내면 돼요',
+      markSent: () => { this.setState({ sent: true }); this.flash('송금 기록을 남겼어요'); },
+      cancelSent: () => this.setState({ sent: false }),
+      copyInfo: () => this.flash('받을 사람·금액·계좌를 복사했어요'),
+      copyLink: () => { this.setState({ invite: false }); this.flash('초대 링크를 복사했어요'); },
+      inviteOpen: s.invite && scr === 'detail', showInvite: () => this.setState({ invite: true }), hideInvite: () => this.setState({ invite: false }),
+      back: () => this.setState(st => ({ screen: st.prev === 'account' ? 'home' : st.prev })),
+      goSettleStop: e => { e.stopPropagation(); this.setState(st => ({ screen: 'settle', prev: st.screen })); },
+      hasToast: !!s.toast, toast: s.toast || '',
+    };
+  }
+}
+</script>
+</body>
+</html>

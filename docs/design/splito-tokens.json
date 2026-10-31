@@ -1,0 +1,138 @@
+{
+  "color": {
+    "primary": "#36B6FF",
+    "primaryText": "#0874BB",
+    "onPrimary": "#0B2B45",
+    "sky50": "#F5FBFF",
+    "sky100": "#E6F6FF",
+    "sky200": "#B8E5FF",
+    "sky300": "#80D1FF",
+    "ink": "#131927",
+    "textSecondary": "#535764",
+    "textTertiary": "#6B7080",
+    "textDisabled": "#A0A4AE",
+    "bgApp": "#F6F8FA",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#F0F3F7",
+    "border": "#E4E7EC",
+    "divider": "#F0F3F7",
+    "danger": "#D92D20",
+    "dangerSoft": "#FDA29B",
+    "destructiveText": "#C4320A",
+    "success": "#067647",
+    "successBg": "#DCFAE6",
+    "warning": "#B54708",
+    "warningBg": "#FEF0C7",
+    "warningBannerBg": "#FFF6E5",
+    "kakao": "#FEE500",
+    "kakaoText": "#191600",
+    "naver": "#03C75A"
+  },
+  "member": {
+    "민지": {
+      "tint": "#E6F6FF",
+      "fg": "#0874BB"
+    },
+    "지훈": {
+      "tint": "#FFE7BF",
+      "fg": "#8A5300"
+    },
+    "서연": {
+      "tint": "#E6E3FF",
+      "fg": "#4B3FB5"
+    },
+    "엄마": {
+      "tint": "#FFE2E8",
+      "fg": "#A8324F"
+    }
+  },
+  "font": {
+    "text": "Pretendard Variable, Pretendard, sans-serif",
+    "wordmark": "Fredoka (600/700)"
+  },
+  "type": {
+    "display": {
+      "size": 28,
+      "weight": 800,
+      "letterSpacing": "-0.03em"
+    },
+    "title": {
+      "size": 26,
+      "weight": 700,
+      "lineHeight": 34,
+      "letterSpacing": "-0.02em"
+    },
+    "amountXL": {
+      "size": 32,
+      "weight": 800,
+      "letterSpacing": "-0.03em"
+    },
+    "amountL": {
+      "size": 28,
+      "weight": 800
+    },
+    "heading": {
+      "size": 22,
+      "weight": 800
+    },
+    "navTitle": {
+      "size": 17,
+      "weight": 700
+    },
+    "button": {
+      "size": 17,
+      "weight": 700
+    },
+    "body": {
+      "size": 15,
+      "weight": 500,
+      "lineHeight": 22
+    },
+    "bodyStrong": {
+      "size": 16,
+      "weight": 700
+    },
+    "caption": {
+      "size": 13,
+      "weight": 500
+    },
+    "micro": {
+      "size": 12,
+      "weight": 700
+    }
+  },
+  "radius": {
+    "badge": 8,
+    "chipSmall": 10,
+    "input": 14,
+    "button": 16,
+    "card": 20,
+    "cardLarge": 24,
+    "hero": 28,
+    "sheet": 28,
+    "pill": 999
+  },
+  "spacing": {
+    "screenPadding": 20,
+    "stackSm": 8,
+    "stackMd": 14,
+    "stackLg": 22,
+    "stackXl": 28
+  },
+  "size": {
+    "button": 56,
+    "buttonSecondary": 52,
+    "input": 54,
+    "chip": 34,
+    "avatarSm": 32,
+    "avatar": 38,
+    "iconTile": 44,
+    "navBar": 52,
+    "statusBar": 50
+  },
+  "shadow": {
+    "card": "0 4px 4px -2px rgba(19,25,39,.05), 0 2px 4px -2px rgba(19,25,39,.06)",
+    "cta": "0 10px 24px -8px rgba(54,182,255,.7)",
+    "focus": "0 0 0 4px rgba(54,182,255,.18)"
+  }
+}

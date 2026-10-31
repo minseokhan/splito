@@ -80,7 +80,7 @@ export function formatForeign(amount: number, currency: string): string {
 }
 
 // "미국 달러" → "달러". 끝 단어가 겹치는 달러류(홍콩 달러 등)는 전체 이름을 쓴다.
-function unitName(code: string, label: string): string {
+export function unitName(code: string, label: string): string {
   const last = label.split(' ').pop() ?? label;
   return last === '달러' && code !== 'USD' ? label : last;
 }

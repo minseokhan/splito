@@ -1,4 +1,4 @@
-import { Camera, MessageSquare, Mic, Pencil } from 'lucide-react-native';
+import { Camera, EditPencil, MessageText, Microphone } from 'iconoir-react-native';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -7,27 +7,20 @@ import { formatForeign, formatKrw } from '@/lib/money';
 import type { FeedRow } from '@/services/api';
 import { colors } from '@/theme/tokens';
 
-import { Avatar } from './Avatar';
 import { Badge } from './Badge';
+import { Icon } from './Icon';
 
-const SOURCE_ICON = { receipt: Camera, card_image: Camera, card_text: MessageSquare, voice: Mic, manual: Pencil } as const;
+const SOURCE_ICON = { receipt: Camera, card_image: Camera, card_text: MessageText, voice: Microphone, manual: EditPencil } as const;
 const SOURCE_LABEL = { receipt: '영수증', card_image: '결제 캡처', card_text: '카드 문자', voice: '음성', manual: '직접 입력' } as const;
 
-type Props = {
-  row: FeedRow;
-  payerName: string;
-  recorderName: string;
-  payerColorIndex: number;
-  payerGuest?: boolean;
-  onPress: () => void;
-};
+type Props = { row: FeedRow; payerName: string; recorderName: string; onPress: () => void };
 
-// UI_GUIDE 지출 카드. 금액은 서버 확정 값만 표시한다.
-export function ExpenseCard({ row, payerName, recorderName, payerColorIndex, payerGuest, onPress }: Props) {
+// 피드 한 줄(날짜 그룹 카드 안). 구분선은 화면이 그린다. 금액은 서버 확정 값만 표시한다.
+export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
   const pending = row.krwAmount === null;
   const foreign = row.currency !== 'KRW';
   const original = formatForeign(row.amountOriginal, row.currency);
-  const Icon = SOURCE_ICON[row.source as keyof typeof SOURCE_ICON] ?? Pencil;
+  const source = SOURCE_ICON[row.source as keyof typeof SOURCE_ICON] ?? EditPencil;
   const sourceLabel = SOURCE_LABEL[row.source as keyof typeof SOURCE_LABEL] ?? '';
   const merchant = row.merchant ?? '이름 없는 지출';
   return (
@@ -36,37 +29,38 @@ export function ExpenseCard({ row, payerName, recorderName, payerColorIndex, pay
         accessibilityRole="button"
         accessibilityLabel={`${merchant} ${pending ? `${original} 환율 대기` : formatKrw(row.krwAmount!)}`}
         onPress={onPress}
-        className="gap-1 rounded-lg border border-[#E3EAF0] bg-white px-4 py-3"
+        className="flex-row items-center gap-3 py-3.5"
       >
-        <View className="flex-row items-center justify-between gap-2">
-          <Text className="flex-1 font-semibold text-base text-ink-900" numberOfLines={1}>
-            {merchant}
+        <View className="h-11 w-11 items-center justify-center rounded-input bg-muted">
+          <Icon as={source} size={21} color={colors.primary.text} accessibilityLabel={sourceLabel} />
+        </View>
+        <View className="flex-1 gap-[3px]">
+          <View className="flex-row items-center gap-1.5">
+            <Text className="shrink font-bold text-base text-ink" numberOfLines={1}>
+              {merchant}
+            </Text>
+            {row.needsReview && <Badge kind="review" />}
+          </View>
+          <Text className="text-[13px] text-ink-400" numberOfLines={1}>
+            {payerRecorderLabel(payerName, recorderName)}
           </Text>
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-base text-ink-900">
+        </View>
+        <View className="items-end gap-[3px]">
+          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-base text-ink">
             {pending ? original : formatKrw(row.krwAmount!)}
           </Text>
-        </View>
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="flex-1 flex-row items-center gap-1.5">
-            <Avatar name={payerName} colorIndex={payerColorIndex} guest={payerGuest} size={20} />
-            {row.paidLocalTime && <Text className="text-[13px] text-ink-500">{row.paidLocalTime.slice(0, 5)}</Text>}
-            <Icon size={16} strokeWidth={1.75} color={colors.ink[500]} accessibilityLabel={sourceLabel} />
-            <Text className="flex-1 text-[13px] text-ink-500" numberOfLines={1}>
-              {payerRecorderLabel(payerName, recorderName)}
-            </Text>
-          </View>
-          {foreign && !pending && (
-            <Text style={{ fontVariant: ['tabular-nums'] }} className="text-[13px] text-ink-500">
-              {original}
-            </Text>
+          {pending ? (
+            <View className="flex-row">
+              <Badge kind="pending" />
+            </View>
+          ) : (
+            foreign && (
+              <Text style={{ fontVariant: ['tabular-nums'] }} className="text-xs text-ink-400">
+                {original}
+              </Text>
+            )
           )}
         </View>
-        {(row.needsReview || pending) && (
-          <View className="mt-1 flex-row gap-1.5">
-            {row.needsReview && <Badge kind="review" />}
-            {pending && <Badge kind="pending" />}
-          </View>
-        )}
       </Pressable>
     </Animated.View>
   );

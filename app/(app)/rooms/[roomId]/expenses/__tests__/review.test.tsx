@@ -12,7 +12,9 @@ import Review from '../review';
 const mockParams: { current: Record<string, string> } = { current: { roomId: 'r1' } };
 jest.mock('expo-router', () => ({ router: { back: jest.fn() }, useLocalSearchParams: () => mockParams.current }));
 jest.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }));
-jest.mock('@/services/storage', () => ({ copyReceipt: jest.fn() }));
+jest.mock('@/services/storage', () => ({ copyReceipt: jest.fn(), signedUrl: jest.fn() }));
+const mockToast = jest.fn();
+jest.mock('@/components/Toast', () => ({ useToast: () => mockToast }));
 jest.mock('@/services/drafts', () => ({ loadDraft: jest.fn(), saveDraft: jest.fn(), clearDraft: jest.fn() }));
 jest.mock('@/services/api', () => ({
   api: {
@@ -59,14 +61,13 @@ async function renderWith(d: ExpenseDraft) {
 describe('확인·수정 화면', () => {
   it('박스 원본 합계와 원화 미리보기 합계를 보여준다', async () => {
     await renderWith(draft());
-    expect(await screen.findByText('합계 ¥3,280')).toBeOnTheScreen();
-    expect(await screen.findByText('약 29,925원')).toBeOnTheScreen();
-    expect(screen.getByText('미리보기 — 저장 시 확정돼요')).toBeOnTheScreen();
+    expect(await screen.findByText('10월 21일 · ¥3,280 → 29,925원')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: '29,925원 저장하기' })).toBeOnTheScreen();
   });
 
   it('대상 인원이 0명이면 저장하지 않고 문구를 보여준다', async () => {
     await renderWith(draft({ scopeMemberIds: [] }));
-    await fireEvent.press(await screen.findByRole('button', { name: '저장' }));
+    await fireEvent.press(await screen.findByRole('button', { name: /저장하기$/ }));
     expect(await screen.findByText('나눌 사람을 1명 이상 골라주세요')).toBeOnTheScreen();
     expect(api.saveExpense).not.toHaveBeenCalled();
   });
@@ -86,7 +87,7 @@ describe('편집 모드', () => {
     await renderWith(draft({ merchant: '작성 중 다른 지출' }));
 
     expect(await screen.findByDisplayValue('이치란')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: '저장' }));
+    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
 
     expect(await screen.findByText('다른 분이 먼저 수정했어요. 최신 내용을 불러왔어요')).toBeOnTheScreen();
     expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 3);
@@ -94,8 +95,9 @@ describe('편집 모드', () => {
     expect(clearDraft).not.toHaveBeenCalled();
 
     jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 5 });
-    await fireEvent.press(screen.getByRole('button', { name: '저장' }));
+    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
     expect(api.saveExpense).toHaveBeenLastCalledWith(expect.objectContaining({ merchant: '최신 가맹점' }), 4);
     await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect(mockToast).toHaveBeenCalledWith('지출을 저장했어요');
   });
 });

@@ -2,13 +2,15 @@ import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-spe
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, Text, TextInput, View } from 'react-native';
+import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
+import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
-import type { InputMethod } from '@/components/InputMethodSheet';
+import { Icon } from '@/components/Icon';
+import { NavBar } from '@/components/NavBar';
 import { ParsingState } from '@/components/ParsingState';
-import { PrimaryButton } from '@/components/PrimaryButton';
+import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
@@ -18,11 +20,13 @@ import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
 import { keepPhoto, saveDraft } from '@/services/drafts';
 import { preparePhoto, uploadReceipt } from '@/services/storage';
+import { colors } from '@/theme/tokens';
 import type { ExpenseSource } from '@/types/domain';
 
 const TEXT_LIMIT = 4000;
 const VOICE_LIMIT_MS = 60_000;
 
+type InputMethod = 'photo' | 'text' | 'voice' | 'manual';
 type PhotoKind = 'receipt' | 'capture';
 type Phase = { kind: 'input' } | { kind: 'parsing' } | { kind: 'failed'; error: UserError; canRetry: boolean };
 
@@ -35,7 +39,11 @@ function localToday(): string {
 const codeError = (code: string) => toUserError({ message: code });
 
 export default function NewExpense() {
-  const { roomId, method } = useLocalSearchParams<{ roomId: string; method: InputMethod }>();
+  const params = useLocalSearchParams<{ roomId: string; method?: InputMethod }>();
+  const roomId = params.roomId;
+  // method 없이 열리면 방법 선택 화면을 먼저 보여준다.
+  const [picked, setPicked] = useState<InputMethod | undefined>(undefined);
+  const method = params.method ?? picked;
   const { session, profile, refreshProfile } = useAuth();
   const { data: room } = useRoom(roomId);
   const { data: members } = useRoomMembers(roomId);
@@ -71,6 +79,8 @@ export default function NewExpense() {
     return () => clearTimeout(t);
   }, [listening]);
   useEffect(() => () => ExpoSpeechRecognitionModule.abort(), []);
+
+  if (!method) return <MethodPicker onSelect={setPicked} />;
 
   const me = members?.find((m) => m.userId === session?.user.id && !m.leftAt);
   if (!room || !members || !me || profile === undefined) return null;
@@ -205,101 +215,191 @@ export default function NewExpense() {
     await refreshProfile().catch(() => undefined);
   };
 
+  // 방법 선택 화면에서 고른 경우에만 뒤로가기가 방법 선택으로 돌아간다.
+  const backToPicker = picked
+    ? () => {
+        cancel();
+        setPicked(undefined);
+      }
+    : undefined;
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <BottomSheet visible={needNotice} onClose={() => router.back()}>
-        <Text className="font-semibold text-[17px] text-ink-900">사진·텍스트가 인식을 위해 Anthropic(미국)으로 전송돼요</Text>
-        <Text className="mt-2 text-[13px] text-ink-500">인식에만 쓰고, 원하지 않으면 직접 입력할 수 있어요.</Text>
-        <View className="mt-6 gap-2">
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <BottomSheet visible={needNotice} onClose={() => router.back()} title="사진·텍스트가 인식을 위해 Anthropic(미국)으로 전송돼요" subtitle="인식에만 쓰고, 원하지 않으면 직접 입력할 수 있어요.">
+        <View className="gap-2.5">
           <PrimaryButton title="확인" onPress={() => void ackNotice()} />
-          <SecondaryButton title="직접 입력할게요" onPress={manual} />
+          <PrimaryButton title="직접 입력할게요" variant="muted" onPress={manual} />
         </View>
       </BottomSheet>
+
+      <NavBar close={!picked} onBack={backToPicker} />
 
       {phase.kind === 'parsing' && (
         <ParsingState state="parsing" label={method === 'photo' ? '영수증을 읽고 있어요' : '결제 내용을 읽고 있어요'} onCancel={cancel} />
       )}
 
       {phase.kind === 'failed' && (
-        <View className="flex-1">
-          <ParsingState state="failed" error={phase.error} onRetry={phase.canRetry ? retry : undefined} onManual={manual} />
-          {phase.error.code === 'PERMISSION_DENIED' && (
-            <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()} className="mb-4 h-11 items-center justify-center">
-              <Text className="font-medium text-[15px] text-sky-900">설정 열기</Text>
-            </Pressable>
-          )}
-        </View>
+        <ParsingState
+          state="failed"
+          error={phase.error}
+          onRetry={phase.canRetry ? retry : undefined}
+          onManual={manual}
+          onOpenSettings={phase.error.code === 'PERMISSION_DENIED' ? () => void Linking.openSettings() : undefined}
+        />
       )}
 
       {phase.kind === 'input' && method === 'photo' && (
-        <View className="flex-1 justify-between px-5 pb-4 pt-6">
-          <View className="gap-4">
-            <Text className="font-bold text-[22px] text-ink-900">사진으로 추가</Text>
-            <View className="flex-row gap-2">
-              {(['receipt', 'capture'] as const).map((k) => (
-                <Pressable
-                  key={k}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: photoKind === k }}
-                  onPress={() => setPhotoKind(k)}
-                  className={`h-11 flex-1 items-center justify-center rounded-md ${photoKind === k ? 'bg-sky-300' : 'bg-sky-100'}`}
-                >
-                  <Text className="font-semibold text-[15px] text-ink-900">{k === 'receipt' ? '영수증' : '결제앱 캡처'}</Text>
-                </Pressable>
-              ))}
+        <View className="flex-1">
+          <View className="gap-6 px-5 pt-2">
+            <Title title="사진으로 올리기" sub="영수증이나 결제앱 화면을 찍어주세요" />
+            <View className="gap-2">
+              <Text className="font-semibold text-[13px] text-ink-500">사진 종류</Text>
+              <View className="flex-row gap-2">
+                {(['receipt', 'capture'] as const).map((k) => {
+                  const on = photoKind === k;
+                  return (
+                    <Pressable
+                      key={k}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: on }}
+                      onPress={() => setPhotoKind(k)}
+                      className={`h-11 flex-1 items-center justify-center rounded-input border-[1.5px] ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                    >
+                      <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>
+                        {k === 'receipt' ? '영수증' : '결제앱 캡처'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           </View>
-          <View className="gap-2">
-            <PrimaryButton title="촬영하기" onPress={() => void pickPhoto('camera')} />
-            <SecondaryButton title="앨범에서 고르기" onPress={() => void pickPhoto('library')} />
-          </View>
+          <BottomBar>
+            <PrimaryButton title="촬영하기" icon={Camera} onPress={() => void pickPhoto('camera')} />
+            <PrimaryButton title="앨범에서 고르기" icon={MediaImage} variant="muted" onPress={() => void pickPhoto('library')} />
+          </BottomBar>
         </View>
       )}
 
       {phase.kind === 'input' && (method === 'text' || method === 'voice') && (
-        <View className="flex-1 justify-between px-5 pb-4 pt-6">
-          <View className="flex-1 gap-4">
-            <Text className="font-bold text-[22px] text-ink-900">{method === 'text' ? '문자 붙여넣기' : '음성으로 추가'}</Text>
-            {method === 'voice' && (
-              <Text className="text-[13px] text-ink-500">
-                {listening ? '듣고 있어요. 다 말했으면 멈춰 주세요(최대 60초)' : '예: 카레 1만 1천 원, 덮밥 1만 5천 원'}
-              </Text>
-            )}
-            <TextInput
-              multiline
-              value={text}
-              onChangeText={setText}
-              editable={!listening}
-              maxLength={TEXT_LIMIT}
-              placeholder={method === 'text' ? '카드 승인 문자를 붙여넣어 주세요' : '말한 내용이 여기에 표시돼요'}
-              accessibilityLabel={method === 'text' ? '카드 승인 문자' : '음성 인식 결과'}
-              textAlignVertical="top"
-              className="min-h-40 rounded-lg border border-input-line bg-white p-4 text-base text-ink-900 focus:border-sky-800 focus:bg-sky-100"
+        <View className="flex-1">
+          <View className="flex-1 gap-6 px-5 pt-2">
+            <Title
+              title={method === 'text' ? '카드 문자 붙여넣기' : '말로 입력'}
+              sub={
+                method === 'text'
+                  ? '카드 승인 문자를 그대로 붙여넣어 주세요'
+                  : listening
+                    ? '듣고 있어요. 다 말했으면 멈춰 주세요(최대 60초)'
+                    : '예: 카레 1만 1천 원, 덮밥 1만 5천 원'
+              }
             />
-            <Text className="self-end text-[13px] text-ink-500">
-              {text.length.toLocaleString()}/{TEXT_LIMIT.toLocaleString()}
-            </Text>
+            <View className="gap-2">
+              <Text className="font-semibold text-[13px] text-ink-500">{method === 'text' ? '승인 문자' : '인식된 내용'}</Text>
+              <TextInput
+                multiline
+                value={text}
+                onChangeText={setText}
+                editable={!listening}
+                maxLength={TEXT_LIMIT}
+                placeholder={method === 'text' ? '카드 승인 문자를 붙여넣어 주세요' : '말한 내용이 여기에 표시돼요'}
+                placeholderTextColor={colors.ink[300]}
+                accessibilityLabel={method === 'text' ? '카드 승인 문자' : '음성 인식 결과'}
+                textAlignVertical="top"
+                className="min-h-40 rounded-input border-[1.5px] border-line bg-white p-4 text-base text-ink focus:border-primary"
+              />
+              <Text className="self-end text-[13px] text-ink-400">
+                {text.length.toLocaleString()}/{TEXT_LIMIT.toLocaleString()}
+              </Text>
+            </View>
           </View>
-          <View className="gap-2">
+          <BottomBar>
             {method === 'voice' && (
-              <SecondaryButton
+              <PrimaryButton
                 title={listening ? '멈추기' : text ? '다시 말하기' : '말하기 시작'}
+                icon={Microphone}
+                variant="muted"
                 onPress={() => (listening ? ExpoSpeechRecognitionModule.stop() : void startVoice())}
               />
             )}
             <PrimaryButton title="인식하기" onPress={parseText} disabled={listening || !text.trim()} />
-          </View>
+          </BottomBar>
         </View>
       )}
     </SafeAreaView>
   );
 }
 
-function SecondaryButton({ title, onPress }: { title: string; onPress: () => void }) {
+function Title({ title, sub }: { title: string; sub: string }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} className="h-14 items-center justify-center rounded-xl bg-sky-200">
-      <Text className="font-semibold text-base text-ink-900">{title}</Text>
-    </Pressable>
+    <View className="gap-1.5">
+      <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] text-ink">
+        {title}
+      </Text>
+      <Text className="text-[15px] text-ink-500">{sub}</Text>
+    </View>
+  );
+}
+
+const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera }[] = [
+  { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText },
+  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone },
+  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil },
+];
+
+// 시안 6: 지출 올리기 방법 선택(전체 화면).
+function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
+  return (
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <NavBar close />
+      <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-2">
+        <View className="gap-1.5">
+          <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] text-ink">
+            어떻게 올릴까요?
+          </Text>
+          <Text className="text-[15px] text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="영수증 사진으로 지출 추가"
+          onPress={() => onSelect('photo')}
+          className="flex-row items-center gap-4 rounded-card-lg bg-primary p-[22px] active:bg-primary-press"
+        >
+          <View className="h-14 w-14 items-center justify-center rounded-[18px] bg-white">
+            <Icon as={Camera} size={28} color={colors.primary.text} />
+          </View>
+          <View className="flex-1">
+            <Text className="font-extrabold text-lg text-primary-on">영수증 찍기</Text>
+            <Text className="mt-[3px] text-sm text-primary-on">사진 한 장이면 품목·번역까지</Text>
+          </View>
+          <Icon as={NavArrowRight} size={22} color={colors.primary.on} />
+        </Pressable>
+
+        <View className="flex-row gap-2.5">
+          {SUB_METHODS.map((m) => (
+            <Pressable
+              key={m.method}
+              accessibilityRole="button"
+              accessibilityLabel={m.a11y}
+              onPress={() => onSelect(m.method)}
+              className="flex-1 items-start gap-2.5 rounded-card bg-app px-3 py-[18px] active:bg-muted"
+            >
+              <Icon as={m.icon} size={24} color={colors.primary.text} />
+              <Text className="font-bold text-[15px] leading-5 text-ink">{m.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View className="mt-1.5 gap-2.5">
+          <Text className="font-bold text-[13px] text-ink-500">말로 입력 예시</Text>
+          <View style={{ borderStyle: 'dashed' }} className="rounded-button border-[1.5px] border-sky-200 px-4 py-3.5">
+            <Text className="text-[15px] leading-[22px] text-primary-on">“카레 1만 1천 원, 덮밥 1만 5천 원, 닭꼬치 6천 원”</Text>
+            <Text className="mt-1 text-[13px] text-ink-400">→ 품목 박스 3개가 만들어져요</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

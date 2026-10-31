@@ -66,3 +66,12 @@ export async function updateNickname(nickname: string): Promise<void> {
     .eq('id', await myId());
   if (error) throw error;
 }
+
+// 내 정보의 마케팅 수신 토글. 필수 동의 시각은 건드리지 않는다.
+export async function updateMarketing(optIn: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ marketing_opt_in: optIn, marketing_opt_in_at: optIn ? new Date().toISOString() : null })
+    .eq('id', await myId());
+  if (error) throw error;
+}
