@@ -1,6 +1,5 @@
-import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { ChatBubble, Link, NavArrowRight, QrCode, UserPlus } from 'iconoir-react-native';
+import { ChatBubble, NavArrowRight, QrCode, UserPlus } from 'iconoir-react-native';
 import { useState, type ComponentType } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -12,31 +11,23 @@ import { colors } from '@/theme/tokens';
 
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
-import { useToast } from './Toast';
 
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 
 export const INVITE_TITLE = '동행 초대하기';
 export const INVITE_SUBTITLE = '링크를 받은 사람은 바로 이 장부에 참여해요';
 
-// onCopied: 토스트는 Modal 아래에 그려지므로 시트에서는 복사 후 시트를 닫는다.
-type Props = { roomId: string; onAddGuest?: () => void; onCopied?: () => void };
+type Props = { roomId: string; onAddGuest?: () => void };
 
-// 초대 3칸(카카오톡·QR·링크 복사) + 앱 없는 동행 추가. 시트와 초대 화면이 같이 쓴다.
-export function InviteOptions({ roomId, onAddGuest, onCopied }: Props) {
+// 초대 2칸(카카오톡·QR) + 앱 없는 동행 추가. 시트와 초대 화면이 같이 쓴다.
+export function InviteOptions({ roomId, onAddGuest }: Props) {
   const { data: room } = useRoom(roomId);
-  const toast = useToast();
   const [qr, setQr] = useState(false);
   if (!room) return null;
   const url = buildInviteUrl(LINK_DOMAIN, room.invite_token);
 
   // 카카오톡 공유는 OS 공유 시트로 한다(Kakao 공유 SDK는 P1).
   const share = () => void Share.share({ message: `스플리토 여행 "${room.name}"에 초대해요\n${url}` });
-  const copy = async () => {
-    await Clipboard.setStringAsync(url);
-    onCopied?.();
-    toast('초대 링크를 복사했어요');
-  };
   const addGuest = onAddGuest ?? (() => router.push({ pathname: '/rooms/[roomId]/members', params: { roomId, addGuest: '1' } }));
 
   return (
@@ -44,7 +35,6 @@ export function InviteOptions({ roomId, onAddGuest, onCopied }: Props) {
       <View className="flex-row gap-2.5">
         <Tile label="카카오톡" icon={ChatBubble} bg="bg-kakao" fg={colors.kakao.text} text="text-kakao-text" onPress={share} />
         <Tile label="QR 보기" icon={QrCode} bg="bg-app" fg={colors.primary.text} text="text-ink" onPress={() => setQr((v) => !v)} />
-        <Tile label="링크 복사" icon={Link} bg="bg-app" fg={colors.primary.text} text="text-ink" onPress={() => void copy()} />
       </View>
       {qr && (
         <View className="items-center gap-2 rounded-[18px] bg-app p-4" accessibilityLabel="초대 QR 코드">
@@ -92,7 +82,6 @@ export function InviteSheet({ roomId, visible, onClose }: { roomId: string; visi
     <BottomSheet visible={visible} onClose={onClose} title={INVITE_TITLE} subtitle={INVITE_SUBTITLE}>
       <InviteOptions
         roomId={roomId}
-        onCopied={onClose}
         onAddGuest={() => {
           onClose();
           router.push({ pathname: '/rooms/[roomId]/members', params: { roomId, addGuest: '1' } });
