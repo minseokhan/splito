@@ -22,7 +22,7 @@ function SnsButton({ label, icon, box, text, busy, onPress }: { label: string; i
       className={`h-14 flex-row items-center justify-center gap-2 rounded-button active:translate-y-px ${box}`}
     >
       {busy ? <ActivityIndicator color={text === 'text-white' ? '#FFFFFF' : colors.kakao.text} /> : icon}
-      <Text className={`font-bold text-[17px] ${text}`}>{label}</Text>
+      <Text className={`font-semibold text-[17px] ${text}`}>{label}</Text>
     </Pressable>
   );
 }
@@ -49,19 +49,15 @@ export default function Login() {
   return (
     <View className="flex-1 bg-white">
       <View className="flex-1 items-center justify-center gap-5 rounded-b-[40px] bg-sky-100" style={{ paddingTop: insets.top + 40 }}>
-        <View
-          className="h-[150px] w-[150px] items-center justify-center rounded-full bg-white"
-          style={{ boxShadow: '0 10px 32px -4px rgba(8,116,187,.18)' }}
-        >
-          <SplitoSymbol size={118} blush />
+        {/* 시안의 둥근 앱 아이콘 132px. 그림자는 아이콘 밖에 깔아야 하므로 래퍼에 둔다. */}
+        <View className="rounded-[30px]" style={{ boxShadow: '0 10px 32px -4px rgba(8,116,187,.22)' }}>
+          <SplitoSymbol size={132} appIcon />
         </View>
-        <Wordmark size={44} />
+        <Wordmark size={40} />
         <View className="items-center gap-1.5 px-8 pb-10">
-          <Text style={{ letterSpacing: -0.44 }} className="text-center font-bold text-[22px] text-ink">
-            누가 냈든, 한 번에 정산
-          </Text>
-          <Text className="text-center text-[15px] leading-[22px] text-ink-500">
-            {'영수증 사진·카드 문자·말 한마디로 올리면\n최소 송금으로 정리해드려요'}
+          <Text className="text-center font-semibold text-xl text-ink">여행 경비 기록부터 정산까지, 한 번에</Text>
+          <Text className="text-center text-base text-tagline">
+            영수증부터 음성·텍스트까지, 결제 내역을 올리면 AI가 정산해 드려요.
           </Text>
         </View>
       </View>
@@ -77,7 +73,7 @@ export default function Login() {
         />
         <SnsButton
           label="네이버로 시작하기"
-          icon={<Text className="font-extrabold text-lg text-white">N</Text>}
+          icon={<Text className="font-semibold text-lg text-white">N</Text>}
           box="bg-naver active:bg-[#02B350]"
           text="text-white"
           busy={busy}

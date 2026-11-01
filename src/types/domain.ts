@@ -1,3 +1,5 @@
+import type { CategoryCode } from '../lib/category';
+
 export type MemberId = string;
 export type RoomId = string;
 export type ExpenseId = string;
@@ -35,6 +37,7 @@ export type SaveExpensePayload = {
   card_last4?: string | null;
   needs_review?: boolean;
   ai_result?: unknown;
+  category?: CategoryCode | null;
   scope_member_ids: MemberId[];
   items: {
     id: string;

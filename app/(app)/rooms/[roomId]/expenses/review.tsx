@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AssigneeSheet } from '@/components/AssigneeSheet';
-import { Avatar, GuestChip } from '@/components/Avatar';
 import type { AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
+import { DateSheet } from '@/components/DateSheet';
 import { ItemBox } from '@/components/ItemBox';
 import { Icon } from '@/components/Icon';
+import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
@@ -20,6 +20,8 @@ import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { dateLabel as longDateLabel } from '@/lib/calendar';
+import { CATEGORIES } from '@/lib/category';
 import { CURRENCIES } from '@/lib/currency';
 import { describeDuplicate, findDuplicate, type DupCandidate } from '@/lib/duplicate';
 import { toUserError, type UserError } from '@/lib/errors';
@@ -35,7 +37,6 @@ import {
   setAssignees,
   splitItem,
   toDupInput,
-  toggleScope,
   toSavePayload,
   updateItem,
   validateDraft,
@@ -52,11 +53,10 @@ const DUP_WINDOW_MS = 72 * 3600_000;
 // 서명 URL은 10분짜리라 9분 지나면 다시 받는다(ARCHITECTURE §4).
 const SIGNED_URL_STALE_MS = 9 * 60_000;
 
-type Section = 'top' | 'date' | 'currency' | 'payer' | 'items';
+type Section = 'top' | 'date' | 'currency' | 'items';
 const FIELD_SECTION: Record<string, Section> = {
   currency: 'currency',
   paidLocalDate: 'date',
-  payer: 'payer',
   items: 'items',
   krwCharged: 'items',
 };
@@ -83,7 +83,9 @@ export default function ReviewExpense() {
   const draft = edit ? (editing?.draft ?? null) : (stored?.draft ?? null);
 
   const toast = useToast();
-  const [assignFor, setAssignFor] = useState<string | null>(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  // 박스는 펼친 채로 시작한다. 체크를 누른 박스만 접는다.
+  const [collapsed, setCollapsed] = useState<string[]>([]);
   const [dupDismissed, setDupDismissed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 쪼개기는 기존 박스 금액을 바꾸므로 금액 입력칸을 다시 그린다.
@@ -137,13 +139,12 @@ export default function ReviewExpense() {
     active: !m.leftAt,
     userId: m.userId,
   }));
-  const byId = new Map(people.map((p) => [p.id, p]));
   const active = people.filter((p) => p.active);
+  const activeIds = active.map((p) => p.id);
   const meMemberId = active.find((p) => p.userId === session?.user.id)?.id ?? null;
-  const scopePeople = draft.scopeMemberIds.flatMap((id) => byId.get(id) ?? []);
   const multi = active.length > 1;
 
-  const visibility = previewVisibility(draft, meMemberId);
+  const visibility = previewVisibility(draft, meMemberId, activeIds);
   const preview = previewKrw(draft, fx.fx?.rate ?? null);
   const fxPending = fxNeeded && !fx.isFetching && !fx.fx;
   const sumOriginal = toDupInput(draft, null).amountOriginal;
@@ -167,7 +168,7 @@ export default function ReviewExpense() {
     setError(null);
     if (edit && editing) {
       try {
-        await updateExpense.mutateAsync({ payload: toSavePayload(draft, meMemberId), expectedVersion: editing.version });
+        await updateExpense.mutateAsync({ payload: toSavePayload(draft, meMemberId, activeIds), expectedVersion: editing.version });
         toast('지출을 저장했어요');
         router.back();
       } catch (err) {
@@ -185,7 +186,7 @@ export default function ReviewExpense() {
       return;
     }
     try {
-      await save.mutateAsync({ payload: toSavePayload(draft, meMemberId), expectedVersion: null });
+      await save.mutateAsync({ payload: toSavePayload(draft, meMemberId, activeIds), expectedVersion: null });
       toast('지출을 저장했어요');
       router.back();
     } catch (err) {
@@ -209,16 +210,11 @@ export default function ReviewExpense() {
     }
   };
 
-  const assignItem = draft.items.find((it) => it.id === assignFor);
-  const assignSummary = (() => {
-    if (!assignItem) return '';
-    const n = assignItem.assigneeMemberIds.length || draft.scopeMemberIds.length;
-    return `${n}명 · 1인 ${formatForeign(perPersonOriginal(assignItem.amountOriginal, n), draft.currency)}`;
-  })();
-
   const total = preview ? formatKrw(preview.totalKrw) : null;
+  const isKrw = draft.currency === 'KRW';
+  const pickedDate = /^\d{4}-\d{2}-\d{2}$/.test(draft.paidLocalDate) ? draft.paidLocalDate : null;
   const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(draft.paidLocalDate)
-    ? `${Number(draft.paidLocalDate.slice(5, 7))}월 ${Number(draft.paidLocalDate.slice(8, 10))}일 · `
+    ? `${Number(draft.paidLocalDate.slice(5, 7))}월 ${Number(draft.paidLocalDate.slice(8, 10))}일`
     : '';
   const splitLabel = (i: number) => {
     const it = draft.items[i];
@@ -232,8 +228,6 @@ export default function ReviewExpense() {
       const cur = d.items.find((x) => x.id === itemId)?.assigneeMemberIds ?? [];
       return setAssignees(d, itemId, cur.includes(memberId) ? cur.filter((x) => x !== memberId) : [...cur, memberId]);
     });
-  // 칩이 한 줄(약 4명)을 넘으면 사람 지정 시트로 고른다.
-  const chipsFit = scopePeople.length <= 4;
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top']}>
@@ -256,27 +250,35 @@ export default function ReviewExpense() {
                 placeholder="가맹점"
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="가맹점"
-                className="flex-shrink p-0 font-bold text-[17px] text-ink"
+                className="flex-shrink p-0 font-semibold text-[17px] text-ink"
               />
               {draft.needsReview && (
                 <Badge kind="review" onPress={() => update((d) => ({ ...d, needsReview: false }))} accessibilityLabel="확인 필요 해제" />
               )}
             </View>
-            <View className="flex-row flex-wrap items-center gap-1.5">
-              <Text className="text-sm text-ink-500">
-                {dateLabel}
-                {draft.currency === 'KRW' ? '' : formatForeign(sumOriginal, draft.currency)}
-                {total && (
-                  <>
-                    {draft.currency === 'KRW' ? '' : ' → '}
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-ink">
+            {/* 현지 통화를 크게, 원화는 옆에 작게 회색(KRW 지출은 원화만). */}
+            <View className="mt-0.5 flex-row flex-wrap items-baseline gap-1.5">
+              {isKrw ? (
+                total && (
+                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[22px] text-ink">
+                    {total}
+                  </Text>
+                )
+              ) : (
+                <>
+                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[22px] text-local">
+                    {formatForeign(sumOriginal, draft.currency)}
+                  </Text>
+                  {total && (
+                    <Text style={{ fontVariant: ['tabular-nums'] }} className="text-sm text-ink-300">
                       {total}
                     </Text>
-                  </>
-                )}
-              </Text>
+                  )}
+                </>
+              )}
               {!total && fxPending && <Badge kind="pending" />}
             </View>
+            {!!dateLabel && <Text className="text-[13px] text-ink-400">{dateLabel}</Text>}
             {fx.fx && !draft.krwCharged && (
               <Text className="text-xs text-primary-text">
                 {fxBasisLabel({ source: fx.fx.source, baseDate: fx.fx.base_date, rate: fx.fx.rate, currency: draft.currency })}
@@ -288,15 +290,14 @@ export default function ReviewExpense() {
         <View onLayout={(e) => setY('date', e)} className="gap-4 rounded-card bg-white p-4">
           <View className="gap-2">
             <Text className="font-semibold text-[13px] text-ink-500">결제일</Text>
-            <TextInput
-              value={draft.paidLocalDate}
-              onChangeText={(paidLocalDate) => update((d) => ({ ...d, paidLocalDate }))}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.ink[300]}
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel="결제일"
-              keyboardType="numbers-and-punctuation"
-              className="h-[54px] rounded-input border-[1.5px] border-line bg-white px-4 text-base text-ink focus:border-primary"
-            />
+              onPress={() => setDateOpen(true)}
+              className="h-[54px] justify-center rounded-input border-[1.5px] border-line bg-white px-4"
+            >
+              <Text className={`text-base ${pickedDate ? 'text-ink' : 'text-ink-300'}`}>{pickedDate ? longDateLabel(pickedDate) : '날짜 선택'}</Text>
+            </Pressable>
           </View>
           <View onLayout={(e) => setY('currency', e)} className="gap-2">
             <Text className="font-semibold text-[13px] text-ink-500">통화</Text>
@@ -311,7 +312,27 @@ export default function ReviewExpense() {
                     onPress={() => update((d) => ({ ...d, currency: c.code }))}
                     className={`h-11 justify-center rounded-[12px] border-[1.5px] px-3.5 ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
                   >
-                    <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.code}</Text>
+                    <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.code}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+          <View className="gap-2">
+            <Text className="font-semibold text-[13px] text-ink-500">카테고리</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+              {CATEGORIES.map((c) => {
+                const on = draft.category === c.code;
+                return (
+                  <Pressable
+                    key={c.code}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => update((d) => ({ ...d, category: c.code }))}
+                    className={`h-11 flex-row items-center gap-1.5 rounded-[12px] border-[1.5px] px-3.5 ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                  >
+                    <Icon as={CATEGORY_ICON[c.code]} size={17} color={on ? colors.primary.text : colors.ink[400]} />
+                    <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.label}</Text>
                   </Pressable>
                 );
               })}
@@ -319,60 +340,43 @@ export default function ReviewExpense() {
           </View>
         </View>
 
-        <View onLayout={(e) => setY('payer', e)} className="flex-row items-start justify-between gap-3 px-1 pt-1">
-          <Text className="mt-1.5 font-bold text-sm text-ink">결제한 사람</Text>
-          <View className="flex-1 flex-row flex-wrap justify-end gap-1.5">
-            {active.map((p) => (
-              <PayerPill
-                key={p.id}
-                label={p.userId === session?.user.id ? `${p.name}(나)` : p.guest ? `${p.name}(게스트)` : p.name}
-                selected={draft.payerKind === 'member' && draft.payerMemberId === p.id}
-                onPress={() => update((d) => ({ ...d, payerKind: 'member', payerMemberId: p.id }))}
-              />
-            ))}
-            {/* 공금이 켜져 있으면 '공금'도 결제자로 고를 수 있다. 꺼진 뒤 열린 공금 지출도 선택 상태를 보여준다. */}
-            {(room?.pool_enabled || draft.payerKind === 'pool') && (
-              <PayerPill
-                label="공금"
-                selected={draft.payerKind === 'pool'}
-                onPress={() => update((d) => ({ ...d, payerKind: 'pool', payerMemberId: null }))}
-              />
-            )}
-          </View>
-        </View>
-
-        {multi && (
-          <View className="gap-2.5 px-1">
-            <View className="flex-row items-center justify-between">
-              <Text className="font-bold text-sm text-ink">함께한 사람</Text>
-              <Text className={`text-[13px] ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
-                {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
+        {/* 결제자는 올린 사람이라 멤버 선택이 없다. 공금이 켜져 있을 때만(꺼진 뒤 열린 공금 지출도) 토글로 바꾼다. */}
+        {(room?.pool_enabled || draft.payerKind === 'pool') && (
+          <View className="flex-row items-center justify-between gap-3 rounded-card bg-white px-4 py-3">
+            <Text className="font-semibold text-sm text-ink">공금으로 결제</Text>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: draft.payerKind === 'pool' }}
+              accessibilityLabel="공금으로 결제"
+              onPress={() =>
+                update((d) =>
+                  d.payerKind === 'pool'
+                    ? { ...d, payerKind: 'member', payerMemberId: meMemberId }
+                    : { ...d, payerKind: 'pool', payerMemberId: null },
+                )
+              }
+              className={`h-8 justify-center rounded-full px-3 ${draft.payerKind === 'pool' ? 'bg-ink' : 'bg-muted'}`}
+            >
+              <Text className={`font-semibold text-[13px] ${draft.payerKind === 'pool' ? 'text-white' : 'text-ink-500'}`}>
+                {draft.payerKind === 'pool' ? '공금' : '내가 결제'}
               </Text>
-            </View>
-            <View className="flex-row flex-wrap gap-3">
-              {active.map((p) => {
-                const on = draft.scopeMemberIds.includes(p.id);
-                return (
-                  <Pressable
-                    key={p.id}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on }}
-                    accessibilityLabel={`함께한 사람 ${p.name}`}
-                    onPress={() => update((d) => toggleScope(d, p.id))}
-                    className={`min-h-11 items-center gap-1 ${on ? '' : 'opacity-40'}`}
-                  >
-                    <Avatar name={p.name} colorIndex={p.colorIndex} guest={p.guest} size={36} />
-                    <Text className="font-medium text-xs text-ink-700">{p.name}</Text>
-                    {p.guest && <GuestChip />}
-                  </Pressable>
-                );
-              })}
-            </View>
+            </Pressable>
           </View>
         )}
 
-        {multi && scopePeople.length > 0 && (
-          <Text className="px-1 text-[13px] text-ink-400">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
+        {multi && (
+          <Text className={`px-1 text-right text-[13px] ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
+            {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
+          </Text>
+        )}
+
+        {multi && (
+          <View className="flex-row items-start gap-2 rounded-chip bg-sky-100 px-3 py-2.5">
+            <View className="mt-px h-[18px] w-[18px] items-center justify-center rounded-full bg-alert">
+              <Text className="font-semibold text-xs text-white">!</Text>
+            </View>
+            <Text className="flex-1 text-[13px] text-primary-on">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
+          </View>
         )}
 
         <View onLayout={(e) => setY('items', e)} className="gap-3.5">
@@ -386,15 +390,18 @@ export default function ReviewExpense() {
               amountText={String(it.amountOriginal)}
               krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
               needsReview={it.needsReview}
-              people={multi ? scopePeople.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
+              isKrw={isKrw}
+              people={multi ? active.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
               splitLabel={multi ? splitLabel(i) : ''}
+              expanded={!collapsed.includes(it.id)}
+              onExpand={() => setCollapsed((c) => c.filter((x) => x !== it.id))}
+              onCollapse={() => setCollapsed((c) => [...c, it.id])}
               onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
               onChangeAmount={(text) => {
                 const amountOriginal = parseAmountInput(text);
                 if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
               }}
-              onToggle={multi && chipsFit ? (id) => toggleAssignee(it.id, id) : undefined}
-              onAssign={multi && !chipsFit ? () => setAssignFor(it.id) : undefined}
+              onToggle={multi ? (id) => toggleAssignee(it.id, id) : undefined}
               onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}
               onSplit={() => {
                 update((d) => splitItem(d, it.id, uuidV4));
@@ -409,7 +416,7 @@ export default function ReviewExpense() {
             className="h-12 flex-row items-center justify-center gap-1.5 rounded-card border-[1.5px] border-line-off active:bg-muted"
           >
             <Icon as={Plus} size={20} color={colors.ink[500]} />
-            <Text className="font-semibold text-[15px] text-ink-500">품목 추가</Text>
+            <Text className="text-base text-ink-500">품목 추가</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -423,28 +430,16 @@ export default function ReviewExpense() {
         />
       </BottomBar>
 
-      <AssigneeSheet
-        visible={!!assignItem}
-        people={scopePeople}
-        selected={assignItem?.assigneeMemberIds ?? []}
-        summary={assignSummary}
-        onToggle={(id) => assignItem && toggleAssignee(assignItem.id, id)}
-        onClose={() => setAssignFor(null)}
+      <DateSheet
+        visible={dateOpen}
+        value={draft.paidLocalDate}
+        onPick={(paidLocalDate) => {
+          update((d) => ({ ...d, paidLocalDate }));
+          setDateOpen(false);
+        }}
+        onClose={() => setDateOpen(false)}
       />
     </SafeAreaView>
-  );
-}
-
-function PayerPill({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      className={`h-8 justify-center rounded-full px-3 ${selected ? 'bg-ink' : 'bg-white'}`}
-    >
-      <Text className={`font-bold text-[13px] ${selected ? 'text-white' : 'text-ink-500'}`}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -465,12 +460,12 @@ function DupBanner({
   return (
     <View className="flex-row items-center gap-2.5 rounded-button bg-warning-banner px-3.5 py-3">
       <Icon as={Copy} size={20} color={colors.warning.DEFAULT} />
-      <Text className="flex-1 text-[13px] leading-[18px] text-warning-deep">
+      <Text className="flex-1 text-[13px] text-warning-deep">
         {by ? `${by}님이 올린 ` : ''}
-        <Text className="font-bold">{describeDuplicate(dup, localToday())}</Text> 기록과 같은 결제 같아요
+        <Text className="font-semibold">{describeDuplicate(dup, localToday())}</Text> 기록과 같은 결제 같아요
       </Text>
       <Pressable accessibilityRole="button" onPress={() => void onMerge(dup, by)} className="rounded-badge bg-white px-2.5 py-1.5">
-        <Text className="font-bold text-[13px] text-warning">합치기</Text>
+        <Text className="font-semibold text-[13px] text-warning">합치기</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="별개예요" onPress={onDismiss} hitSlop={8}>
         <Icon as={Xmark} size={18} color={colors.warning.DEFAULT} />

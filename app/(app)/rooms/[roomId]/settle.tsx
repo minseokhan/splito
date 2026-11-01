@@ -108,8 +108,8 @@ export default function Settle() {
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-app">
         <NavBar title="정산" align="center" />
         <View className="flex-1 items-center justify-center gap-4 px-5">
-          <SplitoSymbol size={64} blush />
-          <Text className="text-center font-bold text-[20px] text-ink">동행을 초대하면 정산을 할 수 있어요</Text>
+          <SplitoSymbol size={64} />
+          <Text className="text-center font-semibold text-xl text-ink">동행을 초대하면 정산을 할 수 있어요</Text>
           <View className="self-stretch">
             <PrimaryButton title="초대하기" onPress={() => setInviteOpen(true)} />
           </View>
@@ -184,17 +184,15 @@ export default function Settle() {
             onPress={() => router.navigate({ pathname: '/rooms/[roomId]', params: { roomId } })}
             className="h-11 justify-center pl-3"
           >
-            <Text className="font-bold text-[13px] text-primary-text">확인하기</Text>
+            <Text className="font-semibold text-[13px] text-primary-text">확인하기</Text>
           </Pressable>
         </View>
       )}
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 16 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
-          <SplitoSymbol size={64} blush />
+          <SplitoSymbol size={64} />
           <View className="flex-1 gap-1">
-            <Text style={{ letterSpacing: -0.44 }} className="font-extrabold text-[22px] text-ink">
-              {head.title}
-            </Text>
+            <Text className="font-semibold text-xl text-ink">{head.title}</Text>
             <Text className="text-sm text-ink-500">{head.sub}</Text>
           </View>
         </View>
@@ -223,10 +221,10 @@ export default function Settle() {
                 )
               }
             />
-            {c === poolCard && <Text className="px-1 text-xs leading-[18px] text-ink-400">{poolText}</Text>}
+            {c === poolCard && <Text className="px-1 text-xs text-ink-400">{poolText}</Text>}
           </View>
         ))}
-        {poolText && !poolCard && <Text className="px-1 text-xs leading-[18px] text-ink-400">{poolText}</Text>}
+        {poolText && !poolCard && <Text className="px-1 text-xs text-ink-400">{poolText}</Text>}
 
         {sortedRecords.map((r) => {
           const pending = recordState(r) === 'pending';
@@ -394,8 +392,8 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
       <NavBar title="정산" align="center" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 12 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
-          <SplitoSymbol size={64} blush />
-          <Text style={{ letterSpacing: -0.44 }} className="flex-1 font-extrabold text-[19px] leading-[26px] text-ink">
+          <SplitoSymbol size={64} />
+          <Text className="flex-1 font-semibold text-xl text-ink">
             나만 보기로 저장된 지출 {rows.length}건 중 동행과 함께한 건 없나요?
           </Text>
         </View>
@@ -403,12 +401,12 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
           <View key={r.id} className="gap-3 rounded-card bg-white p-4" style={CARD_SHADOW}>
             <View className="flex-row items-center gap-2">
               <View className="flex-1 gap-[3px]">
-                <Text className="font-bold text-base text-ink" numberOfLines={1}>
+                <Text className="font-semibold text-base text-ink" numberOfLines={1}>
                   {r.merchant ?? '이름 없는 지출'}
                 </Text>
                 <Text className="text-[13px] text-ink-400">{dateTitle(r.paidLocalDate)}</Text>
               </View>
-              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-base text-ink">
+              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
                 {r.krwAmount === null ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount)}
               </Text>
             </View>
@@ -433,7 +431,7 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
             </View>
           </View>
         ))}
-        <Text className="px-1 text-[13px] leading-[19px] text-ink-400">
+        <Text className="px-1 text-[13px] text-ink-400">
           동행을 고르면 그 지출은 공동 지출이 되어 정산에 들어가요.
         </Text>
       </ScrollView>

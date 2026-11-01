@@ -16,7 +16,7 @@ export function roomPeriod(room: Pick<MyRoom, 'startDate' | 'endDate'>) {
 
 type Props = { room: MyRoom; featured?: boolean; onPress: () => void; onPressAmount: () => void };
 
-// 홈 캐러셀 카드 260w. 대표 카드는 하늘색 + 실루엣 장식, 나머지는 sky-100.
+// 홈 캐러셀 카드 286w. 대표 카드는 하늘색 + 흰 심볼 장식, 나머지는 민트(success-bg).
 export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
   const period = roomPeriod(room);
   const net = room.myNet;
@@ -27,19 +27,20 @@ export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
       accessibilityRole="button"
       accessibilityLabel={room.name}
       onPress={onPress}
-      className={`w-[260px] gap-14 overflow-hidden rounded-hero p-5 ${featured ? 'bg-primary' : 'bg-sky-100'}`}
+      className={`w-[286px] gap-14 overflow-hidden rounded-hero p-[22px] ${featured ? 'bg-primary' : 'bg-success-bg'}`}
     >
       {featured && (
         <View pointerEvents="none" style={{ position: 'absolute', right: -24, top: -20 }}>
-          <SplitoSymbol variant="silhouette" size={150} opacity={0.35} />
+          {/* 시안은 컬러 심볼을 저투명도로 깐다(0.35 × 0.5). 흰 실루엣은 형체가 뭉개진다. */}
+          <SplitoSymbol size={150} opacity={0.175} />
         </View>
       )}
       <View className="gap-1.5">
         <StatusChip status={room.status} suffix={room.baseCurrency} />
-        <Text className="mt-2 font-extrabold text-[22px] text-primary-on" numberOfLines={1}>
+        <Text className="mt-2 font-semibold text-[22px] text-primary-on" numberOfLines={1}>
           {room.name}
         </Text>
-        <Text className="text-sm text-primary-on">
+        <Text className="text-[15px] text-primary-on">
           {period ? `${period} · ` : ''}
           {room.memberCount}명
         </Text>
@@ -48,10 +49,10 @@ export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`${label} ${formatKrw(Math.abs(net))}`}
         onPress={onPressAmount}
-        className="flex-row items-center justify-between rounded-[18px] bg-white p-3.5"
+        className="flex-row items-center justify-between rounded-[18px] bg-white p-4"
       >
-        <Text className="text-[13px] text-ink-500">{label}</Text>
-        <Text style={{ fontVariant: ['tabular-nums'] }} className={`font-extrabold text-lg ${amountCls}`}>
+        <Text className="text-sm text-ink-500">{label}</Text>
+        <Text style={{ fontVariant: ['tabular-nums'] }} className={`font-semibold text-xl ${amountCls}`}>
           {net > 0 ? netSign(net) : ''}
           {formatKrw(Math.abs(net))}
         </Text>

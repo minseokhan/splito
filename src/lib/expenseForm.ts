@@ -1,4 +1,6 @@
 // 인식 결과 → 작성 중 지출(draft) → save_expense payload. 원화는 넣지 않는다(서버가 확정, ADR-006).
+import { addDays } from './calendar';
+import { toCategory, type CategoryCode } from './category';
 import type { DupCandidate } from './duplicate';
 import { allocateLargestRemainder, floorDiv, roundHalfAwayFromZero, splitEvenly, toKrwPreview } from './money';
 import type { ExpenseSource, SaveExpensePayload } from '../types/domain';
@@ -14,6 +16,7 @@ export type ParseResult = {
   total: number | null;
   krw_charged: number | null;
   card_last4: string | null;
+  category: string | null;
   items: { name_original: string; name_ko: string; quantity: number; amount: number; confidence: 'high' | 'low' }[];
   confidence: 'high' | 'low';
 };
@@ -25,7 +28,7 @@ export type DraftItem = {
 export type ExpenseDraft = {
   id: string; roomId: string; source: ExpenseSource; payerKind: 'member' | 'pool'; payerMemberId: string | null;
   merchant: string; paidLocalDate: string; paidLocalTime: string | null; currency: string; krwCharged: number | null;
-  cardLast4: string | null; scopeMemberIds: string[]; items: DraftItem[];
+  cardLast4: string | null; category: CategoryCode; items: DraftItem[];
   photos: { storagePath: string; kind: 'receipt' | 'capture' }[]; needsReview: boolean; aiResult: unknown;
 };
 
@@ -74,7 +77,7 @@ export function draftFromParse(parse: ParseResult, ctx: Ctx): ExpenseDraft {
     currency: parse.currency ?? '',
     krwCharged: parse.krw_charged === null ? null : roundHalfAwayFromZero(parse.krw_charged),
     cardLast4: parse.card_last4,
-    scopeMemberIds: [],
+    category: toCategory(parse.category),
     items, photos: [],
     // 연도 보정은 parse-expense가 confidence low로 표시한다.
     needsReview: parse.confidence === 'low' || parse.currency_ambiguous || parse.paid_local_date === null || parse.currency === null,
@@ -82,13 +85,13 @@ export function draftFromParse(parse: ParseResult, ctx: Ctx): ExpenseDraft {
   };
 }
 
-// 직접 입력·음성: 결제일 = 오늘(현지), 통화 = 방 기본 통화. 함께한 사람은 빈 상태(= 나만)로 시작한다.
+// 직접 입력·음성: 결제일 = 오늘(현지), 통화 = 방 기본 통화. 박스 지정은 빈 상태로 시작한다(= 전원 1/N).
 export function emptyDraft(ctx: Ctx & { currency: string }): ExpenseDraft {
   return {
     id: ctx.expenseId, roomId: ctx.roomId, source: ctx.source,
     payerKind: 'member', payerMemberId: ctx.meMemberId,
     merchant: '', paidLocalDate: ctx.todayLocal, paidLocalTime: null, currency: ctx.currency,
-    krwCharged: null, cardLast4: null, scopeMemberIds: [],
+    krwCharged: null, cardLast4: null, category: 'other',
     items: [item(ctx.newId(), 0)], photos: [], needsReview: false, aiResult: null,
   };
 }
@@ -99,7 +102,7 @@ export function draftFromExpense(p: SaveExpensePayload): ExpenseDraft {
     id: p.id, roomId: p.room_id, source: p.source, payerKind: p.payer_kind, payerMemberId: p.payer_member_id,
     merchant: p.merchant ?? '', paidLocalDate: p.paid_local_date, paidLocalTime: p.paid_local_time ?? null,
     currency: p.currency, krwCharged: p.krw_charged ?? null, cardLast4: p.card_last4 ?? null,
-    scopeMemberIds: [...p.scope_member_ids],
+    category: toCategory(p.category),
     items: p.items.map((it) => item(it.id, it.position, {
       nameOriginal: it.name_original ?? '', nameKo: it.name_ko ?? '', quantity: it.quantity ?? 1,
       amountOriginal: it.amount_original, needsReview: it.needs_review ?? false, isAdjustment: it.is_adjustment ?? false,
@@ -127,21 +130,6 @@ export function addItem(d: ExpenseDraft, newId: () => string): ExpenseDraft {
   return { ...d, items: [...d.items, item(newId(), d.items.length)] };
 }
 
-export function toggleScope(d: ExpenseDraft, memberId: string): ExpenseDraft {
-  if (!d.scopeMemberIds.includes(memberId)) return { ...d, scopeMemberIds: [...d.scopeMemberIds, memberId] };
-  return {
-    ...d,
-    scopeMemberIds: d.scopeMemberIds.filter((id) => id !== memberId),
-    items: d.items.map((it) => ({ ...it, assigneeMemberIds: it.assigneeMemberIds.filter((id) => id !== memberId) })),
-  };
-}
-
-function addDay(date: string): string {
-  const t = new Date(`${date}T00:00:00Z`);
-  t.setUTCDate(t.getUTCDate() + 1);
-  return t.toISOString().slice(0, 10);
-}
-
 export function validateDraft(d: ExpenseDraft, todayKst: string):
   { ok: true } | { ok: false; code: 'AMOUNT_INVALID' | 'DATE_IN_FUTURE' | 'INVALID_INPUT'; field?: string } {
   if (!/^[A-Z]{3}$/.test(d.currency)) return { ok: false, code: 'INVALID_INPUT', field: 'currency' };
@@ -150,24 +138,32 @@ export function validateDraft(d: ExpenseDraft, todayKst: string):
   if (d.payerKind === 'member' && !d.payerMemberId) return { ok: false, code: 'INVALID_INPUT', field: 'payer' };
   if (d.items.reduce((a, it) => a + toMilli(it.amountOriginal), 0) <= 0) return { ok: false, code: 'AMOUNT_INVALID', field: 'items' };
   if (d.krwCharged !== null && d.krwCharged <= 0) return { ok: false, code: 'AMOUNT_INVALID', field: 'krwCharged' };
-  if (d.paidLocalDate > addDay(todayKst)) return { ok: false, code: 'DATE_IN_FUTURE', field: 'paidLocalDate' };
+  if (d.paidLocalDate > addDays(todayKst, 1)) return { ok: false, code: 'DATE_IN_FUTURE', field: 'paidLocalDate' };
   return { ok: true };
 }
 
-// 함께한 사람이 비어 있으면 = 나만. 서버는 scope 0명을 받지 않으므로 저장할 때 나 혼자로 채운다.
-const effScope = (d: ExpenseDraft, meMemberId: string | null) =>
-  d.scopeMemberIds.length === 0 && meMemberId ? [meMemberId] : d.scopeMemberIds;
+// scope는 draft에 두지 않고 저장 시점에 박스 지정의 합집합으로 만든다.
+// 빈 지정은 '전원 1/N'이라 그 박스는 활동 참여자 전원을 보탠다(0명으로 세면 전원 1/N이
+// 남은 몇 명 몫으로 줄고, 결제자가 나일 때 지출 전체가 나만 보기로 뒤집힌다).
+// 서버는 scope 0명을 거부하므로(SCOPE_EMPTY) 참여자 목록까지 비면 마지막으로 나 혼자로 채운다.
+function effScope(d: ExpenseDraft, meMemberId: string | null, activeMemberIds: string[]): string[] {
+  const union = [
+    ...new Set(d.items.flatMap((it) => (it.assigneeMemberIds.length ? it.assigneeMemberIds : activeMemberIds))),
+  ];
+  if (union.length > 0) return union;
+  return meMemberId ? [meMemberId] : [];
+}
 
 // 공개 범위는 save_expense가 판정한다. 아래는 같은 규칙의 화면 표시용 미리보기.
 // ponytail: 남이 만든 지출을 편집하는 경우(서버는 shared 유지)는 draft에 created_by가 없어 구분하지 않는다.
-export function previewVisibility(d: ExpenseDraft, meMemberId: string | null): 'shared' | 'private' {
-  const scope = effScope(d, meMemberId);
+export function previewVisibility(d: ExpenseDraft, meMemberId: string | null, activeMemberIds: string[]): 'shared' | 'private' {
+  const scope = effScope(d, meMemberId, activeMemberIds);
   return d.payerKind === 'member' && d.payerMemberId === meMemberId && scope.length === 1 && scope[0] === meMemberId
     ? 'private'
     : 'shared';
 }
 
-export function toSavePayload(d: ExpenseDraft, meMemberId: string | null): SaveExpensePayload {
+export function toSavePayload(d: ExpenseDraft, meMemberId: string | null, activeMemberIds: string[]): SaveExpensePayload {
   return {
     id: d.id,
     room_id: d.roomId,
@@ -182,7 +178,8 @@ export function toSavePayload(d: ExpenseDraft, meMemberId: string | null): SaveE
     card_last4: d.cardLast4,
     needs_review: d.needsReview,
     ai_result: d.aiResult,
-    scope_member_ids: effScope(d, meMemberId),
+    category: d.category,
+    scope_member_ids: effScope(d, meMemberId, activeMemberIds),
     items: d.items.map((it) => ({
       id: it.id,
       position: it.position,
@@ -205,10 +202,9 @@ export function updateItem(
   return { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) };
 }
 
-// 함께한 사람 안에서만 지정한다. 빈 배열 = 함께한 사람 전원.
+// 박스별 먹은 사람. 빈 배열 = 활동 중인 참여자 전원 1/N.
 export function setAssignees(d: ExpenseDraft, itemId: string, memberIds: string[]): ExpenseDraft {
-  const ids = memberIds.filter((id) => d.scopeMemberIds.includes(id));
-  return { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, assigneeMemberIds: ids } : it)) };
+  return { ...d, items: d.items.map((it) => (it.id === itemId ? { ...it, assigneeMemberIds: memberIds } : it)) };
 }
 
 // "3,280" → 3280, 소수 3자리까지, 음수(할인) 허용. 형식이 틀리면 null.

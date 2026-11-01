@@ -3,6 +3,7 @@ import { z } from 'npm:zod@4';
 // parse-expense 응답 스키마. 앱 쪽 스키마와는 fixture 테스트로 일치를 확인한다(ARCHITECTURE §1).
 // paid_local_date는 모델 출력 단계에서만 '--MM-DD'(연도 없음)를 허용하고, 후처리가 연도를 채운다.
 const confidence = z.enum(['high', 'low']);
+const CATEGORIES = ['food', 'shopping', 'sightseeing', 'lodging', 'transport', 'other'] as const;
 
 export const ParsedExpense = z.object({
   is_receipt: z.boolean(),
@@ -14,6 +15,8 @@ export const ParsedExpense = z.object({
   total: z.number().nullable(),
   krw_charged: z.number().nullable(),
   card_last4: z.string().regex(/^\d{4}$/).nullable(),
+  // 모르는 값·누락은 거부하지 않고 'other'로 접는다(DB check 제약과 같은 코드 집합).
+  category: z.enum(CATEGORIES).catch('other'),
   items: z.array(z.object({
     name_original: z.string().max(80),
     name_ko: z.string().max(80),
@@ -35,7 +38,7 @@ export const parsedExpenseJsonSchema = {
   additionalProperties: false,
   required: [
     'is_receipt', 'merchant', 'paid_local_date', 'paid_local_time', 'currency', 'currency_ambiguous',
-    'total', 'krw_charged', 'card_last4', 'items', 'confidence',
+    'total', 'krw_charged', 'card_last4', 'category', 'items', 'confidence',
   ],
   properties: {
     is_receipt: { type: 'boolean' },
@@ -47,6 +50,7 @@ export const parsedExpenseJsonSchema = {
     total: nullable({ type: 'number' }),
     krw_charged: nullable({ type: 'number' }),
     card_last4: nullable(str('카드 끝 4자리 숫자')),
+    category: { type: 'string', enum: [...CATEGORIES] },
     items: {
       type: 'array',
       items: {

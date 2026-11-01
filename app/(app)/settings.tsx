@@ -118,10 +118,10 @@ export default function Settings() {
       <ScrollView contentContainerClassName="gap-4 px-5 pb-10 pt-2">
         <View className="flex-row items-center gap-3.5 rounded-[22px] bg-white p-5">
           <View className="h-[60px] w-[60px] items-center justify-center rounded-full bg-sky-100">
-            <Text className="font-extrabold text-[22px] text-primary-text">{name.slice(0, 1)}</Text>
+            <Text className="font-semibold text-xl text-primary-text">{name.slice(0, 1)}</Text>
           </View>
           <View className="flex-1 gap-1">
-            <Text className="font-bold text-[19px] text-ink" numberOfLines={1}>
+            <Text className="font-semibold text-xl text-ink" numberOfLines={1}>
               {name}
             </Text>
             <View className="flex-row items-center gap-1.5">
@@ -130,7 +130,7 @@ export default function Settings() {
             </View>
           </View>
           <Pressable accessibilityRole="button" onPress={openEdit} hitSlop={8}>
-            <Text className="font-bold text-sm text-primary-text">닉네임 수정</Text>
+            <Text className="font-semibold text-sm text-primary-text">닉네임 수정</Text>
           </Pressable>
         </View>
 

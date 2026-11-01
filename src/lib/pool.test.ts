@@ -4,7 +4,7 @@ import { autoSelectPayer, fillEqual, poolNote, poolRemaining } from './pool';
 const draft = (cardLast4: string | null): ExpenseDraft => ({
   id: 'e1', roomId: 'r1', source: 'card_text', payerKind: 'member', payerMemberId: 'm1',
   merchant: '', paidLocalDate: '2026-10-22', paidLocalTime: null, currency: 'KRW', krwCharged: null,
-  cardLast4, scopeMemberIds: ['m1'], items: [], photos: [], needsReview: false, aiResult: null,
+  cardLast4, category: 'other', items: [], photos: [], needsReview: false, aiResult: null,
 });
 
 describe('autoSelectPayer', () => {

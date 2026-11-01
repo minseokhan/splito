@@ -32,7 +32,7 @@ const OVERSEAS = [
 
 function Row({ children, onMore, moreLabel }: { children: ReactNode; onMore?: () => void; moreLabel?: string }) {
   return (
-    <View className="flex-row items-center gap-2 px-3 py-0.5">
+    <View className="flex-row items-center gap-3 px-3">
       {children}
       {onMore && (
         <Pressable accessibilityRole="button" accessibilityLabel={moreLabel} onPress={onMore} hitSlop={8} className="p-1">
@@ -80,10 +80,8 @@ export default function Consent() {
       <NavBar onBack={decline} />
       <ScrollView contentContainerClassName="gap-7 px-5 pt-2" contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         <View className="gap-1.5">
-          <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] leading-[34px] text-ink">
-            거의 다 왔어요
-          </Text>
-          <Text className="text-[15px] text-ink-500">닉네임을 확인하고 약관에 동의해주세요</Text>
+          <Text className="font-semibold text-2xl text-ink">거의 다 왔어요</Text>
+          <Text className="text-base text-ink-500">닉네임을 확인하고 약관에 동의해주세요</Text>
         </View>
 
         <View className="gap-2">
@@ -122,7 +120,7 @@ export default function Consent() {
           {open && (
             <View className="gap-1 px-3 pb-2 pl-11">
               {OVERSEAS.map((line) => (
-                <Text key={line} className="text-[13px] leading-[19px] text-ink-500">
+                <Text key={line} className="text-[13px] text-ink-500">
                   · {line}
                 </Text>
               ))}
@@ -136,7 +134,7 @@ export default function Consent() {
           </Row>
         </View>
 
-        <Text className="text-[13px] leading-[19px] text-ink-400">
+        <Text className="text-[13px] text-ink-400">
           영수증 이미지는 AI 인식을 위해 Anthropic(미국)으로 전송돼요. 받을 계좌는 나중에 등록해도 돼요.
         </Text>
       </ScrollView>

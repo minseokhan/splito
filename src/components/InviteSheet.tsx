@@ -1,5 +1,6 @@
+import { setStringAsync } from 'expo-clipboard';
 import { router } from 'expo-router';
-import { NavArrowRight, QrCode, UserPlus } from 'iconoir-react-native';
+import { Link, NavArrowRight, QrCode, UserPlus } from 'iconoir-react-native';
 import { useState, type ComponentType } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -12,17 +13,19 @@ import { colors } from '@/theme/tokens';
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
 import { KakaoSymbol } from './Logo';
+import { useToast } from './Toast';
 
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 
 export const INVITE_TITLE = '동행 초대하기';
-export const INVITE_SUBTITLE = '링크를 받은 사람은 바로 이 장부에 참여해요';
+export const INVITE_SUBTITLE = '함께할 동행을 초대해 보세요!';
 
 type Props = { roomId: string; onAddGuest?: () => void };
 
-// 초대 2칸(카카오톡·QR) + 앱 없는 동행 추가. 시트와 초대 화면이 같이 쓴다.
+// 초대 3칸(카카오톡·QR·링크 복사) + 앱 없는 동행 추가. 시트와 초대 화면이 같이 쓴다.
 export function InviteOptions({ roomId, onAddGuest }: Props) {
   const { data: room } = useRoom(roomId);
+  const toast = useToast();
   const [qr, setQr] = useState(false);
   if (!room) return null;
   const url = buildInviteUrl(LINK_DOMAIN, room.invite_token);
@@ -36,6 +39,14 @@ export function InviteOptions({ roomId, onAddGuest }: Props) {
       <View className="flex-row gap-2.5">
         <Tile label="카카오톡" icon={KakaoSymbol} bg="bg-kakao" fg={colors.kakao.text} text="text-kakao-text" onPress={share} />
         <Tile label="QR 보기" icon={QrCode} bg="bg-app" fg={colors.primary.text} text="text-ink" onPress={() => setQr((v) => !v)} />
+        <Tile
+          label="링크 복사"
+          icon={Link}
+          bg="bg-app"
+          fg={colors.primary.text}
+          text="text-ink"
+          onPress={() => void setStringAsync(url).then(() => toast('초대 링크를 복사했어요'))}
+        />
       </View>
       {qr && (
         <View className="items-center gap-2 rounded-[18px] bg-app p-4" accessibilityLabel="초대 QR 코드">
@@ -54,7 +65,7 @@ export function InviteOptions({ roomId, onAddGuest }: Props) {
       >
         <Icon as={UserPlus} size={22} color={colors.primary.text} />
         <View className="flex-1 gap-0.5">
-          <Text className="font-bold text-[15px] text-ink">앱 없는 동행 추가</Text>
+          <Text className="font-semibold text-base text-ink">앱 없는 동행 추가</Text>
           <Text className="text-xs text-ink-400">이름만으로 게스트를 추가해요</Text>
         </View>
         <Icon as={NavArrowRight} size={18} color={colors.ink[300]} />
@@ -73,7 +84,7 @@ function Tile({ label, icon, bg, fg, text, onPress }: TileProps) {
       className={`flex-1 items-center gap-2 rounded-[18px] px-2 py-4 active:translate-y-px ${bg}`}
     >
       <Icon as={icon} size={24} color={fg} />
-      <Text className={`font-bold text-[13px] ${text}`}>{label}</Text>
+      <Text className={`font-semibold text-[13px] ${text}`}>{label}</Text>
     </Pressable>
   );
 }

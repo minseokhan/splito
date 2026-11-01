@@ -34,9 +34,9 @@ export function Checkbox({ label, checked, onChange, bold, tag, round }: Props) 
       ) : (
         <Icon as={Check} size={20} color={color} />
       )}
-      <Text className={`flex-1 text-ink ${bold ? 'font-bold text-base' : 'text-[15px]'}`}>
+      <Text className={`flex-1 text-base text-ink ${bold ? 'font-semibold' : ''}`}>
         {label}
-        {tag && <Text className={`font-semibold ${tag === '필수' ? 'text-primary-text' : 'text-ink-300'}`}> {tag}</Text>}
+        {tag && <Text className={`font-semibold ${tag === '필수' ? 'text-primary-text' : 'text-ink-300'}`}>{` (${tag})`}</Text>}
       </Text>
     </Pressable>
   );

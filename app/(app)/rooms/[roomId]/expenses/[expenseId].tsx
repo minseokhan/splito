@@ -77,7 +77,7 @@ export default function ExpenseDetailScreen() {
       <SafeAreaView className="flex-1 bg-app" edges={['top']}>
         <NavBar />
         <View className="flex-1 items-center justify-center px-5">
-          <Text className="text-[15px] text-ink-500">지출을 찾을 수 없어요</Text>
+          <Text className="text-base text-ink-500">지출을 찾을 수 없어요</Text>
         </View>
       </SafeAreaView>
     ) : null;
@@ -170,7 +170,7 @@ export default function ExpenseDetailScreen() {
             </Pressable>
             <View className="flex-1 gap-[3px]">
               <View className="flex-row items-center gap-1.5">
-                <Text className="flex-shrink font-bold text-[17px] text-ink">{e.merchant ?? '가맹점 없음'}</Text>
+                <Text className="flex-shrink font-semibold text-[17px] text-ink">{e.merchant ?? '가맹점 없음'}</Text>
                 {e.needs_review && <Badge kind="review" />}
               </View>
               <View className="flex-row flex-wrap items-center gap-1.5">
@@ -179,7 +179,7 @@ export default function ExpenseDetailScreen() {
                   {e.krw_amount !== null && (
                     <>
                       {e.currency === 'KRW' ? '' : ' → '}
-                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-ink">
+                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-ink">
                         {formatKrw(e.krw_amount)}
                       </Text>
                     </>
@@ -234,6 +234,7 @@ export default function ExpenseDetailScreen() {
                 quantity={Number(it.quantity)}
                 amountLabel={formatForeign(Number(it.amount_original), e.currency)}
                 krwLabel={it.krw_amount === null ? null : formatKrw(it.krw_amount)}
+                isKrw={e.currency === 'KRW'}
                 needsReview={it.needs_review}
                 people={scopePeople.length > 1 ? scopePeople.map((p) => ({ ...p, on: assigned.has(p.id) })) : []}
                 splitLabel={scopePeople.length > 1 ? (n ? `${n}명 · 1인 ${per}` : '전원 1/N') : ''}
@@ -242,7 +243,7 @@ export default function ExpenseDetailScreen() {
           })}
 
           <View className="gap-3 rounded-card bg-white p-4">
-            <Text className="font-bold text-[15px] text-ink">댓글</Text>
+            <Text className="font-semibold text-base text-ink">댓글</Text>
             {comments.length === 0 && <Text className="text-[13px] text-ink-400">궁금한 점을 댓글로 남겨보세요</Text>}
             {comments.map((c) => (
               <View key={c.id} className="gap-0.5">
@@ -262,14 +263,14 @@ export default function ExpenseDetailScreen() {
                     </Pressable>
                   )}
                 </View>
-                <Text className="text-[15px] leading-[22px] text-ink-700">{c.body}</Text>
+                <Text className="text-base text-ink-700">{c.body}</Text>
               </View>
             ))}
           </View>
 
           {(history ?? []).length > 0 && (
             <View className="gap-3 rounded-card bg-white p-4">
-              <Text className="font-bold text-[15px] text-ink">수정 이력</Text>
+              <Text className="font-semibold text-base text-ink">수정 이력</Text>
               {(history ?? []).map((h, i, all) => (
                 <View key={h.id} className="gap-0.5">
                   <Text className="font-semibold text-xs text-ink-500">

@@ -15,10 +15,12 @@ type Props = {
   onBack?: () => void;
   right?: ReactNode;
   color?: string;
+  /** 제목 글자 크기. 기본 17 */
+  titleSize?: number;
 };
 
-// 네비게이션 바 52. 좌측 뒤로가기 28(패딩 8), 제목 17/700.
-export function NavBar({ title, align = 'left', close, onBack, right, color = colors.ink.DEFAULT }: Props) {
+// 네비게이션 바 52. 좌측 뒤로가기 28(패딩 8), 제목 17/600.
+export function NavBar({ title, align = 'left', close, onBack, right, color = colors.ink.DEFAULT, titleSize = 17 }: Props) {
   const back = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/home')));
   return (
     <View className="h-[52px] flex-row items-center justify-between px-3">
@@ -27,13 +29,13 @@ export function NavBar({ title, align = 'left', close, onBack, right, color = co
           <Icon as={close ? Xmark : NavArrowLeft} size={close ? 26 : 28} color={color} />
         </Pressable>
         {title && align === 'left' && (
-          <Text style={{ color }} className="flex-1 font-bold text-[17px]" numberOfLines={1}>
+          <Text style={{ color, fontSize: titleSize }} className="flex-1 font-semibold" numberOfLines={1}>
             {title}
           </Text>
         )}
       </View>
       {title && align === 'center' && (
-        <Text style={{ color }} className="max-w-[60%] font-bold text-[17px]" numberOfLines={1}>
+        <Text style={{ color, fontSize: titleSize }} className="max-w-[60%] font-semibold" numberOfLines={1}>
           {title}
         </Text>
       )}

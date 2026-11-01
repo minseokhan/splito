@@ -100,8 +100,8 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
           <View className="gap-0.5 rounded-[22px] bg-white p-5" style={CARD_SHADOW}>
             <Text className="font-semibold text-sm text-ink-500">남은 공금</Text>
             <Text
-              style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.03 * 28 }}
-              className={`font-extrabold text-[28px] ${remaining < 0 ? 'text-danger' : 'text-ink'}`}
+              style={{ fontVariant: ['tabular-nums'] }}
+              className={`font-semibold text-[28px] ${remaining < 0 ? 'text-danger' : 'text-ink'}`}
             >
               {remaining < 0 ? `−${formatKrw(-remaining)}` : formatKrw(remaining)}
             </Text>
@@ -110,7 +110,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
         )}
 
         <View className="gap-2.5">
-          <Text className="px-1 font-bold text-base text-ink">통장 주인</Text>
+          <Text className="px-1 font-semibold text-base text-ink">통장 주인</Text>
           <View className="flex-row flex-wrap gap-2">
             {users.map((u) => (
               <Pressable
@@ -120,7 +120,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                 onPress={() => setOwner(u.id)}
                 className={`h-11 items-center justify-center rounded-chip px-4 ${chosenOwner === u.id ? 'bg-primary' : 'bg-white'}`}
               >
-                <Text className={`font-semibold text-[15px] ${chosenOwner === u.id ? 'text-primary-on' : 'text-ink'}`}>
+                <Text className={`font-semibold text-base ${chosenOwner === u.id ? 'text-primary-on' : 'text-ink'}`}>
                   {u.userId === myId ? `${u.name}(나)` : u.name}
                 </Text>
               </Pressable>
@@ -129,7 +129,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
         </View>
 
         <View className="gap-2.5">
-          <Text className="px-1 font-bold text-base text-ink">공금 카드 끝자리(선택)</Text>
+          <Text className="px-1 font-semibold text-base text-ink">공금 카드 끝자리(선택)</Text>
           <TextInput
             accessibilityLabel="공금 카드 끝자리 4자리"
             placeholder="예: 1234, 5678"
@@ -144,7 +144,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
 
         {enabled && (
           <View className="gap-2.5">
-            <Text className="px-1 font-bold text-base text-ink">입금</Text>
+            <Text className="px-1 font-semibold text-base text-ink">입금</Text>
             <View className="flex-row gap-2">
               <TextInput
                 accessibilityLabel="모두에게 같은 입금액"
@@ -165,7 +165,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                 }
                 className="h-[54px] items-center justify-center rounded-input bg-sky-100 px-4 active:bg-sky-200"
               >
-                <Text className="font-bold text-[15px] text-primary-text">같은 금액 일괄 입력</Text>
+                <Text className="font-semibold text-base text-primary-text">같은 금액 일괄 입력</Text>
               </Pressable>
             </View>
             <View className="rounded-card bg-white px-4 py-1" style={CARD_SHADOW}>
@@ -173,7 +173,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                 <View key={m.id} className={`min-h-11 flex-row items-center gap-3 py-3 ${i > 0 ? 'border-t border-muted' : ''}`}>
                   <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={36} />
                   <View className="flex-1 flex-row items-center gap-2">
-                    <Text className="shrink font-bold text-[15px] text-ink" numberOfLines={1}>
+                    <Text className="shrink font-semibold text-base text-ink" numberOfLines={1}>
                       {names[m.id]}
                     </Text>
                     {m.kind === 'guest' && <GuestChip />}

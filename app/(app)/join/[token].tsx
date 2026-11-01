@@ -53,12 +53,12 @@ export default function JoinSheet() {
       <SafeAreaView edges={['bottom']} className="gap-[18px] rounded-t-hero bg-white px-5 pb-4 pt-3">
         <View className="h-[5px] w-10 self-center rounded-full bg-line" />
         {invalid ? (
-          <Text className="text-[15px] leading-[22px] text-ink-700">{INVALID}</Text>
+          <Text className="text-base text-ink-700">{INVALID}</Text>
         ) : p ? (
           <View className="flex-row items-center gap-3.5">
             <Avatar name={p.inviterNickname || p.roomName} colorIndex={0} size={48} />
             <View className="flex-1 gap-1">
-              <Text className="font-bold text-xl text-ink">{p.roomName} 여행에 참여할까요?</Text>
+              <Text className="font-semibold text-xl text-ink">{p.roomName} 여행에 참여할까요?</Text>
               <Text className="text-sm text-ink-500">
                 {p.inviterNickname ? `${p.inviterNickname}님이 초대했어요 · ` : ''}
                 {p.memberCount}명 참여 중
@@ -66,9 +66,9 @@ export default function JoinSheet() {
             </View>
           </View>
         ) : error ? (
-          <Text className="text-[15px] leading-[22px] text-ink-700">{error.message}</Text>
+          <Text className="text-base text-ink-700">{error.message}</Text>
         ) : (
-          <Text className="text-[15px] text-ink-500">초대를 확인하고 있어요</Text>
+          <Text className="text-base text-ink-500">초대를 확인하고 있어요</Text>
         )}
         <View className="gap-1">
           {error && !invalid && !p ? (
@@ -80,7 +80,7 @@ export default function JoinSheet() {
             </>
           ) : null}
           <Pressable accessibilityRole="button" onPress={close} className="h-11 items-center justify-center">
-            <Text className="font-semibold text-[15px] text-ink-500">{invalid ? '확인' : '나중에'}</Text>
+            <Text className="font-semibold text-base text-ink-500">{invalid ? '확인' : '나중에'}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

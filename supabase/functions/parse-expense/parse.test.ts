@@ -15,6 +15,7 @@ const ok = (over: Record<string, unknown> = {}) => ({
   total: 3280,
   krw_charged: null,
   card_last4: null,
+  category: 'food',
   items: [{ name_original: 'ラーメン', name_ko: '라멘', quantity: 2, amount: 3280, confidence: 'high' }],
   confidence: 'high',
   ...over,
@@ -196,6 +197,16 @@ Deno.test('URL·계좌번호 패턴이 든 품목 → 그 품목만 low', async 
   const r = await parseExpense(fake([reply(ok({ items }))]).deps, textReq('...'));
   assert(r.ok);
   assertEquals(r.data.items.map((i) => i.confidence), ['low', 'low', 'high']);
+});
+
+Deno.test('모르는 category·누락된 category → other (거부하지 않는다)', async () => {
+  for (const over of [{ category: 'cafe' }, {}]) {
+    const body = ok(over);
+    if (!('category' in over)) delete (body as Record<string, unknown>).category;
+    const r = await parseExpense(fake([reply(body)]).deps, textReq('...'));
+    assert(r.ok);
+    assertEquals(r.data.category, 'other');
+  }
 });
 
 Deno.test('인젝션 문구: 텍스트는 데이터 태그 안에 들어가고, 스키마 출력만 반환된다', async () => {

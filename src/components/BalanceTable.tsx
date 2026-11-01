@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
-import { formatKrw, netColor, netSign } from '@/components/Money';
+import { formatKrw, netSign } from '@/components/Money';
 import type { BalanceRow } from '@/types/domain';
 
 type Props = { rows: BalanceRow[]; names: Record<string, string>; colorIndex: Record<string, number> };
@@ -14,7 +14,7 @@ export function BalanceTable({ rows, names, colorIndex }: Props) {
   return (
     <View className="gap-4">
       <View className="flex-row items-center justify-between px-1 pt-2.5">
-        <Text className="font-bold text-base text-ink">사람별 내역</Text>
+        <Text className="font-semibold text-base text-ink">사람별 내역</Text>
         <Text className="text-xs text-ink-400">낸 돈 − 부담액</Text>
       </View>
       <View className="rounded-card bg-white px-4 py-1">
@@ -29,7 +29,7 @@ export function BalanceTable({ rows, names, colorIndex }: Props) {
             >
               <Avatar name={name} colorIndex={colorIndex[r.memberId] ?? 0} guest={guest} size={36} />
               <View className="flex-1 gap-0.5">
-                <Text className="font-bold text-[15px] text-ink" numberOfLines={1}>
+                <Text className="font-semibold text-base text-ink" numberOfLines={1}>
                   {name}
                   {guest && (
                     <Text className="font-medium text-xs text-ink-400"> 게스트 · 대표 {nameOf(r.representativeMemberId)}</Text>
@@ -45,7 +45,7 @@ export function BalanceTable({ rows, names, colorIndex }: Props) {
                 <Text
                   accessibilityLabel={`${abs} ${r.net > 0 ? '받을 돈' : r.net < 0 ? '줄 돈' : '정산할 돈 없음'}`}
                   style={{ fontVariant: ['tabular-nums'] }}
-                  className={`font-extrabold text-[15px] ${netColor(r.net)}`}
+                  className={`font-semibold text-base ${r.net > 0 ? 'text-success' : r.net < 0 ? 'text-danger' : 'text-ink'}`}
                 >
                   {netSign(r.net)}
                   {abs}
@@ -56,7 +56,7 @@ export function BalanceTable({ rows, names, colorIndex }: Props) {
         })}
       </View>
       {guests.length > 0 && (
-        <Text className="px-1 text-xs leading-[18px] text-ink-400">
+        <Text className="px-1 text-xs text-ink-400">
           {guests.map((g) => nameOf(g.memberId)).join('·')}(게스트)의 금액은 대표자 {reps.join('·')}님 송금에 합쳐졌어요. 모든
           참여자가 같은 결과를 봐요.
         </Text>

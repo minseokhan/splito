@@ -14,7 +14,7 @@ export function Money({ net, size = 'base', label = true }: Props) {
     <View accessible accessibilityLabel={`${abs} ${text}`} className="items-end">
       <Text
         style={{ fontVariant: ['tabular-nums'] }}
-        className={`font-extrabold ${size === 'large' ? 'text-[28px]' : 'text-[15px]'} ${netColor(net)}`}
+        className={`font-semibold ${size === 'large' ? 'text-2xl' : 'text-base'} ${netColor(net)}`}
       >
         {netSign(net)}
         {abs}
