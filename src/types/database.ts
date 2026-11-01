@@ -157,14 +157,14 @@ isOneToOne: false
                   ]
                 },"expenses": {
                   Row: {
-                    "ai_result": Json | null,"amount_original": number,"card_last4": string | null,"created_at": string,"created_by": string,"currency": string,"deleted_at": string | null,"deleted_by": string | null,"fx_base_date": string | null,"fx_rate": number | null,"fx_source": string,"id": string,"krw_amount": number | null,"krw_charged": number | null,"merchant": string | null,"needs_review": boolean,"paid_local_date": string,"paid_local_time": string | null,"payer_kind": string,"payer_member_id": string | null,"room_id": string,"source": string,"updated_by": string | null,"version": number
+                    "ai_result": Json | null,"amount_original": number,"card_last4": string | null,"created_at": string,"created_by": string,"currency": string,"deleted_at": string | null,"deleted_by": string | null,"fx_base_date": string | null,"fx_rate": number | null,"fx_source": string,"id": string,"krw_amount": number | null,"krw_charged": number | null,"merchant": string | null,"needs_review": boolean,"paid_local_date": string,"paid_local_time": string | null,"payer_kind": string,"payer_member_id": string | null,"room_id": string,"source": string,"updated_by": string | null,"version": number,"visibility": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "ai_result"?: Json | null,"amount_original": number,"card_last4"?: string | null,"created_at"?: string,"created_by": string,"currency": string,"deleted_at"?: string | null,"deleted_by"?: string | null,"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source": string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date": string,"paid_local_time"?: string | null,"payer_kind": string,"payer_member_id"?: string | null,"room_id": string,"source": string,"updated_by"?: string | null,"version"?: number
+                    "ai_result"?: Json | null,"amount_original": number,"card_last4"?: string | null,"created_at"?: string,"created_by": string,"currency": string,"deleted_at"?: string | null,"deleted_by"?: string | null,"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source": string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date": string,"paid_local_time"?: string | null,"payer_kind": string,"payer_member_id"?: string | null,"room_id": string,"source": string,"updated_by"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Update: {
-                    "ai_result"?: Json | null,"amount_original"?: number,"card_last4"?: string | null,"created_at"?: string,"created_by"?: string,"currency"?: string,"deleted_at"?: string | null,"deleted_by"?: string | null,"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source"?: string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date"?: string,"paid_local_time"?: string | null,"payer_kind"?: string,"payer_member_id"?: string | null,"room_id"?: string,"source"?: string,"updated_by"?: string | null,"version"?: number
+                    "ai_result"?: Json | null,"amount_original"?: number,"card_last4"?: string | null,"created_at"?: string,"created_by"?: string,"currency"?: string,"deleted_at"?: string | null,"deleted_by"?: string | null,"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source"?: string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date"?: string,"paid_local_time"?: string | null,"payer_kind"?: string,"payer_member_id"?: string | null,"room_id"?: string,"source"?: string,"updated_by"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Relationships: [
                     {
@@ -586,6 +586,12 @@ isOneToOne: false
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
                            },
+"can_read_expense":
+{ Args: { "p_expense_id": string }; Returns: boolean
+                           },
+"can_read_item":
+{ Args: { "p_item_id": string }; Returns: boolean
+                           },
 "cancel_transfer":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -608,6 +614,9 @@ isOneToOne: false
 { Args: { "p_owner_member_id": string,"p_room_id": string }; Returns: {
               "account_masked": string,"account_number": string,"bank_name": string,"holder_name": string,"registered": boolean
             }[]
+                           },
+"is_others_private_expense":
+{ Args: { "p_expense_id": string }; Returns: boolean
                            },
 "is_room_member":
 { Args: { "p_room_id": string }; Returns: boolean
