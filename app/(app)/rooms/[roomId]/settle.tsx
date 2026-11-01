@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/Avatar';
 import { BalanceTable } from '@/components/BalanceTable';
 import { BottomSheet } from '@/components/BottomSheet';
 import { SplitoSymbol } from '@/components/Logo';
@@ -14,6 +15,7 @@ import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useToast } from '@/components/Toast';
 import { TransferCard, TransferRecordRow, type Party } from '@/components/TransferCard';
+import { useMyPrivateExpenses, useSetExpenseScope } from '@/hooks/useExpense';
 import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
 import { usePayoutAccount, useRequestPayoutAccount } from '@/hooks/usePayoutAccount';
 import { usePoolDeposits } from '@/hooks/usePool';
@@ -27,7 +29,9 @@ import {
   useSettlePlan,
   useTransfers,
 } from '@/hooks/useSettlement';
+import { dateTitle } from '@/lib/feed';
 import { guestShareNote, orderBalanceRows } from '@/lib/guestView';
+import { formatForeign } from '@/lib/money';
 import { poolNote, poolRemaining } from '@/lib/pool';
 import {
   copyText,
@@ -38,9 +42,11 @@ import {
   type TransferRecord,
 } from '@/lib/settleView';
 import { uuidV4 } from '@/lib/uuid';
-import type { MemberId, RoomId } from '@/types/domain';
+import type { PrivateExpenseRow } from '@/services/api';
+import type { ExpenseId, MemberId, RoomId } from '@/types/domain';
 
 const CLIPBOARD_NOTICE_KEY = 'clipboard_sync_notice_shown';
+const CARD_SHADOW = { boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' };
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
 
@@ -84,6 +90,8 @@ export default function Settle() {
   const cancel = useCancelTransfer(roomId);
   const [sendCard, setSendCard] = useState<SettleCard | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const privates = useMyPrivateExpenses(roomId);
+  const [checkDone, setCheckDone] = useState(false);
 
   // 진입 시 1회: 환율 대기 지출을 fx-rate로 캐시한 뒤 서버가 재확정한다.
   const triedFx = useRef(false);
@@ -110,7 +118,7 @@ export default function Settle() {
       </SafeAreaView>
     );
   }
-  if (!plan.data || !plan.me || !plan.cards) return <SafeAreaView className="flex-1 bg-app" />;
+  if (!plan.data || !plan.me || !plan.cards || privates.isPending) return <SafeAreaView className="flex-1 bg-app" />;
 
   const me = plan.me.id;
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
@@ -120,6 +128,24 @@ export default function Settle() {
     label: id === me ? '나' : (names[id] ?? ''),
     colorIndex: colorIndex[id] ?? 0,
   });
+  // 정산 직전 마지막 안전망(명세 4). 나만 보기가 0건이면 이 단계는 뜨지 않는다.
+  if (!checkDone && privates.data?.length) {
+    return (
+      <PrivateCheckStep
+        roomId={roomId}
+        rows={privates.data}
+        me={me}
+        companions={members.filter((m) => !m.leftAt && m.id !== me).map((m) => ({
+          id: m.id,
+          name: m.name,
+          guest: m.kind === 'guest',
+          colorIndex: colorIndex[m.id] ?? 0,
+        }))}
+        onDone={() => setCheckDone(true)}
+      />
+    );
+  }
+
   const rows = plan.data.rows;
   const shareNote = (c: SettleCard) =>
     [guestShareNote(c.from, rows, names), guestShareNote(c.to, rows, names)].filter(Boolean).join(' · ') || undefined;
@@ -328,5 +354,92 @@ function SendSheet({ card, toName, busy, onClose, onSubmit }: SendSheetProps) {
       />
       <PrimaryButton title="기록하기" variant="dark" loading={busy} disabled={amount <= 0} onPress={() => onSubmit(id, amount)} />
     </BottomSheet>
+  );
+}
+
+type PrivateCheckProps = {
+  roomId: RoomId;
+  rows: PrivateExpenseRow[];
+  me: MemberId;
+  companions: { id: MemberId; name: string; guest: boolean; colorIndex: number }[];
+  onDone: () => void;
+};
+
+// 정산 전 확인 단계(명세 4). 고른 동행을 대상 인원에 더해 저장하면 서버가 공동 지출로 다시 판정한다.
+// '공개로 바꾸기' 같은 별도 플래그는 두지 않는다(AI-12). 저장은 넘어갈 때 한 번에 한다
+// (칩마다 저장하면 그 줄이 '나만 보기' 목록에서 빠져 나머지 동행을 고를 수 없다).
+function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheckProps) {
+  const setScope = useSetExpenseScope(roomId);
+  const [picked, setPicked] = useState<Record<ExpenseId, MemberId[]>>({});
+
+  const toggle = (id: ExpenseId, memberId: MemberId) =>
+    setPicked((p) => {
+      const cur = p[id] ?? [];
+      return { ...p, [id]: cur.includes(memberId) ? cur.filter((m) => m !== memberId) : [...cur, memberId] };
+    });
+
+  const submit = async () => {
+    try {
+      for (const [id, ids] of Object.entries(picked)) {
+        if (ids.length) await setScope.mutateAsync({ id, scopeMemberIds: [me, ...ids] });
+      }
+      onDone();
+    } catch (e) {
+      showError(e);
+    }
+  };
+
+  return (
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-app">
+      <NavBar title="정산" align="center" />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 12 }}>
+        <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
+          <SplitoSymbol size={64} blush />
+          <Text style={{ letterSpacing: -0.44 }} className="flex-1 font-extrabold text-[19px] leading-[26px] text-ink">
+            나만 보기로 저장된 지출 {rows.length}건 중 동행과 함께한 건 없나요?
+          </Text>
+        </View>
+        {rows.map((r) => (
+          <View key={r.id} className="gap-3 rounded-card bg-white p-4" style={CARD_SHADOW}>
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1 gap-[3px]">
+                <Text className="font-bold text-base text-ink" numberOfLines={1}>
+                  {r.merchant ?? '이름 없는 지출'}
+                </Text>
+                <Text className="text-[13px] text-ink-400">{dateTitle(r.paidLocalDate)}</Text>
+              </View>
+              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-base text-ink">
+                {r.krwAmount === null ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount)}
+              </Text>
+            </View>
+            <View className="flex-row flex-wrap gap-3">
+              {companions.map((p) => {
+                const on = (picked[r.id] ?? []).includes(p.id);
+                return (
+                  <Pressable
+                    key={p.id}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={`동행 ${p.name}`}
+                    disabled={setScope.isPending}
+                    onPress={() => toggle(r.id, p.id)}
+                    className={`min-h-11 items-center gap-1 ${on ? '' : 'opacity-40'}`}
+                  >
+                    <Avatar name={p.name} colorIndex={p.colorIndex} guest={p.guest} size={36} />
+                    <Text className="font-medium text-xs text-ink-700">{p.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+        <Text className="px-1 text-[13px] leading-[19px] text-ink-400">
+          동행을 고르면 그 지출은 공동 지출이 되어 정산에 들어가요.
+        </Text>
+      </ScrollView>
+      <View className="px-5 pb-2 pt-2">
+        <PrimaryButton title="정산으로 넘어가기" loading={setScope.isPending} onPress={() => void submit()} />
+      </View>
+    </SafeAreaView>
   );
 }

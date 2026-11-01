@@ -48,6 +48,16 @@ export type HistoryRow = {
   snapshot: Snapshot;
 };
 
+// 정산 전 확인 단계(명세 4)용 한 줄. RLS가 남의 '나만 보기' 지출은 돌려주지 않는다.
+export type PrivateExpenseRow = {
+  id: ExpenseId;
+  merchant: string | null;
+  paidLocalDate: string;
+  currency: string;
+  amountOriginal: number;
+  krwAmount: Krw | null;
+};
+
 export type CommentRow = { id: string; authorId: string; body: string; createdAt: string };
 
 export type PayoutAccount = {
@@ -269,6 +279,27 @@ export const api = {
         .single()
         .overrideTypes<ExpenseDetail, { merge: false }>(),
     );
+  },
+
+  // 내 '나만 보기' 지출(날짜순). RLS가 남의 private 행을 막으므로 created_by 조건은 두지 않는다.
+  async myPrivateExpenses(roomId: RoomId): Promise<PrivateExpenseRow[]> {
+    const rows = unwrap(
+      await supabase
+        .from('expenses')
+        .select('id, merchant, paid_local_date, currency, amount_original, krw_amount')
+        .eq('room_id', roomId)
+        .eq('visibility', 'private')
+        .is('deleted_at', null)
+        .order('paid_local_date'),
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      merchant: r.merchant,
+      paidLocalDate: r.paid_local_date,
+      currency: r.currency,
+      amountOriginal: Number(r.amount_original),
+      krwAmount: r.krw_amount,
+    }));
   },
 
   async expenseHistory(id: ExpenseId): Promise<HistoryRow[]> {
