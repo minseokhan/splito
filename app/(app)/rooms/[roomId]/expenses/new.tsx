@@ -90,7 +90,6 @@ export default function NewExpense() {
     roomId,
     source,
     meMemberId: me.id,
-    activeMemberIds: members.filter((m) => !m.leftAt).map((m) => m.id),
     todayLocal: localToday(),
     newId: uuidV4,
   });

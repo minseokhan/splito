@@ -8,6 +8,7 @@ import {
   mergePayload,
   parseAmountInput,
   previewKrw,
+  previewVisibility,
   setAssignees,
   splitItem,
   toDupInput,
@@ -29,7 +30,6 @@ const ctx = () => ({
   roomId: 'r1',
   source: 'receipt' as const,
   meMemberId: 'm1',
-  activeMemberIds: ['m1', 'm2', 'm3'],
   todayLocal: '2026-10-22',
   newId: ids(),
 });
@@ -57,12 +57,12 @@ function parse(over: Partial<ParseResult> = {}): ParseResult {
 const sumMilli = (d: ExpenseDraft) => d.items.reduce((a, i) => a + Math.round(i.amountOriginal * 1000), 0);
 
 describe('draftFromParse', () => {
-  it('기본값: 결제자 = 나, 대상 인원 = 활성 참여자 전원, 박스 position 순서', () => {
+  it('기본값: 결제자 = 나, 함께한 사람 = 빈 상태(나만 보기), 박스 position 순서', () => {
     const d = draftFromParse(parse(), ctx());
     expect(d).toMatchObject({
       id: 'e1', roomId: 'r1', source: 'receipt', payerKind: 'member', payerMemberId: 'm1',
       merchant: '一蘭', paidLocalDate: '2026-10-21', paidLocalTime: '18:42', currency: 'JPY',
-      scopeMemberIds: ['m1', 'm2', 'm3'], needsReview: false,
+      scopeMemberIds: [], needsReview: false,
     });
     expect(d.items.map((i) => [i.position, i.nameKo, i.amountOriginal, i.isAdjustment])).toEqual([
       [0, '라멘', 2000, false],
@@ -122,11 +122,11 @@ describe('draftFromParse', () => {
 });
 
 describe('emptyDraft', () => {
-  it('결제일 = 오늘(현지), 빈 박스 1개, 결제자 나, 대상 전원', () => {
+  it('결제일 = 오늘(현지), 빈 박스 1개, 결제자 나, 함께한 사람 빈 상태', () => {
     const d = emptyDraft({ ...ctx(), source: 'manual', currency: 'JPY' });
     expect(d).toMatchObject({
       source: 'manual', paidLocalDate: '2026-10-22', paidLocalTime: null, currency: 'JPY',
-      payerMemberId: 'm1', scopeMemberIds: ['m1', 'm2', 'm3'], merchant: '', photos: [],
+      payerMemberId: 'm1', scopeMemberIds: [], merchant: '', photos: [],
     });
     expect(d.items).toHaveLength(1);
     expect(d.items[0].amountOriginal).toBe(0);
@@ -164,16 +164,16 @@ describe('addItem', () => {
 describe('toggleScope', () => {
   it('빠진 사람은 모든 박스 assignee에서 제거, 다시 누르면 추가', () => {
     let d = draftFromParse(parse(), ctx());
-    d = { ...d, items: d.items.map((i) => ({ ...i, assigneeMemberIds: ['m1', 'm2'] })) };
+    d = { ...d, scopeMemberIds: ['m1', 'm2', 'm3'], items: d.items.map((i) => ({ ...i, assigneeMemberIds: ['m1', 'm2'] })) };
     const off = toggleScope(d, 'm2');
     expect(off.scopeMemberIds).toEqual(['m1', 'm3']);
     expect(off.items.every((i) => i.assigneeMemberIds.join() === 'm1')).toBe(true);
     expect(toggleScope(off, 'm2').scopeMemberIds).toEqual(['m1', 'm3', 'm2']);
   });
 
-  it('최소 1명 유지', () => {
+  it('마지막 1명도 끌 수 있다(빈 상태 = 나만 보기)', () => {
     const d = { ...draftFromParse(parse(), ctx()), scopeMemberIds: ['m1'] };
-    expect(toggleScope(d, 'm1')).toBe(d);
+    expect(toggleScope(d, 'm1').scopeMemberIds).toEqual([]);
   });
 });
 
@@ -192,8 +192,8 @@ describe('validateDraft', () => {
   it('원화 청구액 ≤ 0 → AMOUNT_INVALID', () => {
     expect(validateDraft({ ...base(), krwCharged: 0 }, '2026-10-22')).toMatchObject({ ok: false, code: 'AMOUNT_INVALID', field: 'krwCharged' });
   });
-  it('대상 인원 0명 → SCOPE_EMPTY', () => {
-    expect(validateDraft({ ...base(), scopeMemberIds: [] }, '2026-10-22')).toMatchObject({ ok: false, code: 'SCOPE_EMPTY' });
+  it('함께한 사람 0명도 정상(나만 보기)', () => {
+    expect(validateDraft({ ...base(), scopeMemberIds: [] }, '2026-10-22')).toEqual({ ok: true });
   });
   it('결제일 > KST 오늘+1 → DATE_IN_FUTURE, +1은 허용(월말 넘김 포함)', () => {
     expect(validateDraft({ ...base(), paidLocalDate: '2026-10-23' }, '2026-10-22')).toEqual({ ok: true });
@@ -211,7 +211,10 @@ describe('validateDraft', () => {
 
 describe('toSavePayload', () => {
   it('서버 payload 키와 일치, 원화 금액은 넣지 않는다', () => {
-    const p = toSavePayload({ ...draftFromParse(parse({ krw_charged: 30120 }), ctx()), photos: [{ storagePath: 'r1/e1/p.jpg', kind: 'receipt' }] });
+    const p = toSavePayload(
+      { ...draftFromParse(parse({ krw_charged: 30120 }), ctx()), scopeMemberIds: ['m1', 'm2', 'm3'], photos: [{ storagePath: 'r1/e1/p.jpg', kind: 'receipt' }] },
+      'm1',
+    );
     expect(Object.keys(p).sort()).toEqual([
       'ai_result', 'card_last4', 'currency', 'id', 'items', 'krw_charged', 'merchant', 'needs_review', 'paid_local_date',
       'paid_local_time', 'payer_kind', 'payer_member_id', 'photos', 'room_id', 'scope_member_ids', 'source',
@@ -226,7 +229,13 @@ describe('toSavePayload', () => {
 
   it('공금 결제면 payer_member_id null, 빈 가맹점은 null', () => {
     const d = { ...draftFromParse(parse(), ctx()), payerKind: 'pool' as const, merchant: '  ' };
-    expect(toSavePayload(d)).toMatchObject({ payer_kind: 'pool', payer_member_id: null, merchant: null });
+    expect(toSavePayload(d, 'm1')).toMatchObject({ payer_kind: 'pool', payer_member_id: null, merchant: null });
+  });
+
+  it('함께한 사람이 비어 있으면 나 혼자로 저장한다(서버가 나만 보기로 판정)', () => {
+    const d = { ...draftFromParse(parse(), ctx()), scopeMemberIds: [] };
+    expect(toSavePayload(d, 'm1').scope_member_ids).toEqual(['m1']);
+    expect(toSavePayload(d, null).scope_member_ids).toEqual([]);
   });
 });
 
@@ -239,8 +248,8 @@ describe('updateItem · setAssignees', () => {
     expect(y.items[0]).toMatchObject({ amountOriginal: 2500, needsReview: false });
     expect(y.items[1]).toBe(x.items[1]);
   });
-  it('대상 인원 밖은 지정에서 뺀다', () => {
-    const x = toggleScope(d(), 'm3');
+  it('함께한 사람 밖은 지정에서 뺀다', () => {
+    const x = toggleScope({ ...d(), scopeMemberIds: ['m1', 'm2', 'm3'] }, 'm3');
     const y = setAssignees(x, x.items[0].id, ['m1', 'm3']);
     expect(y.items[0].assigneeMemberIds).toEqual(['m1']);
   });
@@ -277,6 +286,23 @@ describe('previewKrw', () => {
   });
 });
 
+// 서버(save_expense) 판정과 같은 규칙. 화면 한 줄 표시용.
+describe('previewVisibility', () => {
+  const base = (over: Partial<ExpenseDraft> = {}) => ({ ...draftFromParse(parse(), ctx()), ...over });
+  it('내가 결제 + 함께한 사람 없음 → private', () => {
+    expect(previewVisibility(base(), 'm1')).toBe('private');
+    expect(previewVisibility(base({ scopeMemberIds: ['m1'] }), 'm1')).toBe('private');
+  });
+  it('함께한 사람이 있으면 shared', () => {
+    expect(previewVisibility(base({ scopeMemberIds: ['m1', 'm2'] }), 'm1')).toBe('shared');
+    expect(previewVisibility(base({ scopeMemberIds: ['m2'] }), 'm1')).toBe('shared');
+  });
+  it('남이 결제했거나 공금 결제면 shared', () => {
+    expect(previewVisibility(base({ payerMemberId: 'm2' }), 'm1')).toBe('shared');
+    expect(previewVisibility(base({ payerKind: 'pool', payerMemberId: null }), 'm1')).toBe('shared');
+  });
+});
+
 describe('toDupInput', () => {
   it('원본 합계와 미리보기 원화로 중복 비교 입력을 만든다', () => {
     expect(toDupInput(draftFromParse(parse(), ctx()), 29925)).toEqual({
@@ -288,7 +314,7 @@ describe('toDupInput', () => {
 
 describe('mergePayload', () => {
   const existing = {
-    ...toSavePayload(draftFromParse(parse(), ctx())),
+    ...toSavePayload(draftFromParse(parse(), ctx()), 'm1'),
     id: 'old', photos: [{ storage_path: 'r1/old/a.jpg', kind: 'receipt' as const }],
   };
   it('기존 박스는 그대로 두고 사진을 덧붙이며 청구액이 있으면 적용한다', () => {
@@ -336,6 +362,6 @@ describe('draftFromExpense', () => {
     expect(d).toMatchObject({ id: 'e1', payerMemberId: 'm2', paidLocalTime: '18:42:00', needsReview: true });
     expect(d.items[1]).toMatchObject({ id: 'i2', nameKo: '', amountOriginal: -100, isAdjustment: true });
     const { manual_rate: _, ...rest } = saved;
-    expect(toSavePayload(d)).toEqual(rest);
+    expect(toSavePayload(d, 'm1')).toEqual(rest);
   });
 });

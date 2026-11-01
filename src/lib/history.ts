@@ -48,9 +48,9 @@ export function diffSnapshots(prev: Snapshot | null, next: Snapshot, names: Reco
   if (payer(prev) !== payer(next)) out.push(`결제자 ${payer(prev)} → ${payer(next)}`);
 
   for (const id of next.scope_member_ids)
-    if (!prev.scope_member_ids.includes(id)) out.push(`대상 인원에 ${name(id)} 추가`);
+    if (!prev.scope_member_ids.includes(id)) out.push(`함께한 사람에 ${name(id)} 추가`);
   for (const id of prev.scope_member_ids)
-    if (!next.scope_member_ids.includes(id)) out.push(`대상 인원에서 ${name(id)} 제외`);
+    if (!next.scope_member_ids.includes(id)) out.push(`함께한 사람에서 ${name(id)} 제외`);
 
   const prevById = new Map(prev.items.map((i) => [i.id, i]));
   const nextIds = new Set(next.items.map((i) => i.id));

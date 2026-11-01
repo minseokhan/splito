@@ -52,10 +52,10 @@ describe('diffSnapshots', () => {
     expect(diffSnapshots(base, next({ payer_kind: 'pool', payer_member_id: null }), names)).toEqual(['결제자 민지 → 공금']);
   });
 
-  it('대상 인원 추가·제외', () => {
+  it('함께한 사람 추가·제외', () => {
     expect(diffSnapshots(base, next({ scope_member_ids: ['m1', 'm3'] }), names)).toEqual([
-      '대상 인원에 엄마 추가',
-      '대상 인원에서 지훈 제외',
+      '함께한 사람에 엄마 추가',
+      '함께한 사람에서 지훈 제외',
     ]);
   });
 
