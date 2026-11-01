@@ -39,6 +39,7 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
             <Text className="shrink font-bold text-base text-ink" numberOfLines={1}>
               {merchant}
             </Text>
+            {row.visibility === 'private' && <Badge kind="private" />}
             {row.needsReview && <Badge kind="review" />}
           </View>
           <Text className="text-[13px] text-ink-400" numberOfLines={1}>

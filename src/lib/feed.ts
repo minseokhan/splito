@@ -35,3 +35,12 @@ export function groupFeed<T extends { paidLocalDate: string; createdAt: string }
 export function payerRecorderLabel(payer: string, recorder: string): string {
   return payer === recorder ? `${payer} 결제` : `${payer} 결제 · ${recorder} 기록`;
 }
+
+// 남의 '나만 보기' 지출은 피드·장부에서 뺀다. RLS가 1차 방어선이고 이건 2차(AI-15).
+// 작성자를 모르면(로그인 전·탈퇴) 내 것이 아니므로 뺀다.
+export function visibleToMe<T extends { visibility: string; createdBy: string | null }>(
+  rows: T[],
+  myUserId: string | undefined,
+): T[] {
+  return rows.filter((r) => r.visibility !== 'private' || (!!myUserId && r.createdBy === myUserId));
+}

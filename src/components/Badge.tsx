@@ -3,6 +3,7 @@ import { Pressable, Text } from 'react-native';
 const STYLE = {
   review: { label: '확인필요', cls: 'bg-warning-bg', fg: 'text-warning' },
   pending: { label: '환율 대기', cls: 'bg-muted', fg: 'text-ink-500' },
+  private: { label: '나만 보기', cls: 'bg-muted', fg: 'text-ink-500' },
 } as const;
 
 type Props = { kind: keyof typeof STYLE; onPress?: () => void; accessibilityLabel?: string };

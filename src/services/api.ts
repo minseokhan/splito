@@ -29,6 +29,7 @@ export type FeedRow = {
   payerMemberId: MemberId | null;
   createdBy: string | null;
   needsReview: boolean;
+  visibility: 'shared' | 'private';
 };
 
 // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
@@ -231,7 +232,7 @@ export const api = {
       await supabase
         .from('expenses')
         .select(
-          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review',
+          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review, visibility',
         )
         .eq('room_id', roomId)
         .is('deleted_at', null)
@@ -253,6 +254,7 @@ export const api = {
       payerMemberId: r.payer_member_id,
       createdBy: r.created_by,
       needsReview: r.needs_review,
+      visibility: r.visibility as FeedRow['visibility'],
     }));
   },
 
