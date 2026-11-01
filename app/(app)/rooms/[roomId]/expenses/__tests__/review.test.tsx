@@ -58,6 +58,10 @@ async function renderWith(d: ExpenseDraft) {
   );
 }
 
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
 describe('확인·수정 화면', () => {
   it('박스 원본 합계와 원화 미리보기 합계를 보여준다', async () => {
     await renderWith(draft());
@@ -65,11 +69,17 @@ describe('확인·수정 화면', () => {
     expect(screen.getByRole('button', { name: '29,925원 저장하기' })).toBeOnTheScreen();
   });
 
-  it('대상 인원이 0명이면 저장하지 않고 문구를 보여준다', async () => {
+  it('함께한 사람이 0명이면 나만 보기로 저장한다', async () => {
+    jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 1 });
     await renderWith(draft({ scopeMemberIds: [] }));
-    await fireEvent.press(await screen.findByRole('button', { name: /저장하기$/ }));
-    expect(await screen.findByText('나눌 사람을 1명 이상 골라주세요')).toBeOnTheScreen();
-    expect(api.saveExpense).not.toHaveBeenCalled();
+    expect(await screen.findByText('나만 보기 · 정산에서 빠져요')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await waitFor(() => expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1'] }), null));
+  });
+
+  it('함께한 사람이 있으면 공동 지출로 표시한다', async () => {
+    await renderWith(draft());
+    expect(await screen.findByText('공동 지출')).toBeOnTheScreen();
   });
 });
 
@@ -81,8 +91,8 @@ describe('편집 모드', () => {
   it('VERSION_CONFLICT면 덮어쓰지 않고 문구를 띄운 뒤 최신 지출과 version으로 draft를 바꾼다', async () => {
     mockParams.current = { roomId: 'r1', edit: 'e1', version: '3' };
     jest.mocked(api.expensePayload)
-      .mockResolvedValueOnce({ payload: toSavePayload(draft()), version: 3 })
-      .mockResolvedValueOnce({ payload: toSavePayload(draft({ merchant: '최신 가맹점' })), version: 4 });
+      .mockResolvedValueOnce({ payload: toSavePayload(draft(), 'm1'), version: 3 })
+      .mockResolvedValueOnce({ payload: toSavePayload(draft({ merchant: '최신 가맹점' }), 'm1'), version: 4 });
     jest.mocked(api.saveExpense).mockRejectedValueOnce({ code: 'VERSION_CONFLICT', message: '다른 분이 먼저 수정했어요. 최신 내용을 불러왔어요' });
     await renderWith(draft({ merchant: '작성 중 다른 지출' }));
 

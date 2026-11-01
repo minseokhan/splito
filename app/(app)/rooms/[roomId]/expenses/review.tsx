@@ -31,6 +31,7 @@ import {
   parseAmountInput,
   perPersonOriginal,
   previewKrw,
+  previewVisibility,
   setAssignees,
   splitItem,
   toDupInput,
@@ -51,7 +52,7 @@ const DUP_WINDOW_MS = 72 * 3600_000;
 // 서명 URL은 10분짜리라 9분 지나면 다시 받는다(ARCHITECTURE §4).
 const SIGNED_URL_STALE_MS = 9 * 60_000;
 
-type Section = 'top' | 'date' | 'currency' | 'payer' | 'scope' | 'items';
+type Section = 'top' | 'date' | 'currency' | 'payer' | 'items';
 const FIELD_SECTION: Record<string, Section> = {
   currency: 'currency',
   paidLocalDate: 'date',
@@ -138,9 +139,11 @@ export default function ReviewExpense() {
   }));
   const byId = new Map(people.map((p) => [p.id, p]));
   const active = people.filter((p) => p.active);
+  const meMemberId = active.find((p) => p.userId === session?.user.id)?.id ?? null;
   const scopePeople = draft.scopeMemberIds.flatMap((id) => byId.get(id) ?? []);
   const multi = active.length > 1;
 
+  const visibility = previewVisibility(draft, meMemberId);
   const preview = previewKrw(draft, fx.fx?.rate ?? null);
   const fxPending = fxNeeded && !fx.isFetching && !fx.fx;
   const sumOriginal = toDupInput(draft, null).amountOriginal;
@@ -158,13 +161,13 @@ export default function ReviewExpense() {
     const v = validateDraft(draft, kstToday(new Date()));
     if (!v.ok) {
       setError(toUserError({ message: v.code }).message);
-      scrollTo(v.code === 'SCOPE_EMPTY' ? 'scope' : (FIELD_SECTION[v.field ?? ''] ?? 'top'));
+      scrollTo(FIELD_SECTION[v.field ?? ''] ?? 'top');
       return;
     }
     setError(null);
     if (edit && editing) {
       try {
-        await updateExpense.mutateAsync({ payload: toSavePayload(draft), expectedVersion: editing.version });
+        await updateExpense.mutateAsync({ payload: toSavePayload(draft, meMemberId), expectedVersion: editing.version });
         toast('지출을 저장했어요');
         router.back();
       } catch (err) {
@@ -182,7 +185,7 @@ export default function ReviewExpense() {
       return;
     }
     try {
-      await save.mutateAsync({ payload: toSavePayload(draft), expectedVersion: null });
+      await save.mutateAsync({ payload: toSavePayload(draft, meMemberId), expectedVersion: null });
       toast('지출을 저장했어요');
       router.back();
     } catch (err) {
@@ -339,8 +342,13 @@ export default function ReviewExpense() {
         </View>
 
         {multi && (
-          <View onLayout={(e) => setY('scope', e)} className="gap-2.5 px-1">
-            <Text className="font-bold text-sm text-ink">대상 인원</Text>
+          <View className="gap-2.5 px-1">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-bold text-sm text-ink">함께한 사람</Text>
+              <Text className={`text-[13px] ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
+                {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
+              </Text>
+            </View>
             <View className="flex-row flex-wrap gap-3">
               {active.map((p) => {
                 const on = draft.scopeMemberIds.includes(p.id);
@@ -349,7 +357,7 @@ export default function ReviewExpense() {
                     key={p.id}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: on }}
-                    accessibilityLabel={`대상 인원 ${p.name}`}
+                    accessibilityLabel={`함께한 사람 ${p.name}`}
                     onPress={() => update((d) => toggleScope(d, p.id))}
                     className={`min-h-11 items-center gap-1 ${on ? '' : 'opacity-40'}`}
                   >
@@ -363,7 +371,9 @@ export default function ReviewExpense() {
           </View>
         )}
 
-        {multi && <Text className="px-1 text-[13px] text-ink-400">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>}
+        {multi && scopePeople.length > 0 && (
+          <Text className="px-1 text-[13px] text-ink-400">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
+        )}
 
         <View onLayout={(e) => setY('items', e)} className="gap-3.5">
           {draft.items.map((it, i) => (

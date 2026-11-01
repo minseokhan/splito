@@ -212,7 +212,7 @@ export default function ExpenseDetailScreen() {
           )}
 
           <View className="gap-2.5 rounded-card bg-white p-4">
-            <Text className="font-semibold text-[13px] text-ink-500">대상 인원</Text>
+            <Text className="font-semibold text-[13px] text-ink-500">함께한 사람</Text>
             <View className="flex-row items-center gap-2.5">
               <AvatarStack people={scopePeople} size={28} ring="#FFFFFF" />
               <Text className="flex-1 text-sm text-ink-700">{scopePeople.map((p) => p.name).join(', ')}</Text>
