@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(54);
+select plan(55);
 
 -- ───── fixture (superuser + jwt claims로 RPC 호출) ─────
 insert into auth.users (id, raw_user_meta_data)
@@ -200,6 +200,20 @@ select pg_temp.as_user('d');
 select lives_ok(format('select public.leave_room(%L)', current_setting('t.z')), '마지막 멤버 나가기');
 select isnt((select deleted_at from public.rooms where id = current_setting('t.z')::uuid), null, '마지막 멤버가 나가면 방 삭제');
 select throws_ok(format('select public.leave_room(%L)', current_setting('t.z')), 'P0001', 'FORBIDDEN', '이미 나간 방 → FORBIDDEN');
+
+-- ───── 남의 나만 보기 지출의 환율 미확정은 나가기를 막지 않는다 (명세 2, AI-14) ─────
+select set_config('t.pv', pg_temp.room('나만보기나가기', '{a,b}')::text, true);
+select pg_temp.as_user('a');
+select public.save_expense(jsonb_build_object(
+  'id', gen_random_uuid(), 'room_id', current_setting('t.pv'), 'payer_kind', 'member',
+  'payer_member_id', pg_temp.m(current_setting('t.pv')::uuid, 'a'), 'source', 'manual', 'merchant', '가게',
+  'paid_local_date', '2025-10-20', 'currency', 'USD',
+  'scope_member_ids', jsonb_build_array(pg_temp.m(current_setting('t.pv')::uuid, 'a')),
+  'items', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'position', 0,
+    'name_original', '품목', 'amount_original', 10))));
+select pg_temp.as_user('b');
+select lives_ok(format('select public.leave_room(%L)', current_setting('t.pv')),
+  '남의 나만 보기 환율 미확정은 나가기를 막지 않는다');
 
 select * from finish();
 rollback;
