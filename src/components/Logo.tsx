@@ -1,5 +1,5 @@
 import { Text } from 'react-native';
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Path, type SvgProps } from 'react-native-svg';
 
 import { colors } from '@/theme/tokens';
 
@@ -57,5 +57,18 @@ export function Wordmark({ size }: { size: number }) {
     >
       splito
     </Text>
+  );
+}
+
+// 카카오톡 공식 말풍선 심볼(viewBox 0 0 24 24). 공유·로그인 버튼에서 iconoir 일반 말풍선 대신 쓴다.
+// Icon 래퍼가 width/height/color를 넘기므로 ComponentType<SvgProps> 계약을 맞춘다.
+const KAKAO =
+  'M12 18.75c-.591 0-1.1697-.0413-1.7317-.1209-.5626.3965-3.813 2.6797-4.1198 2.7225 0 0-.1258.0489-.2328-.0141s-.0876-.2282-.0876-.2282c.0322-.2198.8426-3.0183.992-3.5333-2.7452-1.36-4.5701-3.7686-4.5701-6.5135C2.25 6.8168 6.6152 3.375 12 3.375s9.75 3.4418 9.75 7.6875c0 4.2457-4.3652 7.6875-9.75 7.6875z';
+
+export function KakaoSymbol({ width = 24, height, color = colors.kakao.text }: SvgProps) {
+  return (
+    <Svg width={width} height={height ?? width} viewBox="0 0 24 24">
+      <Path d={KAKAO} fill={color} />
+    </Svg>
   );
 }
