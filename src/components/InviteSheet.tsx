@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChatBubble, NavArrowRight, QrCode, UserPlus } from 'iconoir-react-native';
+import { NavArrowRight, QrCode, UserPlus } from 'iconoir-react-native';
 import { useState, type ComponentType } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -11,6 +11,7 @@ import { colors } from '@/theme/tokens';
 
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
+import { KakaoSymbol } from './Logo';
 
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 
@@ -33,7 +34,7 @@ export function InviteOptions({ roomId, onAddGuest }: Props) {
   return (
     <View className="gap-[18px]">
       <View className="flex-row gap-2.5">
-        <Tile label="카카오톡" icon={ChatBubble} bg="bg-kakao" fg={colors.kakao.text} text="text-kakao-text" onPress={share} />
+        <Tile label="카카오톡" icon={KakaoSymbol} bg="bg-kakao" fg={colors.kakao.text} text="text-kakao-text" onPress={share} />
         <Tile label="QR 보기" icon={QrCode} bg="bg-app" fg={colors.primary.text} text="text-ink" onPress={() => setQr((v) => !v)} />
       </View>
       {qr && (

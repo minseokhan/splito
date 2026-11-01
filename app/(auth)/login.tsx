@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { ChatBubble } from 'iconoir-react-native';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { InvitePasteBox } from '@/components/InvitePasteBox';
-import { SplitoSymbol, Wordmark } from '@/components/Logo';
+import { KakaoSymbol, SplitoSymbol, Wordmark } from '@/components/Logo';
 import { toUserError } from '@/lib/errors';
 import { signInWithProvider } from '@/services/auth';
 import { colors } from '@/theme/tokens';
@@ -70,7 +69,7 @@ export default function Login() {
         {error && <Text className="text-center text-[13px] text-danger">{error}</Text>}
         <SnsButton
           label="카카오로 시작하기"
-          icon={<Icon as={ChatBubble} size={20} color={colors.kakao.text} />}
+          icon={<Icon as={KakaoSymbol} size={20} color={colors.kakao.text} />}
           box="bg-kakao active:bg-[#F2DA00]"
           text="text-kakao-text"
           busy={busy}
