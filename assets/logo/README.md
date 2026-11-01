@@ -1,16 +1,33 @@
 # Splito 로고 파일
 
+## svg/
+
 | 파일 | 용도 |
 |---|---|
-| splito-symbol.svg | 기본 심볼(하늘색 얼굴, 볼터치 포함). 앱 내 캐릭터 포인트 |
-| splito-symbol-white.svg | 하늘색/어두운 배경 위 흰색 심볼 |
-| splito-symbol-mono-navy.svg | 단색(네이비) 심볼 |
-| splito-app-icon-1024.svg | 앱 아이콘 원본(흰 배경). iOS/Android 아이콘 생성용 |
-| splito-app-icon-blue-1024.svg | 앱 아이콘 대안(하늘색 배경) |
-| splito-splash-mascot.svg | 로그인/스플래시의 흰 원 + 심볼 |
-| splito-wordmark.svg | "splito" 워드마크 (Fredoka 700, #36B6FF) |
-| splito-lockup-horizontal.svg | 심볼 + 워드마크 가로형 |
-| png/ | 미리보기용 PNG 내보내기 |
+| splito-symbol.svg | 기본 심볼. 민트·옐로 카드 2장 + 하늘색 지갑 본체 + 덮개 + 반짝임 (viewBox `12 12 76 76`) |
+| splito-wordmark.svg | "splito" 워드마크. 아웃라인 path이므로 폰트가 필요 없다 (`#0E2A47`, viewBox `0 -90.5 310.7 113.7`) |
+| splito-wordmark-white.svg | 같은 워드마크 path에 흰 fill. 어두운 배경용 |
+| splito-appicon-light.svg | 앱 아이콘 원본(밝은 배경, 정사각) |
+| splito-appicon-light-rounded.svg | 밝은 배경 + 라운드 마스크 |
+| splito-appicon-dark.svg | 앱 아이콘 대안(어두운 배경, 정사각) |
+| splito-appicon-dark-rounded.svg | 어두운 배경 + 라운드 마스크 |
+| splito-lockup-light.svg | 심볼 + 워드마크 가로형(밝은 배경) |
+| splito-lockup-dark.svg | 가로형(어두운 배경) |
+| splito-lockup-light-darkicon.svg | 가로형(밝은 배경 + 어두운 아이콘) |
 
-심볼 형태: 반지름 42 원에서 30° 조각을 원 중심 이전(반쯤)까지만 파낸 모양. 눈 2개, 웃는 입, 양쪽 볼터치.
-워드마크 SVG는 Fredoka 폰트를 참조하므로, 정식 사용 전 디자인 툴에서 텍스트를 아웃라인(path)으로 변환하세요.
+## png/
+
+내보내기 결과물. 앱 아이콘은 `splito-appicon-light-1024.png`, 라운드 아이콘은 `splito-appicon-light-rounded-{32,64,180,192,512,1024}.png`, 스플래시·안드로이드 전경은 `splito-symbol-1024.png`를 쓴다. 락업·태그라인·워드마크 PNG는 랜딩·스토어 스크린샷용이다.
+
+`assets/images/`의 아이콘(`icon.png`, `favicon.png`, `splash-icon.png`, `android-icon-foreground.png`, `android-icon-monochrome.png`)은 위 PNG를 복사한 것이다.
+
+## colors.json / COLORS.md
+
+로고 그라데이션·배경 색상값. 앱 UI 토큰은 `docs/UI_GUIDE.md`가 기준이다.
+
+## 코드에서 쓰는 방법
+
+앱 화면은 이 SVG 파일을 직접 불러오지 않는다. `src/components/Logo.tsx`가
+`splito-symbol.svg`와 `splito-wordmark.svg`의 도형을 react-native-svg로 그대로
+재현하며, `SplitoSymbol`(`color`/`white`/`navy`)과 `Wordmark`(`ink`/`white`)를 내보낸다.
+SVG 도형이 바뀌면 이 파일들과 `Logo.tsx`를 함께 갱신해야 한다.

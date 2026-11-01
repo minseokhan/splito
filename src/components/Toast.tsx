@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 
 const ToastContext = createContext<(message: string) => void>(() => undefined);
 
-// 토스트: 하단 120 위, ink pill, check-circle sky-300, 14/600, 1.8초 후 사라짐.
+// 토스트: 하단 120 위, ink pill, check-circle 민트(#7CF0D8), 14/600, 1.8초 후 사라짐.
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -30,7 +30,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             accessibilityLiveRegion="polite"
             className="flex-row items-center gap-2 rounded-full bg-ink px-[18px] py-3"
           >
-            <Icon as={CheckCircle} size={18} color={colors.sky[300]} />
+            <Icon as={CheckCircle} size={18} color={colors.success.icon} />
             <Text className="font-semibold text-sm text-white">{message}</Text>
           </Animated.View>
         </View>

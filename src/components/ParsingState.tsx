@@ -17,9 +17,9 @@ export function ParsingState(props: Props) {
         <View className="h-16 w-16 items-center justify-center rounded-[22px] bg-sky-100">
           <ActivityIndicator size="large" color={colors.primary.text} />
         </View>
-        <Text className="font-bold text-[17px] text-ink">{props.label}</Text>
+        <Text className="font-semibold text-[17px] text-ink">{props.label}</Text>
         <Pressable accessibilityRole="button" onPress={props.onCancel} className="mt-2 h-11 justify-center rounded-full bg-muted px-5">
-          <Text className="font-semibold text-[15px] text-ink-700">취소</Text>
+          <Text className="font-semibold text-base text-ink-700">취소</Text>
         </Pressable>
       </View>
     );
@@ -28,7 +28,7 @@ export function ParsingState(props: Props) {
   return (
     <View className="flex-1">
       <View className="flex-1 justify-center px-5">
-        <Text className="text-center font-bold text-[19px] leading-[27px] text-ink">{error.message}</Text>
+        <Text className="text-center font-semibold text-lg text-ink">{error.message}</Text>
       </View>
       <BottomBar>
         {onOpenSettings && <PrimaryButton title="설정 열기" onPress={onOpenSettings} />}

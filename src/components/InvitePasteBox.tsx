@@ -29,7 +29,7 @@ export function InvitePasteBox({ onSaved }: Props) {
   return (
     <View className="gap-2.5">
       <View className="gap-1">
-        <Text className="font-bold text-base text-ink">초대받으셨나요?</Text>
+        <Text className="font-semibold text-base text-ink">초대받으셨나요?</Text>
         <Text className="text-[13px] text-ink-400">받은 초대 링크를 붙여넣으면 바로 참여할 수 있어요</Text>
       </View>
       {/* iOS 16+: UIPasteControl이라 붙여넣기 권한 팝업이 없다. */}
@@ -52,7 +52,7 @@ export function InvitePasteBox({ onSaved }: Props) {
         accessibilityLabel="초대 링크 입력"
         right={
           <Pressable accessibilityRole="button" disabled={!text.trim()} onPress={() => tryText(text)} hitSlop={8}>
-            <Text className={`font-bold text-[15px] ${text.trim() ? 'text-primary-text' : 'text-ink-300'}`}>확인</Text>
+            <Text className={`font-semibold text-base ${text.trim() ? 'text-primary-text' : 'text-ink-300'}`}>확인</Text>
           </Pressable>
         }
       />

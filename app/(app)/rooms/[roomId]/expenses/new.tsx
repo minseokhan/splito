@@ -252,7 +252,7 @@ export default function NewExpense() {
           <View className="gap-6 px-5 pt-2">
             <Title title="사진으로 올리기" sub="영수증이나 결제앱 화면을 찍어주세요" />
             <View className="gap-2">
-              <Text className="font-semibold text-[13px] text-ink-500">사진 종류</Text>
+              <Text className="font-semibold text-sm text-ink-500">사진 종류</Text>
               <View className="flex-row gap-2">
                 {(['receipt', 'capture'] as const).map((k) => {
                   const on = photoKind === k;
@@ -264,7 +264,7 @@ export default function NewExpense() {
                       onPress={() => setPhotoKind(k)}
                       className={`h-11 flex-1 items-center justify-center rounded-input border-[1.5px] ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
                     >
-                      <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>
+                      <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>
                         {k === 'receipt' ? '영수증' : '결제앱 캡처'}
                       </Text>
                     </Pressable>
@@ -294,7 +294,7 @@ export default function NewExpense() {
               }
             />
             <View className="gap-2">
-              <Text className="font-semibold text-[13px] text-ink-500">{method === 'text' ? '승인 문자' : '인식된 내용'}</Text>
+              <Text className="font-semibold text-sm text-ink-500">{method === 'text' ? '승인 문자' : '인식된 내용'}</Text>
               <TextInput
                 multiline
                 value={text}
@@ -305,9 +305,9 @@ export default function NewExpense() {
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel={method === 'text' ? '카드 승인 문자' : '음성 인식 결과'}
                 textAlignVertical="top"
-                className="min-h-40 rounded-input border-[1.5px] border-line bg-white p-4 text-base text-ink focus:border-primary"
+                className="min-h-40 rounded-input border-[1.5px] border-line bg-white p-4 text-[17px] text-ink focus:border-primary"
               />
-              <Text className="self-end text-[13px] text-ink-400">
+              <Text className="self-end text-sm text-ink-400">
                 {text.length.toLocaleString()}/{TEXT_LIMIT.toLocaleString()}
               </Text>
             </View>
@@ -332,18 +332,19 @@ export default function NewExpense() {
 function Title({ title, sub }: { title: string; sub: string }) {
   return (
     <View className="gap-1.5">
-      <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] text-ink">
+      <Text className="font-semibold text-[26px] text-ink">
         {title}
       </Text>
-      <Text className="text-[15px] text-ink-500">{sub}</Text>
+      <Text className="text-[17px] text-ink-500">{sub}</Text>
     </View>
   );
 }
 
-const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera }[] = [
-  { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText },
-  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone },
-  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil },
+// 칸마다 배경·아이콘 색이 다르다(시안 6): 문자 민트 / 음성 옐로 / 직접 회색.
+const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; bg: string; iconColor: string }[] = [
+  { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, bg: 'bg-success-bg', iconColor: colors.success.DEFAULT },
+  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
+  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
 ];
 
 // 시안 6: 지출 올리기 방법 선택(전체 화면).
@@ -353,10 +354,10 @@ function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
       <NavBar close />
       <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-2">
         <View className="gap-1.5">
-          <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] text-ink">
+          <Text className="font-semibold text-[26px] text-ink">
             어떻게 올릴까요?
           </Text>
-          <Text className="text-[15px] text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
+          <Text className="text-[17px] text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
         </View>
 
         <Pressable
@@ -369,8 +370,8 @@ function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
             <Icon as={Camera} size={28} color={colors.primary.text} />
           </View>
           <View className="flex-1">
-            <Text className="font-extrabold text-lg text-primary-on">영수증 찍기</Text>
-            <Text className="mt-[3px] text-sm text-primary-on">사진 한 장이면 품목·번역까지</Text>
+            <Text className="font-semibold text-xl text-primary-on">영수증 찍기</Text>
+            <Text className="mt-[3px] text-[15px] text-primary-on">사진 한 장이면 품목·번역까지</Text>
           </View>
           <Icon as={NavArrowRight} size={22} color={colors.primary.on} />
         </Pressable>
@@ -382,19 +383,19 @@ function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
               accessibilityRole="button"
               accessibilityLabel={m.a11y}
               onPress={() => onSelect(m.method)}
-              className="flex-1 items-start gap-2.5 rounded-card bg-app px-3 py-[18px] active:bg-muted"
+              className={`flex-1 items-start gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
             >
-              <Icon as={m.icon} size={24} color={colors.primary.text} />
-              <Text className="font-bold text-[15px] leading-5 text-ink">{m.label}</Text>
+              <Icon as={m.icon} size={24} color={m.iconColor} />
+              <Text className="font-semibold text-[17px] text-ink">{m.label}</Text>
             </Pressable>
           ))}
         </View>
 
         <View className="mt-1.5 gap-2.5">
-          <Text className="font-bold text-[13px] text-ink-500">말로 입력 예시</Text>
+          <Text className="font-semibold text-sm text-ink-500">말로 입력 예시</Text>
           <View style={{ borderStyle: 'dashed' }} className="rounded-button border-[1.5px] border-sky-200 px-4 py-3.5">
-            <Text className="text-[15px] leading-[22px] text-primary-on">“카레 1만 1천 원, 덮밥 1만 5천 원, 닭꼬치 6천 원”</Text>
-            <Text className="mt-1 text-[13px] text-ink-400">→ 품목 박스 3개가 만들어져요</Text>
+            <Text className="text-[17px] text-primary-on">“카레 1만 1천 원, 덮밥 1만 5천 원, 닭꼬치 6천 원”</Text>
+            <Text className="mt-1 text-sm text-ink-400">→ 품목 박스 3개가 만들어져요</Text>
           </View>
         </View>
       </ScrollView>

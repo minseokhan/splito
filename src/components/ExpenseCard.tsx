@@ -36,7 +36,7 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
         </View>
         <View className="flex-1 gap-[3px]">
           <View className="flex-row items-center gap-1.5">
-            <Text className="shrink font-bold text-base text-ink" numberOfLines={1}>
+            <Text className="shrink font-semibold text-base text-ink" numberOfLines={1}>
               {merchant}
             </Text>
             {row.visibility === 'private' && <Badge kind="private" />}
@@ -47,7 +47,7 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
           </Text>
         </View>
         <View className="items-end gap-[3px]">
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-bold text-base text-ink">
+          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
             {pending ? original : formatKrw(row.krwAmount!)}
           </Text>
           {pending ? (

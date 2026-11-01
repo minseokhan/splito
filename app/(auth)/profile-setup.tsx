@@ -43,10 +43,8 @@ export default function ProfileSetup() {
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <View className="flex-1 gap-7 px-5 pt-[60px]">
         <View className="gap-1.5">
-          <Text style={{ letterSpacing: -0.52 }} className="font-bold text-[26px] leading-[34px] text-ink">
-            닉네임을 확인해 주세요
-          </Text>
-          <Text className="text-[15px] text-ink-500">받을 계좌는 나중에 등록할 수 있어요</Text>
+          <Text className="font-semibold text-2xl text-ink">닉네임을 확인해 주세요</Text>
+          <Text className="text-base text-ink-500">받을 계좌는 나중에 등록할 수 있어요</Text>
         </View>
         <View className="gap-2">
           <Text className="font-semibold text-[13px] text-ink-500">닉네임</Text>

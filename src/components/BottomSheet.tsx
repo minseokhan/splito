@@ -15,7 +15,7 @@ export function BottomSheet({ visible, onClose, children, title, subtitle }: Pro
           <View className="h-[5px] w-10 self-center rounded-full bg-line" />
           {title && (
             <View className="gap-1">
-              <Text className="font-bold text-xl text-ink">{title}</Text>
+              <Text className="font-semibold text-xl text-ink">{title}</Text>
               {subtitle && <Text className="text-sm text-ink-500">{subtitle}</Text>}
             </View>
           )}

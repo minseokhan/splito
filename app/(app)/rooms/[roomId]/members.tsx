@@ -37,7 +37,7 @@ export default function Members() {
     <SafeAreaView edges={['top']} className="flex-1 bg-app">
       <NavBar title="멤버" align="center" />
       <ScrollView contentContainerClassName="gap-2.5 px-5 pt-2" contentContainerStyle={{ paddingBottom: 200 }}>
-        <Text className="px-1 font-bold text-[13px] text-ink-500">참여자 {active.length}명</Text>
+        <Text className="px-1 font-semibold text-[13px] text-ink-500">참여자 {active.length}명</Text>
         <View className="rounded-card bg-white px-4 py-1" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
           {active.map((m, i) => {
             const guest = m.kind === 'guest';
@@ -53,7 +53,7 @@ export default function Members() {
                 <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={guest} size={36} />
                 <View className="flex-1 gap-0.5">
                   <View className="flex-row items-center gap-2">
-                    <Text className="shrink font-bold text-[15px] text-ink" numberOfLines={1}>
+                    <Text className="shrink font-semibold text-base text-ink" numberOfLines={1}>
                       {m.userId === myId ? `${m.name}(나)` : m.name}
                     </Text>
                     {guest && <GuestChip />}
@@ -152,7 +152,7 @@ function GuestSheet({ roomId, guest, users, defaultRep, names, onClose }: SheetP
               onPress={() => setRep(u.id)}
               className={`h-11 items-center justify-center rounded-chip px-4 ${rep === u.id ? 'bg-primary' : 'bg-muted'}`}
             >
-              <Text className={`font-semibold text-[15px] ${rep === u.id ? 'text-primary-on' : 'text-ink'}`}>{u.name}</Text>
+              <Text className={`font-semibold text-base ${rep === u.id ? 'text-primary-on' : 'text-ink'}`}>{u.name}</Text>
             </Pressable>
           ))}
         </View>

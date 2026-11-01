@@ -13,7 +13,7 @@ export default function Invite() {
       <NavBar close />
       <View className="gap-[18px] px-5 pt-2">
         <View className="gap-1">
-          <Text className="font-bold text-xl text-ink">{INVITE_TITLE}</Text>
+          <Text className="font-semibold text-xl text-ink">{INVITE_TITLE}</Text>
           <Text className="text-sm text-ink-500">{INVITE_SUBTITLE}</Text>
         </View>
         <InviteOptions roomId={roomId} />

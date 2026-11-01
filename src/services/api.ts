@@ -1,5 +1,6 @@
 import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 
+import { type CategoryCode, toCategory } from '@/lib/category';
 import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
@@ -30,6 +31,7 @@ export type FeedRow = {
   createdBy: string | null;
   needsReview: boolean;
   visibility: 'shared' | 'private';
+  category: CategoryCode;
 };
 
 // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
@@ -242,7 +244,7 @@ export const api = {
       await supabase
         .from('expenses')
         .select(
-          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review, visibility',
+          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review, visibility, category',
         )
         .eq('room_id', roomId)
         .is('deleted_at', null)
@@ -265,6 +267,7 @@ export const api = {
       createdBy: r.created_by,
       needsReview: r.needs_review,
       visibility: r.visibility as FeedRow['visibility'],
+      category: toCategory(r.category),
     }));
   },
 
@@ -392,6 +395,7 @@ export const api = {
         manual_rate: e.fx_source === 'manual' ? Number(e.fx_rate) : null,
         card_last4: e.card_last4,
         needs_review: e.needs_review,
+        category: toCategory(e.category),
         ai_result: e.ai_result,
         scope_member_ids: e.expense_scope.map((s) => s.member_id),
         items: e.expense_items.map((it) => ({

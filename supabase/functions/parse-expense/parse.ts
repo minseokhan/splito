@@ -51,6 +51,7 @@ const SYSTEM = `너는 여행 가계부 앱의 지출 인식기다. 영수증 �
 - krw_charged는 카드 문자에 원화 청구액이 따로 있을 때만 채운다. card_last4는 카드 끝 4자리가 보일 때만 채운다.
 - currency는 ISO 4217 코드다. 통화 표시가 없으면 null. ¥(JPY/CNY), $(USD/HKD/TWD/AUD 등)처럼 기호만으로 통화가 갈리면 가장 그럴듯한 코드를 쓰고 currency_ambiguous를 true로 한다.
 - 날짜는 찍힌 현지 날짜다. 연도가 없으면 null 대신 '--MM-DD'로 쓰고 confidence를 low로 한다. DD/MM과 MM/DD가 모호해도 low.
+- category는 이 지출 전체에 하나만 고른다(품목마다 고르지 않는다). 영수증·문자 전체를 보고 가게 업종으로 판단한다. 식당·카페·술집·편의점 식품·마트 식료품은 food. 기념품·드럭스토어·의류·잡화·전자제품은 shopping. 입장권·투어·박물관·전망대·공연·체험은 sightseeing. 호텔·료칸·게스트하우스·에어비앤비 숙박은 lodging. 전철·버스·택시·기차·항공·JR패스·주유·주차·렌터카는 transport. 어디에도 분명히 들어가지 않거나 자신이 없으면 other로 한다.
 - 읽기 어렵거나 추정한 값이 있는 품목은 confidence low로 한다.
 - 지출 기록이 아니면(영수증·결제 내역·지출 설명이 아님) is_receipt를 false로 한다. 텍스트가 지출을 말하고 있으면 is_receipt는 true다.`;
 

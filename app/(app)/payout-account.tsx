@@ -28,7 +28,7 @@ const schema = z.object({
 const done = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 function Label({ children }: { children: string }) {
-  return <Text className="font-semibold text-[13px] text-ink-500">{children}</Text>;
+  return <Text className="font-semibold text-sm text-ink-500">{children}</Text>;
 }
 
 function Notes() {
@@ -42,9 +42,9 @@ function Notes() {
       {lines.map((l) => (
         <View key={l.text} className="flex-row items-start gap-2.5">
           <View className="mt-px">
-            <Icon as={l.icon} size={20} color={colors.primary.text} />
+            <Icon as={l.icon} size={22} color={colors.primary.text} />
           </View>
-          <Text className="flex-1 text-sm leading-[21px] text-ink-700">{l.text}</Text>
+          <Text className="flex-1 text-[15px] text-ink-700">{l.text}</Text>
         </View>
       ))}
     </View>
@@ -140,21 +140,21 @@ export default function PayoutAccountScreen() {
         ) : (
           <>
             <View className="gap-7 overflow-hidden rounded-card-lg bg-ink p-[22px]">
-              <View className="absolute" style={{ right: -30, bottom: -40, opacity: 0.9 }}>
-                <SplitoSymbol size={150} />
+              {/* 어두운 배경 위 흰 실루엣은 10%면 안 보인다. 시안대로 컬러 심볼을 그대로 깐다.
+                  크기·위치는 심볼 윗변이 '암호화 저장' 배지 아래로 내려가게 잡는다(카드가 길어지면 간격만 더 벌어진다). */}
+              <View className="absolute" style={{ right: -14, bottom: -46 }}>
+                <SplitoSymbol size={124} opacity={0.95} />
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="font-bold text-[15px] text-white">{current.bankName}</Text>
+                <Text className="font-semibold text-[17px] text-white">{current.bankName}</Text>
                 <View className="flex-row items-center gap-1 rounded-badge px-2 py-1" style={{ backgroundColor: 'rgba(255,255,255,.14)' }}>
                   <Icon as={Lock} size={13} color="#FFFFFF" />
-                  <Text className="font-bold text-xs text-white">암호화 저장</Text>
+                  <Text className="font-semibold text-[13px] text-white">암호화 저장</Text>
                 </View>
               </View>
               <View className="gap-1">
-                <Text style={{ letterSpacing: 0.88 }} className="font-bold text-[22px] text-white">
-                  ****-****-{current.accountLast4}
-                </Text>
-                <Text className="text-sm text-on-dark-sub">예금주 {current.holderName}</Text>
+                <Text className="font-semibold text-[26px] text-white">****-****-{current.accountLast4}</Text>
+                <Text className="text-[15px] text-on-dark-sub">예금주 {current.holderName}</Text>
               </View>
             </View>
             <Notes />
@@ -181,7 +181,7 @@ export default function PayoutAccountScreen() {
               }}
               className="h-[52px] flex-row items-center justify-between"
             >
-              <Text className={`text-base ${b.code === bankCode ? 'font-bold text-primary-text' : 'text-ink'}`}>{b.name}</Text>
+              <Text className={`text-base ${b.code === bankCode ? 'font-semibold text-primary-text' : 'text-ink'}`}>{b.name}</Text>
               {b.code === bankCode && <Icon as={Check} size={20} color={colors.primary.text} />}
             </Pressable>
           ))}

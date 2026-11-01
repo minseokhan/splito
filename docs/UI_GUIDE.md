@@ -26,7 +26,7 @@
 | `primary-text` | `#0874BB` | 흰 배경 위 링크·강조·아이콘, 받을 돈(+) |
 | `primary-on` | `#0B2B45` | 하늘색 배경 위 글자·아이콘 |
 | `primary-press` | `#1FA3F0` | primary 버튼 눌림 |
-| `sky-50/100/200/300` | `#F5FBFF #E6F6FF #B8E5FF #80D1FF` | 틴트 배경, 선택 칩 배경, 점선 테두리, 토스트 아이콘 |
+| `sky-50/100/200/300` | `#F5FBFF #E6F6FF #B8E5FF #80D1FF` | 틴트 배경, 선택 칩 배경, 점선 테두리, 선택한 날짜 점 |
 | `ink` | `#131927` | 기본 글자·금액, 보조 강조 CTA 배경(흰 글자) |
 | `ink-700` | `#353A47` | 헤더 아이콘, 미선택 칩 글자 |
 | `ink-500` | `#535764` | 부제·본문 보조, 그룹 헤더 |
@@ -36,9 +36,13 @@
 | `muted` | `#F0F3F7` | 아이콘 타일, 구분선, 보조 버튼 |
 | `line` / `line-off` | `#E4E7EC` / `#D0D5DD` | 테두리·비활성 버튼 / 꺼진 체크 |
 | `danger` / `danger-text` | `#D92D20` / `#C4320A` | 줄 돈(−)·에러 / 회원 탈퇴 등 위험 행 |
-| `success` / `success-bg` | `#067647` / `#DCFAE6` | 받았어요, 정산 완료 |
-| `warning` / `warning-bg` | `#B54708` / `#FEF0C7` | 확인필요 배지, 확인 대기 |
-| `warning-banner` / `warning-line` / `warning-deep` | `#FFF6E5` / `#FEDF89` / `#5C2D04` | 중복 배너 배경 / 확인필요 박스 테두리 / 배너 본문 |
+| `success` / `success-bg` / `success-badge` | `#0B7D6C` / `#E3F8F2` / `#DDF8F1` | 민트 — 받았어요·정산 완료·기록 중 / 기록 중 카드 배경 / 배지 배경 |
+| `success-icon` | `#7CF0D8` | 토스트 체크 아이콘 |
+| `warning` / `warning-bg` / `warning-badge` | `#A35A00` / `#FFF4D6` / `#FFF1CC` | 옐로 — 확인필요·확인 대기 / 틴트 배경 / 배지 배경 |
+| `warning-banner` / `warning-line` / `warning-deep` | `#FFF8E1` / `#FFD873` / `#5A3A00` | 중복 배너 배경 / 확인필요 박스 테두리 / 배너 본문 |
+| `local` | `#1668E3` | **외화 금액(현지 통화)** — 크게 표시. 원화는 작게 `ink-300` |
+| `tagline` | `#4E6378` | 로그인 서브카피 |
+| `alert` | `#F04452` | 안내 박스 앞 빨간 원 "!" |
 | `kakao` / `kakao-text`, `naver` | `#FEE500` / `#191600`, `#03C75A` | 소셜 로그인·카카오톡 공유(브랜드 색 유지) |
 
 멤버 아바타 색(합류 순서 순환, `MEMBER_COLORS`): `#E6F6FF/#0874BB`, `#FFE7BF/#8A5300`, `#E6E3FF/#4B3FB5`, `#FFE2E8/#A8324F` (tint/fg).
@@ -46,37 +50,42 @@
 > 색만으로 상태를 전달하지 않는다. 금액에는 `+`/`−` 부호와 "받을 돈/줄 돈" 라벨을 붙인다.
 
 ## 타이포그래피
-Pretendard(Regular·Medium·SemiBold·Bold·ExtraBold, expo-font 번들), 워드마크만 Fredoka 700(`font-wordmark`). 시스템 글꼴 크기는 최대 1.3배.
+Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **굵기는 SemiBold 600 / Medium 500 / Regular 400 만 쓴다 — 700·800 금지.** 행간 160%, 자간 0, 한국어 `word-break: keep-all`. 시스템 글꼴 크기는 최대 1.3배.
+
+크기 스케일: H1 28 · H2 24 · H3 20 · H4 18 · B1 17 · B2 16 · B3 14 · B4 13 · C1 12. **이 9개 밖의 값(26·32·22·15)은 쓰지 않는다.**
+
 | 용도 | 스타일 |
 |------|--------|
-| 화면 제목 | 26 / 700, lh 34, -0.02em |
-| 홈 인사·대형 제목 | 26 / 800, -0.03em |
-| 총액 | 32 / 800, -0.03em · 송금 금액 28 / 800 |
-| 카드 제목 | 22 / 800 |
-| 내비·버튼 | 17 / 700 |
-| 행 제목 | 15~16 / 700 |
-| 본문 | 15 / 500, lh 22 |
+| 화면 제목 · 홈 대형 제목 | 24 / 600 |
+| 상세 히어로 총액 | 28 / 600 |
+| 송금 금액 | 24 / 600 |
+| 로그인 메인카피 · 시트 제목 | 20 / 600 |
+| 카드 제목 | 18 / 600 |
+| 내비·버튼 | 17 / 600 |
+| 행 제목 | 16 / 600 |
+| 본문 | 16 또는 14 |
 | 캡션 | 13 · 12 |
-| 배지 | 11 / 700 |
+| 배지 | 12 / 600 |
 금액은 `fontVariant: ['tabular-nums']`. 표기: `1,110,630원`, 외화 `¥8,900`, 근거 `10/21 매매기준율 · 100엔 = 910.05원`.
+**외화 금액은 현지 통화를 크게 `local`(#1668E3), 원화를 작게 회색 `ink-300`** 으로 둔다(순서를 뒤집지 않는다).
 
 ## 반경·크기·간격
-- 반경: 배지 8(`rounded-badge`), 작은 칩 10, 입력 14(`rounded-input`), 버튼 16(`rounded-button`), 카드 20(`rounded-card`), 큰 카드 24, 히어로·시트 28(`rounded-hero`), 원형 pill.
+- 반경: 배지 8(`rounded-badge`), 칩 12(`rounded-chip`), 입력 14(`rounded-input`), 버튼 16(`rounded-button`), 카드 20(`rounded-card`), 큰 카드 24, 히어로·시트 28(`rounded-hero`), 원형 pill.
 - 크기: 버튼 56, 보조 버튼 52, 입력 54, 칩 34, 아이콘 타일 44, 아바타 32/36/38, 상태바 50, 내비 52.
 - 간격: 화면 패딩 20, 섹션 22~28, 카드 내부 14.
 
 ## 컴포넌트 (`src/components/`)
 - **PrimaryButton**: `variant` primary(하늘색/`primary-on`), dark(`ink`/흰색), muted, sky, kakao, naver, danger. 비활성 `line`/`ink-300`. 눌림은 1px 아래로 + 한 단계 진한 배경.
 - **BottomBar**: 하단 고정 CTA 영역, 패딩 `12 20` + 안전 영역. `fade`면 위로 흰(또는 `app`) 페이드. 스크롤 콘텐츠는 하단 130~140 여백.
-- **NavBar**: 뒤로(nav-arrow-left 28, 패딩 8) 또는 닫기(xmark 26), 제목 17/700 좌측 또는 가운데.
+- **NavBar**: 뒤로(nav-arrow-left 28, 패딩 8) 또는 닫기(xmark 26), 제목 17/600 좌측 또는 가운데.
 - **Avatar / AvatarStack**: 원형, 이름 첫 글자, 멤버 tint/fg. 게스트는 점선 테두리 + `GuestChip`. 히어로 위 겹침은 `ring`(배경색 2.5 테두리), -8 겹침.
-- **Badge**: '확인필요' 11/700 `warning` on `warning-bg`, radius 6, 2×6. 누르면 해제.
-- **StatusChip**: 12/800, 흰 배경 radius 8. 정산 중만 `primary-text`.
+- **Badge**: '확인필요' 12/600 `warning` on `warning-badge`, radius 6, 2×6. 누르면 해제.
+- **StatusChip**: 12/600, 흰 배경 radius 8, 패딩 4×8. 정산 중 `primary-text`, 기록 중·정산 완료 `success`.
 - **아이콘 타일**: 44, radius 14, `muted` 배경, 아이콘 `primary-text` 21 — 입력 방식(사진=camera, 문자=message-text, 음성=microphone, 직접=edit-pencil).
-- **BottomSheet**: 스크림 `rgba(19,25,39,.45)`, 상단 radius 28, 핸들 40×5, 제목 20/700 + 부제 14.
-- **Toast**: 하단 120 위, `ink` pill, check-circle `sky-300`, 14/600, 1.8초.
+- **BottomSheet**: 스크림 `rgba(19,25,39,.45)`, 상단 radius 28, 핸들 40×5, 제목 20/600 + 부제 14.
+- **Toast**: 하단 120 위, `ink` pill, check-circle `success-icon`(민트), 14/600, 1.8초.
 - **입력 필드**: 54h, radius 14, 테두리 1.5 `line`, 포커스 시 테두리 `primary` + `0 0 0 4px rgba(54,182,255,.18)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
-- **로고**: `SplitoSymbol`(심볼, `blush`·`variant` white/navy/silhouette), `Wordmark`. 원본 파일은 `assets/logo/`.
+- **로고**: `SplitoSymbol`(그라데이션 지갑, `variant` color/white/navy), `Wordmark`(아웃라인 SVG, `variant` ink #0E2A47 / white). 핸드오프 `assets/logo/svg/` 의 도형을 그대로 재현한 것이며 텍스트로 그리지 않는다.
 
 ## 아이콘
 Iconoir(outline 1.5), `iconoir-react-native` + `Icon` 래퍼(크기를 숫자로 넘긴다). 아이콘 버튼에는 `accessibilityLabel`을 단다.

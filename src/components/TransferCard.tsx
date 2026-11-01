@@ -18,8 +18,8 @@ const BADGE = {
   send: { label: '보낼 차례', box: 'bg-sky-100', text: 'text-primary-text' },
   receive: { label: '받을 차례', box: 'bg-muted', text: 'text-ink-500' },
   todo: { label: '송금 전', box: 'bg-muted', text: 'text-ink-500' },
-  pending: { label: '확인 대기', box: 'bg-warning-bg', text: 'text-warning' },
-  confirmed: { label: '받았어요', box: 'bg-success-bg', text: 'text-success' },
+  pending: { label: '확인 대기', box: 'bg-warning-badge', text: 'text-warning' },
+  confirmed: { label: '받았어요', box: 'bg-success-badge', text: 'text-success' },
   cancelled: { label: '취소됨', box: 'bg-muted', text: 'text-ink-500' },
   not_received: { label: '못 받음', box: 'bg-muted', text: 'text-ink-500' },
 } as const;
@@ -35,33 +35,45 @@ type ShellProps = {
   children?: ReactNode;
 };
 
-// 송금 카드 틀: 흰색 radius 22, padding 18, gap 14. 내가 보낼 차례면 테두리 2 primary.
+// 아바타 + 그 아래 이름("나" 또는 실명).
+function PartyAvatar({ party }: { party: Party }) {
+  return (
+    <View className="min-w-[38px] items-center gap-0.5">
+      <Avatar name={party.name} colorIndex={party.colorIndex} size={38} />
+      <Text className="text-[13px] text-ink-300" numberOfLines={1}>
+        {party.label}
+      </Text>
+    </View>
+  );
+}
+
+// 송금 카드 틀: 흰색 radius 22, padding 16/18/18, gap 12. 내가 보낼 차례면 테두리 2 primary.
+// 맨 위 왼쪽 상태 배지 → 아바타 줄(이름은 아바타 아래) + 오른쪽 위 금액.
 function Shell({ from, to, amount, badge, highlight, voided, sub, children }: ShellProps) {
   const b = BADGE[badge];
   return (
     <View
-      className={`gap-3.5 rounded-[22px] border-2 bg-white p-[18px] ${highlight ? 'border-primary' : 'border-transparent'}`}
+      className={`gap-3 rounded-[22px] border-2 bg-white px-[18px] pb-[18px] pt-4 ${highlight ? 'border-primary' : 'border-transparent'}`}
     >
+      <View className={`self-start rounded-badge px-2 py-[3px] ${b.box}`}>
+        <Text className={`font-semibold text-xs ${b.text}`}>{b.label}</Text>
+      </View>
       <View className="flex-row items-center gap-2.5">
-        <Avatar name={from.name} colorIndex={from.colorIndex} size={38} />
-        <Icon as={ArrowRight} size={18} color={colors.ink[300]} />
-        <Avatar name={to.name} colorIndex={to.colorIndex} size={38} />
-        <View className="flex-1">
-          <Text className={`font-semibold text-[15px] ${voided ? 'text-ink-500 line-through' : 'text-ink'}`} numberOfLines={1}>
-            {from.label} → {to.label}
-          </Text>
-          {sub && <Text className="text-xs text-ink-400">{sub}</Text>}
+        <PartyAvatar party={from} />
+        <View className="mb-5">
+          <Icon as={ArrowRight} size={18} color={colors.ink[300]} />
         </View>
-        <View className={`rounded-badge px-2 py-1 ${b.box}`}>
-          <Text className={`font-bold text-xs ${b.text}`}>{b.label}</Text>
+        <PartyAvatar party={to} />
+        <View className="flex-1 items-end self-start">
+          <Text
+            style={{ fontVariant: ['tabular-nums'] }}
+            className={`font-semibold text-[28px] ${voided ? 'text-ink-300 line-through' : 'text-ink'}`}
+          >
+            {formatKrw(amount)}
+          </Text>
         </View>
       </View>
-      <Text
-        style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.56 }}
-        className={`font-extrabold text-[28px] ${voided ? 'text-ink-300 line-through' : 'text-ink'}`}
-      >
-        {formatKrw(amount)}
-      </Text>
+      {sub && <Text className="text-[13px] text-ink-400">{sub}</Text>}
       {children}
     </View>
   );
@@ -102,8 +114,8 @@ export function TransferCard(p: CardProps) {
           <Icon as={Bank} size={20} color={colors.primary.text} />
           {a.registered ? (
             <>
-              <Text style={{ fontVariant: ['tabular-nums'] }} className="flex-1 text-sm leading-5 text-ink">
-                <Text className="font-bold">{a.bankName}</Text> {raw ?? a.accountMasked}
+              <Text style={{ fontVariant: ['tabular-nums'] }} className="flex-1 text-[15px] text-ink">
+                <Text className="font-semibold">{a.bankName}</Text> {raw ?? a.accountMasked}
                 {'\n'}
                 <Text className="text-ink-400">예금주 {a.holderName}</Text>
               </Text>
@@ -116,14 +128,14 @@ export function TransferCard(p: CardProps) {
                 className={`flex-row items-center gap-1 px-2 py-1.5 ${raw ? '' : 'opacity-40'}`}
               >
                 <Icon as={Copy} size={16} color={colors.primary.text} />
-                <Text className="font-bold text-[13px] text-primary-text">복사</Text>
+                <Text className="font-semibold text-sm text-primary-text">복사</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text className="flex-1 text-sm leading-5 text-ink-500">아직 계좌를 등록하지 않았어요</Text>
+              <Text className="flex-1 text-[15px] text-ink-500">아직 계좌를 등록하지 않았어요</Text>
               <Pressable accessibilityRole="button" onPress={p.onRequestAccount} hitSlop={8} className="px-2 py-1.5">
-                <Text className="font-bold text-[13px] text-primary-text">계좌 요청하기</Text>
+                <Text className="font-semibold text-sm text-primary-text">계좌 요청하기</Text>
               </Pressable>
             </>
           )}
@@ -155,7 +167,7 @@ export function TransferRecordRow(p: RecordProps) {
         <View className="flex-row gap-2">
           <View className="h-[52px] flex-1 flex-row items-center justify-center gap-1.5 rounded-input bg-sky-100">
             <Icon as={Check} size={18} color={colors.primary.text} />
-            <Text className="font-bold text-[15px] text-primary-text" numberOfLines={1}>
+            <Text className="font-semibold text-base text-primary-text" numberOfLines={1}>
               {p.to.name}님 확인을 기다려요
             </Text>
           </View>
@@ -165,7 +177,7 @@ export function TransferRecordRow(p: RecordProps) {
             onPress={p.onCancel}
             className="h-[52px] items-center justify-center rounded-input bg-muted px-4 active:bg-line"
           >
-            <Text className="font-bold text-[15px] text-ink-500">취소</Text>
+            <Text className="font-semibold text-base text-ink-500">취소</Text>
           </Pressable>
         </View>
       )}

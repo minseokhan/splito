@@ -51,7 +51,7 @@ export function PrimaryButton({ title, onPress, disabled, loading, variant = 'pr
       ) : (
         <>
           {icon && <Icon as={icon} size={22} color={disabled ? colors.ink[300] : v.icon} />}
-          <Text className={`font-bold ${size === 'lg' ? 'text-[17px]' : 'text-base'} ${disabled ? 'text-ink-300' : v.text}`}>
+          <Text className={`font-semibold ${size === 'lg' ? 'text-[17px]' : 'text-base'} ${disabled ? 'text-ink-300' : v.text}`}>
             {title}
           </Text>
         </>

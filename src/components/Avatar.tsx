@@ -21,7 +21,7 @@ export function Avatar({ name, colorIndex, guest, size = 36, ring }: Props) {
       }}
       className="items-center justify-center"
     >
-      <Text style={{ fontSize: Math.round(size * 0.37), color: c.fg }} className="font-bold">
+      <Text style={{ fontSize: Math.round(size * 0.37), color: c.fg }} className="font-semibold">
         {name.slice(0, 1)}
       </Text>
     </View>

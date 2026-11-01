@@ -67,9 +67,7 @@ export default function NewRoom() {
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="새 여행" />
       <ScrollView contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: 140, gap: 28 }} keyboardShouldPersistTaps="handled">
-        <Text style={{ letterSpacing: -0.52, lineHeight: 34 }} className="font-bold text-[26px] text-ink">
-          어디로 떠나나요?
-        </Text>
+        <Text className="font-semibold text-2xl text-ink">어디로 떠나나요?</Text>
 
         <View className="gap-2">
           <Text className="font-semibold text-[13px] text-ink-500">여행 이름</Text>
@@ -111,11 +109,11 @@ export default function NewRoom() {
                       accessibilityState={{ selected }}
                       accessibilityLabel={c.label}
                       onPress={() => field.onChange(c.code)}
-                      className={`h-11 flex-row items-center gap-1.5 rounded-xl border-[1.5px] px-3.5 ${
+                      className={`h-11 flex-row items-center gap-1.5 rounded-chip border-[1.5px] px-3.5 ${
                         selected ? 'border-primary bg-sky-100' : 'border-line bg-white'
                       }`}
                     >
-                      <Text className={`font-semibold text-[15px] ${selected ? 'text-primary-text' : 'text-ink-700'}`}>{c.code}</Text>
+                      <Text className={`font-semibold text-base ${selected ? 'text-primary-text' : 'text-ink-700'}`}>{c.code}</Text>
                       <Text style={{ opacity: 0.75 }} className={`font-medium text-[13px] ${selected ? 'text-primary-text' : 'text-ink-700'}`}>
                         {unitName(c.code, c.label)}
                       </Text>
@@ -169,11 +167,9 @@ export default function NewRoom() {
           )}
         </View>
 
-        <View className="flex-row items-center gap-3 rounded-button bg-sky-100 px-4 py-3.5">
-          <SplitoSymbol size={40} />
-          <Text className="flex-1 text-sm leading-5 text-primary-on">
-            처음엔 나 혼자인 가계부로 시작해요. 만든 뒤 링크로 동행을 초대할 수 있어요.
-          </Text>
+        <View className="flex-row items-center gap-2 rounded-chip bg-sky-100 px-3.5 py-3.5">
+          <SplitoSymbol size={24} />
+          <Text className="flex-1 text-sm text-primary-on">생성 후 함께하는 동행을 초대할 수 있어요!</Text>
         </View>
       </ScrollView>
       <BottomBar>

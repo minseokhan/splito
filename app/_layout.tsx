@@ -22,9 +22,6 @@ export default function RootLayout() {
     'Pretendard-Regular': require('../assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-Medium': require('../assets/fonts/Pretendard-Medium.otf'),
     'Pretendard-SemiBold': require('../assets/fonts/Pretendard-SemiBold.otf'),
-    'Pretendard-Bold': require('../assets/fonts/Pretendard-Bold.otf'),
-    'Pretendard-ExtraBold': require('../assets/fonts/Pretendard-ExtraBold.otf'),
-    'Fredoka-Bold': require('../assets/fonts/Fredoka-Bold.ttf'),
   });
   if (!loaded) return null;
   return (
