@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(39);
+select plan(50);
 
 -- ───── fixture (superuser + jwt claims로 RPC 호출) ─────
 -- 사용자 a~f. 시나리오마다 방을 따로 만든다. 게스트·공금·송금·나가기는 아직 RPC가 없어 직접 넣는다.
@@ -200,8 +200,9 @@ select set_config('t.r8del', pg_temp.exp(current_setting('t.r8')::uuid, (current
   current_setting('t.r8m')::uuid[], '{7000}')::text, true);
 select public.delete_expense(current_setting('t.r8del')::uuid, 1);
 select pg_temp.as_owner(current_setting('t.r8')::uuid);
+-- 1명 방의 지출은 결제자=나·대상=나뿐이라 전부 '나만 보기'로 저장된다 → 정산에서 모두 빠진다
 select is((select paid || '|' || owed || '|' || net || '|' || fx_pending_count from public.room_balances(current_setting('t.r8')::uuid)),
-  '1000|1000|0|1', '1명 방: net 0, 환율 대기·삭제 지출 제외, 대기 1건');
+  '0|0|0|0', '1명 방: 혼자 지출은 전부 나만 보기 → 정산에서 제외');
 
 -- ───── 게스트: 대표자 합산, 게스트 결제자·공금 입금·박스 지정, 대표자 변경 ─────
 select set_config('t.r9', pg_temp.room('게스트', '{a,b}')::text, true);
@@ -267,6 +268,62 @@ select pg_temp.exp(current_setting('t.s3')::uuid, pg_temp.m(current_setting('t.s
   array[pg_temp.m(current_setting('t.s3')::uuid, 'e'), pg_temp.m(current_setting('t.s3')::uuid, 'f')], '{10}', '[]', 'EUR');
 select pg_temp.as_user('e');
 select is((select status from public.my_rooms() where room_id = current_setting('t.s3')::uuid), 'settling', '환율 대기 있으면 settled 아님');
+-- ───── 나만 보기 지출은 정산에서 빠진다 (명세 2, AI-14) ─────
+select set_config('t.rv', pg_temp.room('나만보기', '{e,f}')::text, true);
+select set_config('t.rvm', array[pg_temp.m(current_setting('t.rv')::uuid, 'e'),
+  pg_temp.m(current_setting('t.rv')::uuid, 'f')]::text, true);
+-- 공동 지출 1000: E 결제, 대상 E·F
+select pg_temp.exp(current_setting('t.rv')::uuid, (current_setting('t.rvm')::uuid[])[1], current_setting('t.rvm')::uuid[], '{1000}');
+select is(pg_temp.net(current_setting('t.rv')::uuid, current_setting('t.rvm')::uuid[]), '{500,-500}'::bigint[],
+  '공동 지출만 있을 때 net');
+-- E가 자기 몫만 결제 → save_expense가 private으로 판정한다
+select set_config('t.rvp', pg_temp.exp(current_setting('t.rv')::uuid, (current_setting('t.rvm')::uuid[])[1],
+  array[(current_setting('t.rvm')::uuid[])[1]], '{2000}')::text, true);
+select is((select visibility from public.expenses where id = current_setting('t.rvp')::uuid), 'private',
+  '결제자=나·대상=나뿐 → private으로 저장');
+select is(pg_temp.net(current_setting('t.rv')::uuid, current_setting('t.rvm')::uuid[]), '{500,-500}'::bigint[],
+  '나만 보기 지출을 넣어도 모든 참여자 net 불변');
+select is(pg_temp.sumnet(current_setting('t.rv')::uuid), 0::bigint, '나만 보기 방: Σ net = 0');
+select pg_temp.as_owner(current_setting('t.rv')::uuid);
+select is((select paid || '|' || owed from public.room_balances(current_setting('t.rv')::uuid)
+  where member_id = (current_setting('t.rvm')::uuid[])[1]), '1000|500',
+  '나만 보기 지출은 paid에도 owed에도 안 들어간다');
+-- 총 지출은 사람마다 다르다: 작성자만 자기 나만 보기 금액을 본다
+select pg_temp.as_user('e');
+select is((select total_krw from public.my_rooms() where room_id = current_setting('t.rv')::uuid), 3000::bigint,
+  '총 지출: 작성자는 자기 나만 보기 지출을 포함해서 본다');
+select pg_temp.as_user('f');
+select is((select total_krw from public.my_rooms() where room_id = current_setting('t.rv')::uuid), 1000::bigint,
+  '총 지출: 남의 나만 보기 지출 금액은 합계로도 새지 않는다');
+-- 나만 보기 지출의 환율 미확정은 남의 정산을 막지 않는다
+select pg_temp.exp(current_setting('t.rv')::uuid, (current_setting('t.rvm')::uuid[])[1],
+  array[(current_setting('t.rvm')::uuid[])[1]], '{50}', '[]', 'EUR');
+select pg_temp.as_owner(current_setting('t.rv')::uuid);
+select is((select array_agg(distinct fx_pending_count) from public.room_balances(current_setting('t.rv')::uuid)), '{0}'::int[],
+  '나만 보기 지출의 환율 미확정은 세지 않는다');
+-- 공동 지출의 환율 미확정만 센다. 삭제된 공동 지출은 제외
+select pg_temp.exp(current_setting('t.rv')::uuid, (current_setting('t.rvm')::uuid[])[1], current_setting('t.rvm')::uuid[], '{50}', '[]', 'EUR');
+select set_config('t.rvd', pg_temp.exp(current_setting('t.rv')::uuid, (current_setting('t.rvm')::uuid[])[1],
+  current_setting('t.rvm')::uuid[], '{7000}')::text, true);
+select public.delete_expense(current_setting('t.rvd')::uuid, 1);
+select pg_temp.as_owner(current_setting('t.rv')::uuid);
+select is((select paid || '|' || owed || '|' || net || '|' || fx_pending_count
+  from public.room_balances(current_setting('t.rv')::uuid) where member_id = (current_setting('t.rvm')::uuid[])[1]),
+  '1000|500|500|1', '공동 지출의 환율 대기만 1건, 삭제 지출 제외');
+-- 공개 범위가 shared로 바뀌면 그 즉시 정산에 반영된다
+select pg_temp.as_owner(current_setting('t.rv')::uuid);
+select public.save_expense(jsonb_build_object(
+  'id', current_setting('t.rvp'), 'room_id', current_setting('t.rv'), 'payer_kind', 'member',
+  'payer_member_id', (current_setting('t.rvm')::uuid[])[1], 'source', 'manual', 'merchant', '가게',
+  'paid_local_date', '2025-10-20', 'currency', 'KRW',
+  'scope_member_ids', to_jsonb(current_setting('t.rvm')::uuid[]),
+  'items', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'position', 0,
+    'name_original', '품목', 'amount_original', 2000))), 1);
+select is((select visibility from public.expenses where id = current_setting('t.rvp')::uuid), 'shared',
+  '대상에 타인을 넣으면 shared');
+select is(pg_temp.net(current_setting('t.rv')::uuid, current_setting('t.rvm')::uuid[]), '{1500,-1500}'::bigint[],
+  'shared로 바꾸면 그 즉시 정산에 반영');
+
 select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
 select throws_ok('select * from public.my_rooms()', 'P0001', 'FORBIDDEN', '비로그인 my_rooms 거부');
 
