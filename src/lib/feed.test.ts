@@ -1,4 +1,4 @@
-import { dateTitle, groupFeed, payerRecorderLabel } from './feed';
+import { dateTitle, groupFeed, payerRecorderLabel, visibleToMe } from './feed';
 
 const row = (id: string, paidLocalDate: string, createdAt: string) => ({ id, paidLocalDate, createdAt });
 
@@ -48,5 +48,23 @@ describe('payerRecorderLabel', () => {
   it('같으면 결제만, 다르면 기록자도', () => {
     expect(payerRecorderLabel('민지', '민지')).toBe('민지 결제');
     expect(payerRecorderLabel('민지', '지훈')).toBe('민지 결제 · 지훈 기록');
+  });
+});
+
+describe('visibleToMe', () => {
+  const rows = [
+    { id: 'shared-mine', visibility: 'shared', createdBy: 'me' },
+    { id: 'shared-other', visibility: 'shared', createdBy: 'other' },
+    { id: 'private-mine', visibility: 'private', createdBy: 'me' },
+    { id: 'private-other', visibility: 'private', createdBy: 'other' },
+  ];
+
+  it('남의 나만 보기만 빠지고 내 것은 남는다', () => {
+    expect(visibleToMe(rows, 'me').map((r) => r.id)).toEqual(['shared-mine', 'shared-other', 'private-mine']);
+  });
+
+  it('로그인 전·작성자 불명이면 나만 보기는 전부 빠진다', () => {
+    expect(visibleToMe(rows, undefined).map((r) => r.id)).toEqual(['shared-mine', 'shared-other']);
+    expect(visibleToMe([{ id: 'x', visibility: 'private', createdBy: null }], 'me')).toEqual([]);
   });
 });
