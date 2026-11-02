@@ -23,6 +23,17 @@ export function useCreateRoom() {
   });
 }
 
+export function useUpdateRoom(id: RoomId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateRoom,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['rooms'] });
+      void qc.invalidateQueries({ queryKey: ['room', id] });
+    },
+  });
+}
+
 export function useJoinRoom() {
   const qc = useQueryClient();
   return useMutation({

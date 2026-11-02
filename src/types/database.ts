@@ -523,7 +523,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "_allocate_items":
+            "_acts_for":
+{ Args: { "p_member_id": string,"p_room_id": string }; Returns: boolean
+                           },
+"_allocate_items":
 { Args: { "p_expense_id": string }; Returns: undefined
                            },
 "_check_guest_rep":

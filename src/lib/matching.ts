@@ -22,11 +22,9 @@ function pick(entries: Entry[], sign: 1 | -1): Entry | undefined {
   return best;
 }
 
-// 게스트는 net=0으로 대표자에 이미 합산되어 오므로 kind='user'만 매칭한다.
+// 게스트도 따로 정산하므로 모든 참여자를 매칭한다(20261103 게스트 분리 정산).
 export function matchTransfers(rows: BalanceRow[]): Transfer[] {
-  const entries: Entry[] = rows
-    .filter((r) => r.kind === 'user')
-    .map((r) => ({ id: r.memberId, joinedAt: r.joinedAt, left: r.net }));
+  const entries: Entry[] = rows.map((r) => ({ id: r.memberId, joinedAt: r.joinedAt, left: r.net }));
   if (entries.reduce((s, e) => s + e.left, 0) !== 0) throw new Error('BALANCE_SUM_NOT_ZERO');
 
   const result: Transfer[] = [];

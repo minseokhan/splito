@@ -65,15 +65,16 @@ describe('matchTransfers', () => {
     expect(matchTransfers([])).toEqual([]);
   });
 
-  it('게스트 행(net 0)은 결과에 나오지 않는다', () => {
+  it('게스트도 자기 net으로 매칭에 들어간다', () => {
     const rows = [
       row('A', 5000),
-      row('B', -5000),
-      row('G', 0, { kind: 'guest', representativeMemberId: 'B', paid: 10000, owed: 3000 }),
+      row('B', -2000),
+      row('G', -3000, { kind: 'guest', representativeMemberId: 'B', paid: 0, owed: 3000 }),
     ];
-    const result = matchTransfers(rows);
-    expect(result).toEqual([{ from: 'B', to: 'A', amount: 5000 }]);
-    expect(result.some((t) => t.from === 'G' || t.to === 'G')).toBe(false);
+    expect(matchTransfers(rows)).toEqual([
+      { from: 'G', to: 'A', amount: 3000 },
+      { from: 'B', to: 'A', amount: 2000 },
+    ]);
   });
 
   it('Σnet ≠ 0이면 throw', () => {

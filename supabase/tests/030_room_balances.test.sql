@@ -204,7 +204,7 @@ select pg_temp.as_owner(current_setting('t.r8')::uuid);
 select is((select paid || '|' || owed || '|' || net || '|' || fx_pending_count from public.room_balances(current_setting('t.r8')::uuid)),
   '0|0|0|0', '1명 방: 혼자 지출은 전부 나만 보기 → 정산에서 제외');
 
--- ───── 게스트: 대표자 합산, 게스트 결제자·공금 입금·박스 지정, 대표자 변경 ─────
+-- ───── 게스트: 분리 정산(대표자 합산 없음), 게스트 결제자·공금 입금·박스 지정, 대표자 변경 ─────
 select set_config('t.r9', pg_temp.room('게스트', '{a,b}')::text, true);
 select set_config('t.r9m', array[pg_temp.m(current_setting('t.r9')::uuid, 'a'), pg_temp.m(current_setting('t.r9')::uuid, 'b')]::text, true);
 select set_config('t.r9g', pg_temp.guest(current_setting('t.r9')::uuid, '엄마', (current_setting('t.r9m')::uuid[])[1])::text, true);
@@ -220,13 +220,13 @@ select pg_temp.exp(current_setting('t.r9')::uuid, null, current_setting('t.r9all
 select pg_temp.as_owner(current_setting('t.r9')::uuid);
 select is((select paid || '|' || owed || '|' || net || '|' || representative_member_id || '|' || kind
   from public.room_balances(current_setting('t.r9')::uuid) where member_id = current_setting('t.r9g')::uuid),
-  '12000|6000|0|' || (current_setting('t.r9m')::uuid[])[1] || '|guest', '게스트 행: 자기 paid·owed, net 0, 대표자');
-select is(pg_temp.net(current_setting('t.r9')::uuid, current_setting('t.r9m')::uuid[]), '{3000,-3000}'::bigint[],
-  '게스트 몫(+6000)이 대표자 A net에 합산');
+  '12000|6000|6000|' || (current_setting('t.r9m')::uuid[])[1] || '|guest', '게스트 행: 자기 paid·owed·net, 대표자');
+select is(pg_temp.net(current_setting('t.r9')::uuid, current_setting('t.r9m')::uuid[]), '{-3000,-3000}'::bigint[],
+  '게스트 몫은 대표자 net에 합산되지 않는다');
 select is(pg_temp.sumnet(current_setting('t.r9')::uuid), 0::bigint, '게스트 방: Σ net = 0');
 update public.room_members set representative_member_id = (current_setting('t.r9m')::uuid[])[2] where id = current_setting('t.r9g')::uuid;
-select is(pg_temp.net(current_setting('t.r9')::uuid, current_setting('t.r9m')::uuid[]), '{-3000,3000}'::bigint[],
-  '대표자 변경 → 게스트 귀속이 새 대표자로 이동');
+select is(pg_temp.net(current_setting('t.r9')::uuid, current_setting('t.r9m')::uuid[]), '{-3000,-3000}'::bigint[],
+  '대표자를 바꿔도 금액은 옮겨지지 않는다');
 
 -- ───── my_rooms 상태 판정 ─────
 select pg_temp.room('S1 혼자', '{e}');

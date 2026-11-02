@@ -115,6 +115,19 @@ export const api = {
     );
   },
 
+  async updateRoom(input: { roomId: RoomId; name: string; baseCurrency: string; startDate: string | null; endDate: string | null }): Promise<void> {
+    unwrap(
+      await supabase.rpc('update_room', {
+        p_room_id: input.roomId,
+        p_name: input.name,
+        p_base_currency: input.baseCurrency,
+        // 생성 타입이 함수 인자의 null 허용을 모델링하지 않는다. update_room은 기간 두 칸을 null로 받아 비운다.
+        p_start_date: input.startDate as string,
+        p_end_date: input.endDate as string,
+      }),
+    );
+  },
+
   async previewInvite(token: string): Promise<InvitePreview> {
     const r = unwrap(await supabase.rpc('preview_invite', { p_token: token })) as {
       room_id: string;
