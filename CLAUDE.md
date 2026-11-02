@@ -33,7 +33,13 @@
   - 사용자가 승인하면 Claude가 이어서 한다: dev에 squash 머지 → 연결된 GitHub 이슈 닫기 → 원격·로컬 브랜치와 워크트리 삭제.
   - dev → main 머지는 사용자가 명시적으로 요청할 때만 한다. main에 머지돼야 운영에 반영된다.
 - CRITICAL: 새 세션에서 파일을 바꾸는 작업을 지시받으면, 사용자가 따로 말하지 않아도 **먼저 dev 기반 워크트리를 만들고** 그 안에서만 작업한다.
-  - 명령: `git fetch origin && git worktree add .claude/worktrees/<name> -b <branch> origin/dev`
+  - 명령:
+    ```
+    git fetch origin && git worktree add .claude/worktrees/<name> -b <branch> origin/dev
+    ln -s /Users/hanms/splito/.env .claude/worktrees/<name>/.env   # .env는 gitignore라 안 딸려온다
+    ```
+  - `.env`는 복사하지 말고 **심링크**한다. 복사하면 키를 바꿀 때 워크트리마다 값이 갈라지고, 어긋난 것을 알아채기 어렵다. 워크트리별로 다른 환경이 필요해지면 그 하나만 실제 파일로 바꾼다.
+  - 앱을 실행·빌드할 워크트리는 `npm install`도 필요하다(`node_modules`도 gitignore). 문서·SQL만 고치는 작업이면 생략해도 된다.
   - 메인 체크아웃(`/Users/hanms/splito`)에서 편집하면 `require-worktree.sh` 훅이 차단한다.
   - 읽기·조사만 하는 작업은 워크트리가 필요 없다.
 - PR이 머지되면 원격 브랜치는 자동 삭제된다(레포 설정). 로컬 feat 브랜치와 워크트리도 정리한다: `git worktree remove <path>`, `git branch -d feat-<phase>`, `git fetch --prune`.
