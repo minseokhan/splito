@@ -94,19 +94,21 @@ export default function NewExpense() {
     newId: uuidV4,
   });
 
-  const goReview = async (draft: ExpenseDraft, localPhotos: string[]) => {
+  const goReview = async (draft: ExpenseDraft, localPhotos: string[], nav: 'replace' | 'push' = 'replace') => {
     await saveDraft(roomId, { draft, localPhotos }); // review가 기기에서 다시 읽는다
-    router.replace({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } });
+    router[nav]({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } });
   };
 
   const photoSource: ExpenseSource = photoKind === 'capture' ? 'card_image' : 'receipt';
   const photos = (p: typeof photo) => (p?.storagePath ? [{ storagePath: p.storagePath, kind: photoKind }] : []);
 
-  const manual = () => {
+  const manualTo = (nav: 'replace' | 'push') => {
     const source: ExpenseSource = method === 'photo' ? photoSource : method === 'text' ? 'card_text' : method === 'voice' ? 'voice' : 'manual';
     const draft = emptyDraft({ ...ctx(source), currency: room.base_currency });
-    void goReview({ ...draft, photos: photos(photo) }, photo ? [photo.local] : []);
+    void goReview({ ...draft, photos: photos(photo) }, photo ? [photo.local] : [], nav);
   };
+  // onPress에 그대로 넘기므로 인자를 받지 않는다(이벤트 객체가 nav로 새지 않게).
+  const manual = () => manualTo('replace');
 
   // 인식·업로드에 실패해도 사진은 작성 중 지출로 남긴다.
   const keepFailedPhoto = (p: NonNullable<typeof photo>) => {
@@ -204,7 +206,15 @@ export default function NewExpense() {
 
   if (method === 'manual') {
     // 렌더 중 이동을 피하려고 버튼 대신 즉시 실행한다.
-    return <ManualRedirect onReady={manual} />;
+    // 방법 선택에서 왔으면 review를 push하고 picked를 되돌린다 — 뒤로가기가 방법 선택으로 돌아오게.
+    return (
+      <ManualRedirect
+        onReady={() => {
+          manualTo(picked ? 'push' : 'replace');
+          setPicked(undefined);
+        }}
+      />
+    );
   }
 
   const needNotice = !profile?.ai_notice_ack_at && !noticeDone;
@@ -343,8 +353,8 @@ function Title({ title, sub }: { title: string; sub: string }) {
 // 칸마다 배경·아이콘 색이 다르다(시안 6): 문자 민트 / 음성 옐로 / 직접 회색.
 const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; bg: string; iconColor: string }[] = [
   { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, bg: 'bg-success-bg', iconColor: colors.success.DEFAULT },
-  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
-  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
+  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
+  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
 ];
 
 // 시안 6: 지출 올리기 방법 선택(전체 화면).
@@ -383,20 +393,17 @@ function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
               accessibilityRole="button"
               accessibilityLabel={m.a11y}
               onPress={() => onSelect(m.method)}
-              className={`flex-1 items-start gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
+              className={`flex-1 items-center gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
             >
               <Icon as={m.icon} size={24} color={m.iconColor} />
-              <Text className="font-semibold text-[17px] text-ink">{m.label}</Text>
+              {/* 라벨 칸을 2줄 높이로 고정한다 — 한 줄짜리는 그 안에서 가운데, 아이콘은 세 칸 모두 같은 높이 */}
+              <View className="h-[46px] justify-center">
+                <Text style={{ lineHeight: 23 }} className="text-center font-semibold text-[17px] text-ink">
+                  {m.label}
+                </Text>
+              </View>
             </Pressable>
           ))}
-        </View>
-
-        <View className="mt-1.5 gap-2.5">
-          <Text className="font-semibold text-sm text-ink-500">말로 입력 예시</Text>
-          <View style={{ borderStyle: 'dashed' }} className="rounded-button border-[1.5px] border-sky-200 px-4 py-3.5">
-            <Text className="text-[17px] text-primary-on">“카레 1만 1천 원, 덮밥 1만 5천 원, 닭꼬치 6천 원”</Text>
-            <Text className="mt-1 text-sm text-ink-400">→ 품목 박스 3개가 만들어져요</Text>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

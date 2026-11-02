@@ -130,6 +130,13 @@ export function addItem(d: ExpenseDraft, newId: () => string): ExpenseDraft {
   return { ...d, items: [...d.items, item(newId(), d.items.length)] };
 }
 
+// 박스 0개 지출은 저장할 수 없으므로(validateDraft의 Σ > 0) 마지막 한 박스는 남긴다.
+export function removeItem(d: ExpenseDraft, itemId: string): ExpenseDraft {
+  if (d.items.length <= 1) return d;
+  const items = d.items.filter((it) => it.id !== itemId);
+  return items.length === d.items.length ? d : { ...d, items: renumber(items) };
+}
+
 export function validateDraft(d: ExpenseDraft, todayKst: string):
   { ok: true } | { ok: false; code: 'AMOUNT_INVALID' | 'DATE_IN_FUTURE' | 'INVALID_INPUT'; field?: string } {
   if (!/^[A-Z]{3}$/.test(d.currency)) return { ok: false, code: 'INVALID_INPUT', field: 'currency' };
