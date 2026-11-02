@@ -1,0 +1,27 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.textocr'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.textocr"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // unbundled(Play 서비스 온디맨드) 모델이라 APK가 커지지 않는다. 첫 인식 때 내려받는다.
+  // ML Kit은 스크립트별로 모델이 갈려 recognizer 하나당 한 스크립트만 쓴다.
+  implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.1'
+  implementation 'com.google.android.gms:play-services-mlkit-text-recognition-japanese:16.0.1'
+  implementation 'com.google.android.gms:play-services-mlkit-text-recognition-korean:16.0.1'
+  implementation 'com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1'
+}

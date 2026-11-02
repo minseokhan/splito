@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["TextOcrModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.textocr.TextOcrModule"]
+  }
+}

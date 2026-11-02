@@ -23,7 +23,7 @@ const schema = consentSchema.extend({ nickname: nicknameSchema });
 
 // PRD §7.3 국외 이전 고지 요약. 전문은 처리방침.
 const OVERSEAS = [
-  'Anthropic(미국): 영수증 이미지, 인식할 텍스트 — 지출 인식 목적, 인식 후 보관하지 않음',
+  'Anthropic(미국): 영수증에서 읽은 글자와 인식할 텍스트(기기가 글자를 읽지 못하면 영수증 이미지) — 지출 인식 목적, 인식 후 보관하지 않음',
   'Supabase Inc.: 계정·장부 데이터(데이터는 서울 리전)',
   'Vercel(미국): 웹 랜딩',
   '이전 시기·방법: 서비스 이용 시 네트워크로 전송',
@@ -135,7 +135,7 @@ export default function Consent() {
         </View>
 
         <Text className="text-[13px] text-ink-400">
-          영수증 이미지는 AI 인식을 위해 Anthropic(미국)으로 전송돼요. 받을 계좌는 나중에 등록해도 돼요.
+          영수증은 기기에서 글자만 읽어 Anthropic(미국)으로 보내요. 글자를 읽지 못하면 사진을 보내요. 받을 계좌는 나중에 등록해도 돼요.
         </Text>
       </ScrollView>
       <BottomBar>

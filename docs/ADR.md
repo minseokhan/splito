@@ -57,6 +57,14 @@
 - 비용과 지연이 생긴다. 리사이즈(긴 변 1600px), effort low, 사용자·방 일일 한도, 클라이언트 자동 재시도 금지로 줄인다.
 - 비용이 문제가 되면 `claude-haiku-5-5`를 영수증 세트로 비교해 본다(모델 ID만 바꾸면 된다).
 
+**2026-11-02 재검토: 영수증은 기기 OCR로 먼저 읽는다(F4.8, P0)**
+- 영수증 인식이 제품의 핵심 기능이므로 위 트레이드오프("전용 OCR보다 숫자 인식이 덜 정확할 수 있다")를 그대로 두지 않는다.
+- 기기 내장 OCR(Android ML Kit / iOS Apple Vision)로 글자를 읽어 `kind: 'ocr'` 텍스트로 보낸다. 글자를 못 읽으면 기존 이미지 경로로 폴백한다. 사용자에게는 차이가 보이지 않는다.
+- 품목 분해·번역·통화 판정·카테고리는 그대로 Claude가 한다. OCR은 Claude를 대체하지 않고 입력을 바꾼다. 스키마와 후처리는 그대로다.
+- CLOVA OCR을 쓰지 않은 이유: 영수증 특화 모델이 한·영·일 3개 언어뿐이라 그 밖의 여행지를 못 덮고, 응답에 통화 필드가 없어 통화 판정은 어차피 Claude가 해야 한다. 호출당 과금과 개인정보 이전받는 자 추가(네이버)를 상쇄하지 못한다. 기기 OCR이 명백히 부족할 때 다시 본다(F4.10).
+- 기성 Expo OCR 모듈(`expo-text-extractor`·`expo-ocr-kit`·`expo-mlkit-ocr`)을 쓰지 않은 이유: 전부 ML Kit 라틴 전용 모델만 담고 iOS는 `recognitionLanguages`를 설정하지 않아 영어만 읽는다. 일본어 영수증을 못 읽는다. 그래서 `modules/text-ocr` 로컬 모듈을 직접 둔다(Kotlin·Swift 각 한 파일).
+- 이미지가 Anthropic으로 가지 않게 되지만 Supabase Storage(서울) 업로드는 썸네일 때문에 그대로다. 동의 문구는 "글자만 보내고, 못 읽으면 사진을 보낸다"로 적는다.
+
 ### ADR-004: 음성 인식은 기기 내장 STT(expo-speech-recognition)
 **결정**: PRD의 "Web Speech API" 대신 `expo-speech-recognition`(iOS SFSpeechRecognizer / Android SpeechRecognizer, ko-KR)을 쓴다. 서버에는 텍스트만 보낸다.
 
