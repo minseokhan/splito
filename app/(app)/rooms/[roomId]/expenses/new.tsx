@@ -288,7 +288,9 @@ export default function NewExpense() {
             <Title title="사진으로 올리기" sub="영수증이든 결제앱 화면이든 알아서 구분해요" />
           </View>
           {/* 빈 공간을 프리뷰로 채운다. 종류 선택은 없앴다 — parse-expense가 photo_kind로 판정한다. */}
-          <View className="mx-5 mb-3 mt-4 flex-1 overflow-hidden rounded-card bg-ink">
+          {/* 네이티브 프리뷰가 부모의 모서리 마스크를 따르지 않아 아래만 각져 보인다.
+              기기 비율에 따라 달라지는 문제라 네 모서리를 모두 각지게 맞춘다. */}
+          <View className="mx-5 mb-3 mt-4 flex-1 overflow-hidden bg-ink">
             <CameraPane camRef={camRef} />
           </View>
           <BottomBar>
@@ -364,7 +366,7 @@ function CameraPane({ camRef }: { camRef: React.RefObject<CameraView | null> }) 
       </View>
     );
   }
-  return <CameraView ref={camRef} style={{ flex: 1, borderRadius: 20 }} facing="back" />;
+  return <CameraView ref={camRef} style={{ flex: 1 }} facing="back" />;
 }
 
 function Title({ title, sub }: { title: string; sub: string }) {
@@ -421,15 +423,12 @@ function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
               accessibilityRole="button"
               accessibilityLabel={m.a11y}
               onPress={() => onSelect(m.method)}
-              className={`flex-1 items-center gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
+              className={`flex-1 items-center justify-center gap-1.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
             >
               <Icon as={m.icon} size={24} color={m.iconColor} />
-              {/* 라벨 칸을 2줄 높이로 고정한다 — 한 줄짜리는 그 안에서 가운데, 아이콘은 세 칸 모두 같은 높이 */}
-              <View className="h-[46px] justify-center">
-                <Text style={{ lineHeight: 23 }} className="text-center font-semibold text-[17px] text-ink">
-                  {m.label}
-                </Text>
-              </View>
+              <Text style={{ lineHeight: 23 }} className="text-center font-semibold text-[17px] text-ink">
+                {m.label}
+              </Text>
             </Pressable>
           ))}
         </View>

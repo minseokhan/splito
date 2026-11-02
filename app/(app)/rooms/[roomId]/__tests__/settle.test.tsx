@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { api } from '@/services/api';
+import type { BalanceRow } from '@/types/domain';
 
 import Settle from '../settle';
 
@@ -35,19 +36,26 @@ const member = (id: string, userId: string, name: string) => ({
   representativeMemberId: null, joinedAt: '2026-10-20T00:00:00Z', leftAt: null,
 });
 
+const guestMember = (id: string, name: string, rep: string) => ({
+  id, kind: 'guest', userId: null, name, avatarUrl: null,
+  representativeMemberId: rep, joinedAt: '2026-10-20T00:00:01Z', leftAt: null,
+});
+
 const privateRow = (id: string, merchant: string, paidLocalDate: string) => ({
   id, merchant, paidLocalDate, currency: 'KRW', amountOriginal: 12000, krwAmount: 12000,
 });
 
-const balanceRow = (id: string, paid: number, owed: number, net: number) => ({
-  memberId: id, kind: 'user' as const, representativeMemberId: null,
+const balanceRow = (id: string, paid: number, owed: number, net: number): BalanceRow => ({
+  memberId: id, kind: 'user', representativeMemberId: null,
   joinedAt: '2026-10-20T00:00:00Z', leftAt: null, paid, owed, net,
 });
 
 const ZERO_ROWS = ['m1', 'm2'].map((id) => balanceRow(id, 0, 0, 0));
 
-async function renderSettle(privates: ReturnType<typeof privateRow>[], rows = ZERO_ROWS) {
-  jest.mocked(api.roomMembers).mockResolvedValue([member('m1', 'u1', '민지'), member('m2', 'u2', '지훈')] as never);
+const TWO_MEMBERS = [member('m1', 'u1', '민지'), member('m2', 'u2', '지훈')];
+
+async function renderSettle(privates: ReturnType<typeof privateRow>[], rows = ZERO_ROWS, members: unknown[] = TWO_MEMBERS) {
+  jest.mocked(api.roomMembers).mockResolvedValue(members as never);
   jest.mocked(api.roomBalances).mockResolvedValue({ fxPendingCount: 0, rows });
   jest.mocked(api.transfers).mockResolvedValue([]);
   jest.mocked(api.lastExpenseChangeAt).mockResolvedValue(null);
@@ -105,22 +113,52 @@ describe('정산 전 나만 보기 확인 단계', () => {
   });
 });
 
-describe('송금 카드 배치', () => {
+describe('보낼 돈 · 받을 돈 탭', () => {
   beforeEach(() => jest.clearAllMocks());
 
   // 내가 m2에게 30,000원 줘야 하는 상황
   const payerRows = [balanceRow('m1', 0, 30000, -30000), balanceRow('m2', 30000, 0, 30000)];
 
-  it('아바타 아래에 보내는 사람·받는 사람 이름을 각각 보여주고 합친 "나 → 지훈" 줄은 두지 않는다', async () => {
+  it('보낼 돈 카드에 상태 배지·양쪽 이름·금액을 보여준다', async () => {
     await renderSettle([], payerRows);
-    expect(await screen.findByText('보낼 차례')).toBeOnTheScreen();
+    expect(await screen.findByText('송금 필요')).toBeOnTheScreen();
+    expect(screen.getByText('보낼 돈 1건, 받을 돈 0건')).toBeOnTheScreen();
+    expect(screen.getByText('총 30,000원을 보내주세요')).toBeOnTheScreen();
     expect(screen.getByText('나')).toBeOnTheScreen();
-    expect(screen.getAllByText('지훈')).toHaveLength(2); // 송금 카드 + 사람별 내역
-    expect(screen.queryByText('나 → 지훈')).toBeNull();
+    expect(screen.getAllByText('지훈')).toHaveLength(1); // 순잔액 표는 더 이상 없다
+    expect(screen.getByText('30,000원')).toBeOnTheScreen();
   });
 
-  it('금액을 아바타 줄 오른쪽에 보여준다', async () => {
+  it('제3자끼리의 송금은 보여주지 않는다', async () => {
+    const rows = [balanceRow('m1', 0, 0, 0), balanceRow('m2', 30000, 0, 30000), balanceRow('m3', 0, 30000, -30000)];
+    await renderSettle([], rows, [...TWO_MEMBERS, member('m3', 'u3', '서연')]);
+    expect(await screen.findByText('정산할 돈이 없어요')).toBeOnTheScreen();
+    expect(screen.queryByText('송금 필요')).toBeNull();
+  });
+
+  it('받을 돈 탭으로 바꾸면 그 탭의 카드만 본다', async () => {
     await renderSettle([], payerRows);
-    expect(await screen.findByText('30,000원')).toBeOnTheScreen();
+    await fireEvent.press(await screen.findByRole('tab', { name: '받을 돈 0건' }));
+    expect(screen.getByText('받을 돈이 없어요')).toBeOnTheScreen();
+    expect(screen.queryByText('송금 필요')).toBeNull();
+  });
+});
+
+describe('게스트 정산', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('내가 대표하는 게스트의 송금도 내 화면에 뜨고, 알려주기 버튼이 붙는다', async () => {
+    await renderSettle(
+      [],
+      [
+        balanceRow('m1', 0, 0, 0),
+        balanceRow('m2', 5000, 0, 5000),
+        { ...balanceRow('g1', 0, 5000, -5000), kind: 'guest', representativeMemberId: 'm1' },
+      ],
+      [...TWO_MEMBERS, guestMember('g1', '엄마', 'm1')],
+    );
+    expect(await screen.findByText('송금 필요')).toBeOnTheScreen();
+    expect(screen.getByText('엄마')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: '엄마에게 알리기' })).toBeOnTheScreen();
   });
 });

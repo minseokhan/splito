@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(40);
 
 -- ───── fixture (superuser + jwt claims로 RPC 호출) ─────
 insert into auth.users (id, raw_user_meta_data)
@@ -44,6 +44,12 @@ create function pg_temp.net(l text) returns bigint language plpgsql as $$
 begin
   perform pg_temp.as_user('a');
   return (select net from public.room_balances(pg_temp.r(), false) where member_id = pg_temp.m(pg_temp.r(), l));
+end $$;
+
+create function pg_temp.net_m(p_member uuid) returns bigint language plpgsql as $$
+begin
+  perform pg_temp.as_user('a');
+  return (select net from public.room_balances(pg_temp.r(), false) where member_id = p_member);
 end $$;
 
 -- ───── 권한 ─────
@@ -90,12 +96,14 @@ select throws_ok(format('select public.update_guest(%L, %L)', pg_temp.g(), repea
 select throws_ok(format('select public.update_guest(%L, %L)', pg_temp.m(pg_temp.r(), 'b'), '바꿈'), 'P0001', 'FORBIDDEN', 'user 행 변경 거부');
 select throws_ok(format('select public.remove_guest(%L)', pg_temp.m(pg_temp.r(), 'b')), 'P0001', 'FORBIDDEN', 'user 행 삭제 거부');
 
--- 대표자 변경 시 room_balances 귀속 이동: 게스트가 3000 결제, 대상 a·b·게스트 → 게스트 net +2000
+-- 게스트는 따로 정산한다: 게스트가 3000 결제, 대상 a·b·게스트 → 게스트 net +2000, a·b 각 -1000
 select pg_temp.exp('a', pg_temp.g(), array[pg_temp.m(pg_temp.r(), 'a'), pg_temp.m(pg_temp.r(), 'b'), pg_temp.g()], 3000);
-select is(array[pg_temp.net('a'), pg_temp.net('b')], array[-1000, 1000]::bigint[], '대표자 B에게 게스트 +2000 합산');
+select is(array[pg_temp.net('a'), pg_temp.net('b'), pg_temp.net_m(pg_temp.g())], array[-1000, -1000, 2000]::bigint[],
+  '게스트 net은 대표자에 합산되지 않는다');
 select pg_temp.as_user('a');
 select public.update_guest(pg_temp.g(), null, pg_temp.m(pg_temp.r(), 'a'));
-select is(array[pg_temp.net('a'), pg_temp.net('b')], array[1000, -1000]::bigint[], '대표자 A로 변경 → 귀속 이동');
+select is(array[pg_temp.net('a'), pg_temp.net('b'), pg_temp.net_m(pg_temp.g())], array[-1000, -1000, 2000]::bigint[],
+  '대표자를 바꿔도 금액은 옮겨지지 않는다');
 select is((select payload from public.room_events where room_id = pg_temp.r() and kind = 'guest_rep_change' and target_member_id = pg_temp.g()),
   jsonb_build_object('from', pg_temp.m(pg_temp.r(), 'b'), 'to', pg_temp.m(pg_temp.r(), 'a')), 'guest_rep_change 이벤트 {from,to}');
 
@@ -124,9 +132,34 @@ select public.leave_room(pg_temp.r());
 select pg_temp.as_user('a');
 select throws_ok(format('select public.update_guest(%L, null, %L)', pg_temp.g(), pg_temp.m(pg_temp.r(), 'c')), 'P0001', 'MEMBER_LEFT', '나간 멤버를 대표자로 거부');
 
--- ───── 게스트를 송금 당사자로 → 거부(기존 검증 재확인) ─────
-select throws_ok(format('select public.record_transfer(%L, %L, %L, %L, 1000)', gen_random_uuid(), pg_temp.r(), pg_temp.g(), pg_temp.m(pg_temp.r(), 'a')),
-  'P0001', 'FORBIDDEN', '게스트를 송금 당사자로 거부');
+-- ───── 게스트 송금: 대표자가 대신 기록, 비대표는 거부 ─────
+-- 현재 대표자는 a(위에서 옮김). 게스트 net +2000 → 게스트가 받을 돈이 있다.
+select pg_temp.as_user('b');
+select throws_ok(format('select public.record_transfer(%L, %L, %L, %L, 1000)', gen_random_uuid(), pg_temp.r(),
+  pg_temp.m(pg_temp.r(), 'a'), pg_temp.g()), 'P0001', 'FORBIDDEN', '당사자도 대표자도 아니면 게스트 건 기록 거부');
+-- b가 자기 몫을 게스트에게 보내는 건 b 본인이 당사자라 허용된다
+select set_config('t.tb', gen_random_uuid()::text, true);
+select lives_ok(format('select public.record_transfer(%L, %L, %L, %L, 1000)', current_setting('t.tb'), pg_temp.r(),
+  pg_temp.m(pg_temp.r(), 'b'), pg_temp.g()), '당사자 b가 게스트에게 보낸 기록은 허용');
+select is((select confirmed_at from public.transfers where id = current_setting('t.tb')::uuid), null,
+  '보내는 쪽 기록이라 확인 대기');
+-- 대표자 a가 게스트 대신 확인
+select pg_temp.as_user('a');
+select lives_ok(format('select public.confirm_transfer(%L)', current_setting('t.tb')), '대표자가 게스트 대신 확인');
+select isnt((select confirmed_at from public.transfers where id = current_setting('t.tb')::uuid), null, '확인됨');
+-- 대표자가 게스트 대신 '보냈어요' 기록
+select set_config('t.tg', gen_random_uuid()::text, true);
+select lives_ok(format('select public.record_transfer(%L, %L, %L, %L, 500)', current_setting('t.tg'), pg_temp.r(),
+  pg_temp.g(), pg_temp.m(pg_temp.r(), 'b')), '대표자가 게스트 대신 기록');
+select is((select confirmed_at from public.transfers where id = current_setting('t.tg')::uuid), null,
+  '게스트가 보내는 쪽이면 받는 사람 확인 대기');
+select lives_ok(format('select public.cancel_transfer(%L)', current_setting('t.tg')), '대표자가 게스트 기록을 취소');
+-- 장부에는 없고 송금에만 쓰인 게스트도 삭제 불가
+select set_config('t.g4', public.add_guest(pg_temp.r(), '사촌')::text, true);
+select lives_ok(format('select public.remove_guest(%L)', current_setting('t.g4')), '송금 전에는 삭제 가능');
+select set_config('t.g4', public.add_guest(pg_temp.r(), '사촌')::text, true);
+select public.record_transfer(gen_random_uuid(), pg_temp.r(), pg_temp.m(pg_temp.r(), 'a'), current_setting('t.g4')::uuid, 100);
+select throws_ok(format('select public.remove_guest(%L)', current_setting('t.g4')), 'P0001', 'GUEST_IN_USE', '송금에만 쓰인 게스트 삭제 거부');
 
 select * from finish();
 rollback;

@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(39);
 
 -- ───── fixture: 방 R(a,b,c), d는 비멤버. A가 3000 결제 → A +2000, B −1000, C −1000 ─────
 insert into auth.users (id, raw_user_meta_data)
@@ -110,6 +110,29 @@ select pg_temp.as_user('b');
 select results_eq($$select user_id from public.payout_accounts$$, $$values (pg_temp.uid('b'))$$, '직접 SELECT는 본인 행만');
 select throws_ok($$update public.payout_accounts set holder_name = 'x'$$, '42501', null, '직접 UPDATE 거부');
 select is((select count(*)::int from public.payout_reveals), 0, 'payout_reveals 직접 SELECT 불가');
+
+reset role;  -- 위 RLS 구간에서 바꾼 role을 되돌린다(아래는 다시 RPC 경로)
+
+-- ───── 대표자 공개 조건: 내 net이 0이어도 내가 대표하는 게스트가 줄 돈이 있으면 원문 ─────
+-- 방 R2(a, b) + 게스트 엄마(대표 a). b가 2000 결제, 대상 b·엄마 → b +1000, 엄마 −1000, a 0.
+select pg_temp.as_user('a');
+select set_config('t.r2', public.create_room('게스트 계좌', 'KRW')::text, true);
+select pg_temp.as_user('b');
+select public.join_room((select invite_token from public.rooms where id = current_setting('t.r2')::uuid));
+select pg_temp.as_user('a');
+select set_config('t.g', public.add_guest(current_setting('t.r2')::uuid, '엄마')::text, true);
+select set_config('t.b2', (select id from public.room_members
+  where room_id = current_setting('t.r2')::uuid and user_id = pg_temp.uid('b'))::text, true);
+select public.save_expense(jsonb_build_object(
+  'id', gen_random_uuid(), 'room_id', current_setting('t.r2')::uuid, 'payer_kind', 'member',
+  'payer_member_id', current_setting('t.b2'), 'source', 'manual', 'merchant', '가게',
+  'paid_local_date', '2025-10-20', 'currency', 'KRW',
+  'scope_member_ids', jsonb_build_array(current_setting('t.b2'), current_setting('t.g')),
+  'items', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'position', 0, 'name_original', '품목',
+                                                'amount_original', 2000, 'assignee_member_ids', '[]'::jsonb))));
+select results_eq(
+  format($q$select account_number from public.get_payout_account(%L, %L)$q$, current_setting('t.r2'), current_setting('t.b2')),
+  $$values ('123456789012')$$, '게스트 대표자(본인 net 0) → 받을 사람 원문');
 
 select * from finish();
 rollback;

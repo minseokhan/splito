@@ -18,6 +18,9 @@ export const colors = {
   kakao: { DEFAULT: '#FEE500', text: '#191600' },
   naver: '#03C75A',
   'on-dark-sub': '#B8C0CC',
+  // 정산 화면 세그먼트 탭·송금 카드 전용(핸드오프 settlement.html 실측).
+  tab: { bg: '#EEF7FF', num: '#1E9BE8', 'num-off': '#80C8F2' },
+  'card-line': '#ECEEF2',
 } as const;
 
 // 멤버 아바타 tint/fg. 합류 순서 기준 순환(민지·지훈·서연·엄마 순서가 시안 기준).

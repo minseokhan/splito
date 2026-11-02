@@ -1,20 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
-import { BalanceTable } from '@/components/BalanceTable';
 import { BottomSheet } from '@/components/BottomSheet';
-import { SplitoSymbol } from '@/components/Logo';
 import { InviteSheet } from '@/components/InviteSheet';
+import { SplitoSymbol } from '@/components/Logo';
 import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useToast } from '@/components/Toast';
-import { TransferCard, TransferRecordRow, type Party } from '@/components/TransferCard';
+import { TransferCard, type Party } from '@/components/TransferCard';
 import { useMyPrivateExpenses, useSetExpenseScope } from '@/hooks/useExpense';
 import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
 import { usePayoutAccount, useRequestPayoutAccount } from '@/hooks/usePayoutAccount';
@@ -30,48 +29,24 @@ import {
   useTransfers,
 } from '@/hooks/useSettlement';
 import { dateTitle } from '@/lib/feed';
-import { guestShareNote, orderBalanceRows } from '@/lib/guestView';
 import { formatForeign } from '@/lib/money';
 import { poolNote, poolRemaining } from '@/lib/pool';
 import {
+  buildSettleItems,
   copyText,
+  guestNoticeText,
   ledgerChangedAfterTransfer,
-  pendingConfirmSummary,
-  recordState,
-  type SettleCard,
-  type TransferRecord,
+  settleHeadline,
+  type SettleItem,
 } from '@/lib/settleView';
 import { uuidV4 } from '@/lib/uuid';
-import type { PrivateExpenseRow } from '@/services/api';
+import type { PayoutAccount, PrivateExpenseRow } from '@/services/api';
 import type { ExpenseId, MemberId, RoomId } from '@/types/domain';
 
 const CLIPBOARD_NOTICE_KEY = 'clipboard_sync_notice_shown';
 const CARD_SHADOW = { boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' };
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
-
-// 헤더 제목·상태 문구. '정산 완료' 판정은 서버만 하므로 여기서는 남은 송금·확인 대기만 말한다.
-function headline(cards: SettleCard[], records: TransferRecord[], me: MemberId, names: Record<string, string>) {
-  const sum = (cs: SettleCard[]) => formatKrw(cs.reduce((s, c) => s + c.amount, 0));
-  const who = (ids: MemberId[]) => `${names[ids[0]] ?? ''}님${ids.length > 1 ? ` 외 ${ids.length - 1}명` : ''}`;
-  const pay = cards.filter((c) => c.role === 'payer');
-  const get = cards.filter((c) => c.role === 'payee');
-  const mySent = records.filter((r) => r.from === me && recordState(r) === 'pending');
-  const summary = pendingConfirmSummary(records, names);
-  const sub = pay.length
-    ? `나는 ${who(pay.map((c) => c.to))}에게 ${sum(pay)} 보내면 돼요`
-    : get.length
-      ? `나는 ${who(get.map((c) => c.from))}에게서 ${sum(get)} 받으면 돼요`
-      : mySent.length
-        ? `${who(mySent.map((r) => r.to))}이 확인하면 정산 완료예요`
-        : (summary ?? (cards.length ? `남은 송금 ${cards.length}건이에요` : '모든 송금이 정리됐어요'));
-  const title = cards.length
-    ? `송금 ${cards.length}번이면 끝나요`
-    : summary
-      ? '송금을 모두 기록했어요'
-      : '정산할 돈이 없어요';
-  return { title, sub };
-}
 
 export default function Settle() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -88,10 +63,22 @@ export default function Settle() {
   const confirm = useConfirmTransfer(roomId);
   const reject = useRejectTransfer(roomId);
   const cancel = useCancelTransfer(roomId);
-  const [sendCard, setSendCard] = useState<SettleCard | null>(null);
+  const [sendItem, setSendItem] = useState<SettleItem | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [picked, setPicked] = useState<'send' | 'recv' | null>(null);
   const privates = useMyPrivateExpenses(roomId);
   const [checkDone, setCheckDone] = useState(false);
+
+  // 내가 대신 눌러주는 게스트(대표자). 게스트는 앱이 없어 직접 기록할 수 없다.
+  const meId = plan.me?.id;
+  const myGuests = useMemo(
+    () => members.filter((m) => m.kind === 'guest' && !m.leftAt && m.representativeMemberId === meId).map((m) => m.id),
+    [members, meId],
+  );
+  const items = useMemo(
+    () => (plan.plan && meId ? buildSettleItems(plan.plan, records, meId, myGuests) : []),
+    [plan.plan, records, meId, myGuests],
+  );
 
   // 진입 시 1회: 환율 대기 지출을 fx-rate로 캐시한 뒤 서버가 재확정한다.
   const triedFx = useRef(false);
@@ -105,7 +92,7 @@ export default function Settle() {
   const active = members.filter((m) => !m.leftAt);
   if (members.length && active.length < 2) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-app">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-white">
         <NavBar title="정산" align="center" />
         <View className="flex-1 items-center justify-center gap-4 px-5">
           <SplitoSymbol size={64} />
@@ -118,15 +105,17 @@ export default function Settle() {
       </SafeAreaView>
     );
   }
-  if (!plan.data || !plan.me || !plan.cards || privates.isPending) return <SafeAreaView className="flex-1 bg-app" />;
+  if (!plan.data || !plan.me || !plan.plan || privates.isPending) return <SafeAreaView className="flex-1 bg-white" />;
 
   const me = plan.me.id;
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const guestIds = new Set(members.filter((m) => m.kind === 'guest').map((m) => m.id));
   const colorIndex = Object.fromEntries(members.map((m, i) => [m.id, i]));
   const party = (id: MemberId): Party => ({
     name: names[id] ?? '',
     label: id === me ? '나' : (names[id] ?? ''),
     colorIndex: colorIndex[id] ?? 0,
+    guest: guestIds.has(id),
   });
   // 정산 직전 마지막 안전망(명세 4). 나만 보기가 0건이면 이 단계는 뜨지 않는다.
   if (!checkDone && privates.data?.length) {
@@ -146,18 +135,12 @@ export default function Settle() {
     );
   }
 
-  const rows = plan.data.rows;
-  const shareNote = (c: SettleCard) =>
-    [guestShareNote(c.from, rows, names), guestShareNote(c.to, rows, names)].filter(Boolean).join(' · ') || undefined;
   const busy = record.isPending || confirm.isPending || reject.isPending || cancel.isPending;
   const fxPending = plan.data.fxPendingCount;
   const changed = ledgerChangedAfterTransfer(records, lastChange);
-  const head = headline(plan.cards, records, me, names);
-  // 확인 대기 기록을 먼저, 나머지는 받은 순서대로.
-  const sortedRecords = [
-    ...records.filter((r) => recordState(r) === 'pending'),
-    ...records.filter((r) => recordState(r) !== 'pending'),
-  ];
+  const head = settleHeadline(items);
+  const tab = picked ?? (head.send || !head.recv ? 'send' : 'recv');
+  const shown = items.filter((i) => i.dir === tab);
   // 공금은 송금 대상이 아니다. 남은 공금은 통장 주인 순잔액에 이미 합쳐져 있어 설명만 붙인다(J7 3번).
   const poolOwner = room?.pool_enabled ? room.pool_owner_member_id : null;
   const poolText = poolOwner
@@ -169,10 +152,9 @@ export default function Settle() {
         names[poolOwner] ?? '',
       )
     : null;
-  const poolCard = poolText ? plan.cards.find((c) => c.from === poolOwner || c.to === poolOwner) : undefined;
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="정산" align="center" />
       {fxPending > 0 && (
         <View className="flex-row items-center justify-between border-b border-warning-line bg-warning-banner px-5 py-2">
@@ -203,60 +185,55 @@ export default function Settle() {
           </View>
         )}
 
-        {plan.cards.map((c) => (
-          <View key={`${c.from}-${c.to}`} className="gap-2">
+        <View className="flex-row gap-1.5 rounded-button bg-tab-bg p-[5px]">
+          <Tab label="보낼 돈" count={head.send} on={tab === 'send'} onPress={() => setPicked('send')} />
+          <Tab label="받을 돈" count={head.recv} on={tab === 'recv'} onPress={() => setPicked('recv')} />
+        </View>
+
+        {shown.length === 0 ? (
+          <Text className="px-1 py-6 text-center text-sm text-ink-400">
+            {tab === 'send' ? '보낼 돈이 없어요' : '받을 돈이 없어요'}
+          </Text>
+        ) : (
+          shown.map((item) => (
             <CardContainer
+              key={item.key}
               roomId={roomId}
-              card={c}
-              from={party(c.from)}
-              to={party(c.to)}
-              guestNote={shareNote(c)}
-              rejected={records.some((r) => r.from === c.from && r.to === c.to && recordState(r) === 'not_received')}
+              roomName={room?.name ?? ''}
+              item={item}
+              from={party(item.from)}
+              to={party(item.to)}
+              guestName={item.onBehalfOf ? (names[item.onBehalfOf] ?? '') : null}
               busy={busy}
-              onSend={() => setSendCard(c)}
+              onSend={() => setSendItem(item)}
               onReceived={() =>
-                record.mutate(
-                  { id: uuidV4(), roomId, from: c.from, to: me, amount: c.amount },
-                  { onSuccess: () => toast('송금 기록을 남겼어요'), onError: showError },
-                )
+                item.transferId
+                  ? confirm.mutate(item.transferId, { onError: showError })
+                  : record.mutate(
+                      { id: uuidV4(), roomId, from: item.from, to: item.to, amount: item.amount },
+                      { onSuccess: () => toast('송금 기록을 남겼어요'), onError: showError },
+                    )
               }
+              onReject={() => item.transferId && reject.mutate(item.transferId, { onError: showError })}
+              onCancel={() => item.transferId && cancel.mutate(item.transferId, { onError: showError })}
             />
-            {c === poolCard && <Text className="px-1 text-xs text-ink-400">{poolText}</Text>}
-          </View>
-        ))}
-        {poolText && !poolCard && <Text className="px-1 text-xs text-ink-400">{poolText}</Text>}
+          ))
+        )}
 
-        {sortedRecords.map((r) => {
-          const pending = recordState(r) === 'pending';
-          return (
-            <TransferRecordRow
-              key={r.id}
-              from={party(r.from)}
-              to={party(r.to)}
-              amount={r.amount}
-              state={recordState(r)}
-              busy={busy}
-              onConfirm={pending && r.to === me ? () => confirm.mutate(r.id, { onError: showError }) : undefined}
-              onReject={pending && r.to === me ? () => reject.mutate(r.id, { onError: showError }) : undefined}
-              onCancel={pending && r.from === me ? () => cancel.mutate(r.id, { onError: showError }) : undefined}
-            />
-          );
-        })}
-
-        <BalanceTable rows={orderBalanceRows(rows)} names={names} colorIndex={colorIndex} />
+        {poolText && <Text className="px-1 text-xs text-ink-400">{poolText}</Text>}
       </ScrollView>
-      {sendCard && (
+      {sendItem && (
         <SendSheet
-          card={sendCard}
-          toName={names[sendCard.to] ?? ''}
+          item={sendItem}
+          toName={names[sendItem.to] ?? ''}
           busy={record.isPending}
-          onClose={() => setSendCard(null)}
+          onClose={() => setSendItem(null)}
           onSubmit={(id, amount) =>
             record.mutate(
-              { id, roomId, from: me, to: sendCard.to, amount },
+              { id, roomId, from: sendItem.from, to: sendItem.to, amount },
               {
                 onSuccess: () => {
-                  setSendCard(null);
+                  setSendItem(null);
                   toast('송금 기록을 남겼어요');
                 },
                 onError: showError,
@@ -269,28 +246,48 @@ export default function Settle() {
   );
 }
 
+// 세그먼트 탭 한 칸. 선택되면 흰 배경 + 파란 숫자(핸드오프 settlement.html).
+function Tab({ label, count, on, onPress }: { label: string; count: number; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={`${label} ${count}건`}
+      onPress={onPress}
+      style={on ? { boxShadow: '0 2px 8px -2px rgba(8,116,187,.18)' } : undefined}
+      className={`h-[42px] flex-1 flex-row items-center justify-center gap-1.5 rounded-chip ${on ? 'bg-white' : ''}`}
+    >
+      <Text className={`font-semibold text-base ${on ? 'text-ink' : 'text-ink-400'}`}>{label}</Text>
+      <Text className={`font-semibold text-base ${on ? 'text-tab-num' : 'text-tab-num-off'}`}>({count})</Text>
+    </Pressable>
+  );
+}
+
 type CardContainerProps = {
   roomId: RoomId;
-  card: SettleCard;
+  roomName: string;
+  item: SettleItem;
   from: Party;
   to: Party;
-  guestNote?: string;
-  rejected: boolean;
+  guestName: string | null; // 내가 대신 눌러주는 게스트 이름
   busy: boolean;
   onSend: () => void;
   onReceived: () => void;
+  onReject: () => void;
+  onCancel: () => void;
 };
 
 // 카드마다 계좌를 따로 조회한다(원문 여부는 서버가 판정).
-function CardContainer({ roomId, card, from, to, guestNote, rejected, busy, onSend, onReceived }: CardContainerProps) {
+function CardContainer({ roomId, roomName, item, from, to, guestName, busy, onSend, onReceived, onReject, onCancel }: CardContainerProps) {
   const toast = useToast();
-  const { data: account } = usePayoutAccount(roomId, card.to);
+  const { data: account } = usePayoutAccount(roomId, item.to);
   const requestAccount = useRequestPayoutAccount(roomId);
+  const send = item.dir === 'send';
 
   const copy = async () => {
     if (!account?.accountNumber || !account.bankName) return;
     await Clipboard.setStringAsync(
-      copyText({ toName: to.name, amount: card.amount, bankName: account.bankName, accountNumber: account.accountNumber }),
+      copyText({ toName: to.name, amount: item.amount, bankName: account.bankName, accountNumber: account.accountNumber }),
     );
     toast('받을 사람·금액·계좌를 복사했어요');
     if (!(await AsyncStorage.getItem(CLIPBOARD_NOTICE_KEY))) {
@@ -299,21 +296,34 @@ function CardContainer({ roomId, card, from, to, guestNote, rejected, busy, onSe
     }
   };
 
+  // 게스트는 앱이 없으므로 대표자가 금액을 카카오톡 등으로 보내 알려준다(OS 공유 시트).
+  const share = () =>
+    void Share.share({
+      message: guestNoticeText({
+        roomName,
+        guestName: guestName ?? '',
+        otherName: send ? to.name : from.name,
+        dir: item.dir,
+        amount: item.amount,
+        account: accountForNotice(account),
+      }),
+    });
+
   return (
     <TransferCard
+      item={item}
       from={from}
       to={to}
-      amount={card.amount}
-      role={card.role}
       account={account}
-      guestNote={guestNote}
-      note={rejected && card.role === 'payer' ? '받지 못했다고 표시했어요' : undefined}
       busy={busy}
+      shareLabel={guestName ? `${guestName}에게 알리기` : undefined}
+      onShare={guestName ? share : undefined}
       onCopy={() => void copy()}
-      onSend={onSend}
-      onReceived={onReceived}
+      onPrimary={send ? onSend : onReceived}
+      onReject={onReject}
+      onCancel={onCancel}
       onRequestAccount={() =>
-        requestAccount.mutate(card.to, {
+        requestAccount.mutate(item.to, {
           onSuccess: () => toast(`${to.name}님께 계좌를 요청했어요`),
           onError: showError,
         })
@@ -322,8 +332,15 @@ function CardContainer({ roomId, card, from, to, guestNote, rejected, busy, onSe
   );
 }
 
+// 원문 계좌번호를 받은 경우에만 안내문에 계좌를 적는다.
+function accountForNotice(a: PayoutAccount | undefined) {
+  return a?.accountNumber && a.bankName && a.holderName
+    ? { bankName: a.bankName, accountNumber: a.accountNumber, holderName: a.holderName }
+    : null;
+}
+
 type SendSheetProps = {
-  card: SettleCard;
+  item: SettleItem;
   toName: string;
   busy: boolean;
   onClose: () => void;
@@ -331,16 +348,16 @@ type SendSheetProps = {
 };
 
 // [보냈어요] 금액 확인. 일부만 보냈으면 수정한다. id는 시트마다 하나라 재전송해도 1건이다.
-function SendSheet({ card, toName, busy, onClose, onSubmit }: SendSheetProps) {
+function SendSheet({ item, toName, busy, onClose, onSubmit }: SendSheetProps) {
   const [id] = useState(uuidV4);
-  const [text, setText] = useState(String(card.amount));
+  const [text, setText] = useState(String(item.amount));
   const amount = Number(text.replace(/\D/g, '') || '0');
   return (
     <BottomSheet
       visible
       onClose={onClose}
       title={`${toName}님에게 보냈어요`}
-      subtitle={`정산 금액 ${formatKrw(card.amount)} · 일부만 보냈으면 금액을 고쳐 주세요`}
+      subtitle={`정산 금액 ${formatKrw(item.amount)} · 일부만 보냈으면 금액을 고쳐 주세요`}
     >
       <TextInput
         accessibilityLabel="보낸 금액"

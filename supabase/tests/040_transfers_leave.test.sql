@@ -93,10 +93,10 @@ select is((select count(*)::int from public.room_events where room_id = current_
 select pg_temp.as_user('a');
 insert into public.room_members (room_id, kind, guest_name, representative_member_id)
   values (current_setting('t.r')::uuid, 'guest', '엄마', pg_temp.m(current_setting('t.r')::uuid, 'a'));
+select pg_temp.as_user('c');  -- c는 그 게스트의 대표자가 아니다
 select throws_ok(format('select public.record_transfer(%L, %L, %L, %L, 100)', gen_random_uuid(), current_setting('t.r'),
   (select id from public.room_members where room_id = current_setting('t.r')::uuid and kind = 'guest'),
-  pg_temp.m(current_setting('t.r')::uuid, 'a')), 'P0001', 'FORBIDDEN', '게스트 당사자 → FORBIDDEN');
-select pg_temp.as_user('c');
+  pg_temp.m(current_setting('t.r')::uuid, 'a')), 'P0001', 'FORBIDDEN', '게스트 건을 비대표가 기록 → FORBIDDEN');
 select throws_ok(format('select public.record_transfer(%L, %L, %L, %L, 100)', gen_random_uuid(), current_setting('t.r'),
   pg_temp.m(current_setting('t.r')::uuid, 'b'), pg_temp.m(current_setting('t.r')::uuid, 'a')), 'P0001', 'FORBIDDEN', '제3자 기록 → FORBIDDEN');
 select throws_ok(format('select public.record_transfer(%L, %L, %L, %L, 0)', gen_random_uuid(), current_setting('t.r'),

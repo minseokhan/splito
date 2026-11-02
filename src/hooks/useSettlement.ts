@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { matchTransfers } from '@/lib/matching';
-import { buildCards } from '@/lib/settleView';
 import { api } from '@/services/api';
 import type { RoomId } from '@/types/domain';
 
@@ -23,15 +22,15 @@ export function useLastExpenseChange(roomId: RoomId) {
   return useQuery({ queryKey: ['room', roomId, 'feed', 'lastChange'], queryFn: () => api.lastExpenseChangeAt(roomId) });
 }
 
-// room_balances → 그리디 매칭 → 내 카드 먼저(ARCHITECTURE §6.5).
+// room_balances → 그리디 송금안(ARCHITECTURE §6.5). 카드 구성은 화면이 기록과 합쳐서 한다.
 export function useSettlePlan(roomId: RoomId) {
   const { session } = useAuth();
   const balances = useBalances(roomId);
   const { data: members } = useRoomMembers(roomId);
   const me = members?.find((m) => m.userId === session?.user.id && !m.leftAt);
   const rows = balances.data?.rows;
-  const cards = useMemo(() => (rows && me ? buildCards(matchTransfers(rows), me.id) : undefined), [rows, me]);
-  return { ...balances, me, cards };
+  const plan = useMemo(() => (rows ? matchTransfers(rows) : undefined), [rows]);
+  return { ...balances, me, plan };
 }
 
 // 낙관적 업데이트 없이 서버 응답 후 무효화만 한다(ARCHITECTURE §7).

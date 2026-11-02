@@ -130,7 +130,7 @@ comments          id PK, expense_id, room_id, author_id, body text check(length 
 pool_deposits     id PK, room_id, member_id, amount_krw bigint check(> 0), created_by   -- 게스트 입금 허용
 transfers         id PK(클라이언트 UUID), room_id, from_member_id, to_member_id, amount_krw bigint check(> 0),
                   recorded_by, confirmed_at, voided_at, voided_by, void_reason('cancelled'|'not_received')
-                  -- 송금 당사자는 kind='user' 참여자만(게스트 몫은 대표자에게 합산되므로)
+                  -- 송금 당사자는 게스트도 가능(대표자가 대신 기록한다)
 fx_rates          (base_date, currency) PK, rate numeric(18,6), fetched_at       -- 하루치 전 통화를 한 번에
 ai_usage          (scope('user'|'room'|'global'), scope_id, day) PK, count int   -- 호출 한도
 payout_reveals    id PK, room_id, viewer_id, owner_id, at                         -- 계좌 원문 조회 기록
@@ -258,7 +258,7 @@ create index on room_members (user_id) where left_at is null;
 | `reconfirm_pending_fx(room_id)` | 환율 대기 지출을 캐시로 다시 확정 + 이력 + version+1. 정산·상세 화면을 열 때 `fx-rate`로 캐시를 채운 뒤 호출 | |
 | `merge_expenses(keep_id, drop_id, keep_version, drop_version)` (P1, 피드에서 저장된 두 건을 합칠 때) | drop의 사진을 keep으로 옮기고 drop을 소프트 삭제(drop의 박스·지정은 버린다) + 양쪽 이력 | `VERSION_CONFLICT` |
 | `add_member_to_expenses(room_id, member_id, expense_ids[])` (P1) | 대상 인원에 추가 + 각 지출 이력 + version+1 | |
-| `room_balances(room_id, confirmed_only bool)` | **순잔액의 유일한 정답.** 사람별 `{paid, owed, net}` + 환율 대기 건수.<br>paid = 결제(원화 확정분) + 공금 입금 + 보낸 송금<br>owed = 분담 + 자투리 + 받은 송금 + (통장 주인이면 남은 공금, 음수 허용)<br>net = paid − owed<br>환율 대기 지출과 무효 송금은 제외한다. confirmed_only면 확인된 송금만 반영한다. 공금 행은 반환하지 않는다. 나간·탈퇴 멤버도 포함한다.<br>게스트 행도 `{paid, owed}`와 `representative_member_id`를 반환하지만, 게스트의 net은 0으로 두고 대표자의 net에 합산한다(송금 매칭 대상은 user 참여자만) | |
+| `room_balances(room_id, confirmed_only bool)` | **순잔액의 유일한 정답.** 사람별 `{paid, owed, net}` + 환율 대기 건수.<br>paid = 결제(원화 확정분) + 공금 입금 + 보낸 송금<br>owed = 분담 + 자투리 + 받은 송금 + (통장 주인이면 남은 공금, 음수 허용)<br>net = paid − owed<br>환율 대기 지출과 무효 송금은 제외한다. confirmed_only면 확인된 송금만 반영한다. 공금 행은 반환하지 않는다. 나간·탈퇴 멤버도 포함한다.<br>게스트 행도 `{paid, owed, net}`과 `representative_member_id`를 반환한다. 게스트 net은 대표자에게 합산하지 않고 그대로 둔다(2026-11-03 개정) — 송금 매칭 대상은 게스트를 포함한 모든 참여자다 | |
 | `request_payout_account(room_id, owner_member_id)` | 계좌 요청 room_event 생성 | |
 | `record_transfer(id, room_id, from_member_id, to_member_id, amount_krw)` | 양쪽 모두 user 참여자여야 한다. 호출자가 from(보냄) 또는 to(받음 → 바로 확인 처리)여야 한다. `id`로 멱등 처리한다 | `FORBIDDEN`, `AMOUNT_INVALID`, `MEMBER_LEFT` |
 | `confirm_transfer(id)` / `reject_transfer(id)` | to 본인만 호출. 확인하거나 '못 받음'으로 무효화한다 | `FORBIDDEN` |
@@ -328,7 +328,7 @@ Apple(P1, iOS): expo-apple-authentication → signInWithIdToken({provider:'apple
 ```
 room_balances(room_id, false) → 사람별 net(화면용, 확인 대기 송금 포함) + 환율 대기 건수
  → lib/matching: 매 단계 남은 잔액으로 다시 정렬해 최대 채권자와 최대 채무자를 min(두 금액)으로 짝짓는다
-   (같은 금액이면 joined_at → member id 순. 게스트는 대표자에 합산된 뒤라 매칭에 나오지 않는다) → 송금 카드
+   (같은 금액이면 joined_at → member id 순. 게스트도 자기 net으로 매칭에 들어간다) → 송금 카드
  → 송금 카드의 계좌: get_payout_account(내가 줄 사람인 카드만 원문)
 '정산 완료'·나가기·탈퇴 판정: room_balances(room_id, true) — 서버에서만 판정
 ```
@@ -380,7 +380,7 @@ room_balances(room_id, false) → 사람별 net(화면용, 확인 대기 송금 
 ## 9. 테스트 전략
 | 대상 | 도구 | 필수 케이스 |
 |------|------|-----------|
-| `room_balances`·`save_expense` 배분 | pgTAP(fixture SQL) | PRD F7 예시 2개 · 자투리가 결제자에게 감(결제자가 지정 밖일 때 포함) · 음수 할인 박스 floor · 최대 잔여 배분 동점 시 position 순 · 원본 합계 0 거부 · 합류·나가기 후 기존 분담 불변 · 공금 남음·부족(부호) · 송금 반영과 역송금 · confirmed_only 차이 · 1명 방 · 환율 대기 제외 · **게스트 몫이 대표자 net에 합산되고 게스트 net=0** · 게스트 결제자·공금 입금 · 대표자 변경 시 귀속 이동 |
+| `room_balances`·`save_expense` 배분 | pgTAP(fixture SQL) | PRD F7 예시 2개 · 자투리가 결제자에게 감(결제자가 지정 밖일 때 포함) · 음수 할인 박스 floor · 최대 잔여 배분 동점 시 position 순 · 원본 합계 0 거부 · 합류·나가기 후 기존 분담 불변 · 공금 남음·부족(부호) · 송금 반영과 역송금 · confirmed_only 차이 · 1명 방 · 환율 대기 제외 · **게스트 net이 대표자에 합산되지 않음** · 게스트 결제자·공금 입금 · 대표자를 바꿔도 금액 불변 · 대표자의 게스트 대리 기록·확인·취소 |
 | 속성 테스트 | jest(TS 참조 구현 → SQL 결과와 대조) | 무작위 방에서 잔액 합 0, 송금 ≤ N−1, 송금안 적용 후 0, 입력 순서를 섞어도 결과 동일 |
 | `src/lib/*` | jest | matching 결정성, money 배분, 금액 표기, 초대 URL 정규식, 중복 점수, 에러 메시지 매핑 |
 | RLS | pgTAP | 비멤버 읽기 거부, **멤버의 직접 INSERT·UPDATE·DELETE 거부**, 나간 멤버 거부, 계좌 마스킹·조회 조건, Storage 경로 정책 |

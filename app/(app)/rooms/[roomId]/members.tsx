@@ -1,23 +1,20 @@
 import { useLocalSearchParams } from 'expo-router';
 import { NavArrowRight, UserPlus } from 'iconoir-react-native';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar, GuestChip } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
+import { GuestForm } from '@/components/GuestForm';
 import { Icon } from '@/components/Icon';
 import { INVITE_SUBTITLE, INVITE_TITLE, InviteOptions } from '@/components/InviteSheet';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
-import { useAddGuest, useRemoveGuest, useUpdateGuest } from '@/hooks/useGuests';
 import { useRoomMembers } from '@/hooks/useRooms';
-import { repChangeWarning } from '@/lib/guestView';
 import { colors } from '@/theme/tokens';
-import type { MemberId, RoomMember } from '@/types/domain';
-
-const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
+import type { RoomMember } from '@/types/domain';
 
 export default function Members() {
   const { roomId, addGuest } = useLocalSearchParams<{ roomId: string; addGuest?: string }>();
@@ -86,9 +83,6 @@ export default function Members() {
             key={sheet === 'new' ? 'new' : sheet.id}
             roomId={roomId}
             guest={sheet === 'new' ? null : sheet}
-            users={users}
-            defaultRep={me.id}
-            names={names}
             onClose={() => setSheet(null)}
           />
         ) : (
@@ -102,79 +96,5 @@ export default function Members() {
         )}
       </BottomSheet>
     </SafeAreaView>
-  );
-}
-
-type SheetProps = {
-  roomId: string;
-  guest: RoomMember | null; // null이면 추가
-  users: RoomMember[]; // 대표자 후보: 활성 가입 멤버만
-  defaultRep: MemberId;
-  names: Record<MemberId, string>;
-  onClose: () => void;
-};
-
-// 게스트 추가·수정 폼. 바깥 시트가 열고 닫는다. 대표자를 바꾸면 과거 정산 귀속도 옮겨지므로 한 번 더 확인한다(J9 4번).
-function GuestForm({ roomId, guest, users, defaultRep, names, onClose }: SheetProps) {
-  const [name, setName] = useState(guest?.name ?? '');
-  const [rep, setRep] = useState<MemberId>(guest?.representativeMemberId ?? defaultRep);
-  const add = useAddGuest(roomId);
-  const update = useUpdateGuest(roomId);
-  const remove = useRemoveGuest(roomId);
-  const trimmed = name.trim();
-  const valid = trimmed.length >= 1 && trimmed.length <= 12;
-  const busy = add.isPending || update.isPending || remove.isPending;
-  const done = { onSuccess: onClose, onError: showError };
-
-  const submit = () => {
-    if (!guest) return add.mutate({ roomId, name: trimmed, representativeMemberId: rep }, done);
-    const save = () =>
-      update.mutate(
-        {
-          memberId: guest.id,
-          name: trimmed !== guest.name ? trimmed : undefined,
-          representativeMemberId: rep !== guest.representativeMemberId ? rep : undefined,
-        },
-        done,
-      );
-    if (rep === guest.representativeMemberId) return save();
-    Alert.alert('대표자를 바꿀까요?', repChangeWarning(trimmed, names[rep] ?? ''), [
-      { text: '취소', style: 'cancel' },
-      { text: '바꾸기', onPress: save },
-    ]);
-  };
-
-  return (
-    <View className="gap-[18px]">
-      <TextInput
-        accessibilityLabel="게스트 이름"
-        placeholder="이름(예: 엄마)"
-        placeholderTextColor={colors.ink[300]}
-        value={name}
-        onChangeText={setName}
-        maxLength={12}
-        className="h-[54px] rounded-input border-[1.5px] border-line bg-white px-4 font-semibold text-[17px] text-ink focus:border-primary"
-      />
-      <View className="gap-2">
-        <Text className="text-[13px] text-ink-500">대표자 · 정산은 대표자가 대신 주고받아요</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {users.map((u) => (
-            <Pressable
-              key={u.id}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: rep === u.id }}
-              onPress={() => setRep(u.id)}
-              className={`h-11 items-center justify-center rounded-chip px-4 ${rep === u.id ? 'bg-primary' : 'bg-muted'}`}
-            >
-              <Text className={`font-semibold text-base ${rep === u.id ? 'text-primary-on' : 'text-ink'}`}>{u.name}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-      <View className="gap-2">
-        <PrimaryButton title={guest ? '저장' : '추가'} disabled={busy || !valid} onPress={submit} />
-        {guest && <PrimaryButton title="삭제" variant="danger" disabled={busy} onPress={() => remove.mutate(guest.id, done)} />}
-      </View>
-    </View>
   );
 }

@@ -11,6 +11,7 @@ import { buildInviteUrl } from '@/lib/invite';
 import { colors } from '@/theme/tokens';
 
 import { BottomSheet } from './BottomSheet';
+import { GuestForm } from './GuestForm';
 import { Icon } from './Icon';
 import { KakaoSymbol } from './Logo';
 import { useToast } from './Toast';
@@ -90,15 +91,25 @@ function Tile({ label, icon, bg, fg, text, onPress }: TileProps) {
 }
 
 export function InviteSheet({ roomId, visible, onClose }: { roomId: string; visible: boolean; onClose: () => void }) {
+  const [guest, setGuest] = useState(false);
+  const close = () => {
+    setGuest(false);
+    onClose();
+  };
+  // 게스트 추가는 멤버 화면으로 넘기지 않고 이 시트 안에서 바로 받는다
+  // (iOS는 Modal이 닫히는 중에 다음 Modal을 띄우면 무시하므로 시트 하나를 번갈아 쓴다).
   return (
-    <BottomSheet visible={visible} onClose={onClose} title={INVITE_TITLE} subtitle={INVITE_SUBTITLE}>
-      <InviteOptions
-        roomId={roomId}
-        onAddGuest={() => {
-          onClose();
-          router.push({ pathname: '/rooms/[roomId]/members', params: { roomId, addGuest: '1' } });
-        }}
-      />
+    <BottomSheet
+      visible={visible}
+      onClose={close}
+      title={guest ? '게스트 추가' : INVITE_TITLE}
+      subtitle={guest ? undefined : INVITE_SUBTITLE}
+    >
+      {guest ? (
+        <GuestForm roomId={roomId} guest={null} onClose={close} />
+      ) : (
+        <InviteOptions roomId={roomId} onAddGuest={() => setGuest(true)} />
+      )}
     </BottomSheet>
   );
 }
