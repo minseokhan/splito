@@ -82,3 +82,24 @@
 
 "수정 기능 구현"은 **할 일이 없었다** — 이미 동작하고 있었다. 대신 안 보이던 게 문제라
 표시만 바꿨다. 기존 편집 로직은 한 줄도 건드리지 않았다.
+
+---
+
+## 3차: 사진 입력 화면 (영수증/캡처 토글 제거 + 인앱 카메라)
+
+| 항목 | 판정 | 근거 | 조치 |
+|---|---|---|---|
+| '영수증/결제앱 캡처' 토글 제거 | 미반영 | `expenses/new.tsx` `photoKind` state → `source`(`receipt`/`card_image`)와 `expense_photos.kind` 결정 | 토글 삭제, AI 판정으로 대체 |
+| 종류 자동 인식 | **코드에 없음(신규·서버)** | `_shared/parseSchema.ts`에 해당 필드 없음. `source`는 클라이언트가 사용자 선택으로 정하고 있었다 | `photo_kind: 'receipt'\|'capture'\|null` 추가 + 프롬프트 1줄 + Deno 테스트 2개. splito-dev에 **v4 배포 완료** |
+| 인앱 카메라 프리뷰 | **코드에 없음(신규·네이티브)** | `expo-image-picker`만 있음 — OS 카메라를 띄울 뿐 화면 안 프리뷰 불가 | `expo-camera@~57.0.6` 추가, `CameraPane` + `takePictureAsync`. **dev build 재빌드 필요** |
+
+### 확인한 전제
+
+- `source`가 실제로 쓰이는 곳은 **지출 카드 라벨 한 줄**뿐이다(`영수증` vs `결제 캡처`). 아이콘은 둘 다 카메라(`home.tsx:22`, `ExpenseCard.tsx:13-14`).
+- DB `expenses.source` check 제약에 `card_image`가 이미 있어 **마이그레이션 불필요**(`20261029000000_schema.sql:81`).
+- 카메라 권한 문구는 `app.config.ts`의 expo-image-picker 플러그인에 이미 있음 → 추가 작업 없음.
+- `photo_kind`는 zod `.optional()` → **구 버전 함수가 응답해도 클라이언트가 깨지지 않는다**(기본 `receipt`).
+
+### 남는 제약
+
+iOS 시뮬레이터에는 카메라가 없다 → 프리뷰 자체의 QA는 실기기에서만 가능. 앨범 경로와 자동 인식은 시뮬레이터에서 확인 가능.

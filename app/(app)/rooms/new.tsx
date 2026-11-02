@@ -34,7 +34,7 @@ const schema = z
 
 type DateField = 'startDate' | 'endDate';
 
-const FOCUS_RING = { boxShadow: '0 0 0 4px rgba(54,182,255,.18)' };
+const FOCUS_RING = { boxShadow: '0 0 0 4px rgba(94,196,255,.18)' };
 
 // 'YYYY-MM-DD' → '10월 20일'
 const prettyDate = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${Number(v.slice(5, 7))}월 ${Number(v.slice(8, 10))}일` : v);
