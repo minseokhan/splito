@@ -17,7 +17,7 @@ export type Result =
   | { ok: true; data: ParsedExpense }
   | { ok: false; code: string; status: number; room_id?: string };
 
-type Req = { room_id: string; kind: 'image' | 'text'; storage_path?: string; text?: string; base_currency: string; room_start_date?: string };
+type Req = { room_id: string; kind: 'image' | 'text' | 'ocr'; storage_path?: string; text?: string; base_currency: string; room_start_date?: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -37,7 +37,7 @@ function validate(b: unknown): Req | null {
   if (r.kind === 'image') {
     const path = new RegExp(`^${roomId}/[0-9a-f-]{36}/[0-9a-f-]{36}\\.jpg$`);
     if (typeof r.storage_path !== 'string' || !path.test(r.storage_path)) return null;
-  } else if (r.kind === 'text') {
+  } else if (r.kind === 'text' || r.kind === 'ocr') {
     if (typeof r.text !== 'string' || !r.text.trim() || r.text.length > 4000) return null;
   } else return null;
   return r as Req;
@@ -52,7 +52,7 @@ const SYSTEM = `너는 여행 가계부 앱의 지출 인식기다. 영수증 �
 - currency는 ISO 4217 코드다. 통화 표시가 없으면 null. ¥(JPY/CNY), $(USD/HKD/TWD/AUD 등)처럼 기호만으로 통화가 갈리면 가장 그럴듯한 코드를 쓰고 currency_ambiguous를 true로 한다.
 - 날짜는 찍힌 현지 날짜다. 연도가 없으면 null 대신 '--MM-DD'로 쓰고 confidence를 low로 한다. DD/MM과 MM/DD가 모호해도 low.
 - category는 이 지출 전체에 하나만 고른다(품목마다 고르지 않는다). 영수증·문자 전체를 보고 가게 업종으로 판단한다. 식당·카페·술집·편의점 식품·마트 식료품은 food. 기념품·드럭스토어·의류·잡화·전자제품은 shopping. 입장권·투어·박물관·전망대·공연·체험은 sightseeing. 호텔·료칸·게스트하우스·에어비앤비 숙박은 lodging. 전철·버스·택시·기차·항공·JR패스·주유·주차·렌터카는 transport. 어디에도 분명히 들어가지 않거나 자신이 없으면 other로 한다.
-- photo_kind는 이미지를 받았을 때만 채운다. 종이 영수증·전표를 찍은 사진이면 receipt, 휴대폰 화면을 캡처한 결제앱·카드사 앱·간편결제 내역 화면이면 capture다. 텍스트만 받았으면 null.
+- photo_kind는 이미지, 또는 사진에서 읽어낸 글자(OCR)를 받았을 때만 채운다. 종이 영수증·전표면 receipt, 휴대폰 화면을 캡처한 결제앱·카드사 앱·간편결제 내역 화면이면 capture다. 붙여넣은 텍스트만 받았으면 null.
 - 읽기 어렵거나 추정한 값이 있는 품목은 confidence low로 한다.
 - 지출 기록이 아니면(영수증·결제 내역·지출 설명이 아님) is_receipt를 false로 한다. 텍스트가 지출을 말하고 있으면 is_receipt는 true다.`;
 
@@ -63,7 +63,12 @@ function buildParams(model: string, req: Req, image: Uint8Array | null): Anthrop
       { type: 'text', text: '이 이미지의 지출을 인식해.' },
     ]
     // '<' 를 전각으로 바꿔 데이터가 </data>로 블록을 닫지 못하게 한다.
-    : [{ type: 'text', text: `다음 텍스트의 지출을 인식해.\n<data>\n${req.text!.replaceAll('<', '＜')}\n</data>` }];
+    : [{
+      type: 'text',
+      text: `${
+        req.kind === 'ocr' ? '다음은 사진에서 읽은 글자다. 이 지출을 인식해.' : '다음 텍스트의 지출을 인식해.'
+      }\n<data>\n${req.text!.replaceAll('<', '＜')}\n</data>`,
+    }];
   return {
     model,
     max_tokens: 4096,
@@ -140,6 +145,7 @@ export async function parseExpense(deps: Deps, body: unknown): Promise<Result> {
   ]).finally(() => clearTimeout(timer));
 
   if (typeof result === 'string') return fail(result);
-  if (!result.is_receipt || result.items.length === 0) return fail('NOT_A_RECEIPT');
+  // 품목 줄이 없어도 총액이 있으면 지출이다(결제앱·카드사 상세 내역 화면). 클라이언트가 총액 한 덩어리로 박스를 만든다.
+  if (!result.is_receipt || (result.items.length === 0 && result.total === null)) return fail('NOT_A_RECEIPT');
   return { ok: true, data: postprocess(result, req, deps.now) };
 }

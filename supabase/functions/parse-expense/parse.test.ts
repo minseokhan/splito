@@ -161,8 +161,8 @@ Deno.test('프롬프트가 photo_kind 판정 기준을 담는다', async () => {
   assertStringIncludes(String(calls[0].params.system), 'photo_kind');
 });
 
-Deno.test('is_receipt=false 또는 품목 0개 → NOT_A_RECEIPT', async () => {
-  for (const body of [ok({ is_receipt: false }), ok({ items: [] })]) {
+Deno.test('is_receipt=false 또는 품목·총액 둘 다 없음 → NOT_A_RECEIPT', async () => {
+  for (const body of [ok({ is_receipt: false }), ok({ items: [], total: null })]) {
     const r = await parseExpense(fake([reply(body)]).deps, imageReq());
     assertEquals(r, { ok: false, code: 'NOT_A_RECEIPT', status: 422, room_id: ROOM });
   }
@@ -247,4 +247,62 @@ Deno.test('잘못된 body(kind·base_currency·room_id) → INVALID_INPUT', asyn
   ) {
     assertEquals(await parseExpense(fake([]).deps, body), { ok: false, code: 'INVALID_INPUT', status: 400 });
   }
+});
+
+const ocrReq = (text: string, over: Record<string, unknown> = {}) => ({
+  room_id: ROOM, kind: 'ocr', text, base_currency: 'JPY', ...over,
+});
+
+Deno.test("kind 'ocr': 사진에서 읽은 글자임을 밝히고 데이터 태그로 감싼다. 이미지는 내려받지 않는다", async () => {
+  let downloads = 0;
+  const f = fake([reply(ok())], {
+    download: () => {
+      downloads++;
+      return Promise.resolve(new Uint8Array([0xff]));
+    },
+  });
+  const r = await parseExpense(f.deps, ocrReq('一蘭 ラーメン 2 3280\n合計 ¥3,280'));
+  assert(r.ok);
+  assertEquals(downloads, 0);
+  const content = f.calls[0].params.messages[0].content as { type: string; text: string }[];
+  assertEquals(content.filter((c) => c.type === 'image').length, 0);
+  const text = content.find((c) => c.type === 'text')!.text;
+  assertStringIncludes(text, '사진에서 읽은');
+  assertStringIncludes(text, '<data>');
+  assertEquals(text.split('</data>').length, 2);
+});
+
+Deno.test("kind 'ocr': 텍스트와 같은 검증을 받는다(빈 값·4,001자 거부, 4,000자 통과)", async () => {
+  for (const body of [ocrReq(''), ocrReq('a'.repeat(4001))]) {
+    assertEquals(await parseExpense(fake([]).deps, body), { ok: false, code: 'INVALID_INPUT', status: 400 });
+  }
+  const r = await parseExpense(fake([reply(ok())]).deps, ocrReq('a'.repeat(4000)));
+  assert(r.ok);
+});
+
+Deno.test("kind 'ocr': photo_kind 판정이 살아 있다(결제앱 캡처를 구분한다)", async () => {
+  const f = fake([reply(ok({ photo_kind: 'capture' }))]);
+  const r = await parseExpense(f.deps, ocrReq('카카오페이 결제완료 3,280원'));
+  assert(r.ok);
+  assertEquals(r.data.photo_kind, 'capture');
+  // 프롬프트가 OCR 글자에도 photo_kind를 매기라고 지시한다
+  assertStringIncludes(String(f.calls[0].params.system), 'OCR');
+});
+
+Deno.test('품목 줄이 없어도 total이 있으면 통과한다(결제앱 상세 내역 화면)', async () => {
+  const f = fake([reply(ok({ items: [], total: 728, merchant: 'CHARICHARI', photo_kind: 'capture' }))]);
+  const r = await parseExpense(f.deps, ocrReq('CHARICHARI\n결제 승인\n이용금액 ¥728\n원화금액 ₩6,957'));
+  assert(r.ok);
+  assertEquals(r.data.total, 728);
+  assertEquals(r.data.items, []);
+});
+
+Deno.test('품목도 total도 없으면 NOT_A_RECEIPT', async () => {
+  const f = fake([reply(ok({ items: [], total: null }))]);
+  assertEquals(await parseExpense(f.deps, ocrReq('하늘 구름 나무')), {
+    ok: false,
+    code: 'NOT_A_RECEIPT',
+    status: 422,
+    room_id: ROOM,
+  });
 });

@@ -182,7 +182,7 @@ export const api = {
 
   // 비용 때문에 자동 재시도하지 않는다(ARCHITECTURE §5.2). 사용자가 signal로 취소하면 원래 에러를 그대로 던진다.
   async parseExpense(
-    req: { roomId: RoomId; kind: 'image' | 'text'; storagePath?: string; text?: string; baseCurrency: string; roomStartDate?: string },
+    req: { roomId: RoomId; kind: 'image' | 'text' | 'ocr'; storagePath?: string; text?: string; baseCurrency: string; roomStartDate?: string },
     signal?: AbortSignal,
   ): Promise<ParseResult> {
     const { data, error } = await supabase.functions.invoke<ParseResult>('parse-expense', {

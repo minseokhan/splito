@@ -12,9 +12,11 @@ phases/**/step*-output.json
 __pycache__/
 .pytest_cache/
 
-# expo prebuild output
-ios/
-android/
+# expo prebuild output (루트에만 생긴다. 앵커를 빼면 modules/*/ios·android 네이티브 소스까지 먹는다)
+/ios/
+/android/
+# 로컬 Expo 모듈의 gradle 산출물(소스는 추적한다)
+modules/*/android/build/
 
 # claude worktrees
 .claude/worktrees/

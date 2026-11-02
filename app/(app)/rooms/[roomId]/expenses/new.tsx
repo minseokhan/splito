@@ -20,6 +20,7 @@ import { autoSelectPayer } from '@/lib/pool';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
 import { keepPhoto, saveDraft } from '@/services/drafts';
+import { recognizeReceipt } from '@/services/ocr';
 import { preparePhoto, uploadReceipt } from '@/services/storage';
 import { colors } from '@/theme/tokens';
 import type { ExpenseSource } from '@/types/domain';
@@ -117,7 +118,11 @@ export default function NewExpense() {
     return saveDraft(roomId, { draft: { ...draft, photos: photos(p, 'receipt') }, localPhotos: [p.local] });
   };
 
-  const parse = async (req: { kind: 'image'; storagePath: string } | { kind: 'text'; text: string }, source: ExpenseSource, p: typeof photo) => {
+  const parse = async (
+    req: { kind: 'image'; storagePath: string } | { kind: 'text' | 'ocr'; text: string },
+    source: ExpenseSource,
+    p: typeof photo,
+  ) => {
     const controller = new AbortController();
     abortRef.current = controller;
     setPhase({ kind: 'parsing' });
@@ -135,9 +140,9 @@ export default function NewExpense() {
       return;
     }
     if (controller.signal.aborted) return;
-    // 이미지면 AI가 고른 종류로 source를 정한다. 텍스트면 부른 쪽이 준 source를 쓴다.
+    // 사진에서 온 입력(이미지·OCR 글자)이면 AI가 고른 종류로 source를 정한다. 붙여넣은 텍스트면 부른 쪽이 준 source를 쓴다.
     const kind: PhotoKind = result.photo_kind ?? 'receipt';
-    const src: ExpenseSource = req.kind === 'image' ? (kind === 'capture' ? 'card_image' : 'receipt') : source;
+    const src: ExpenseSource = req.kind === 'text' ? source : (kind === 'capture' ? 'card_image' : 'receipt');
     // 공금 카드 끝자리와 일치하면 결제자를 '공금'으로(J7 2번).
     const draft = autoSelectPayer(draftFromParse(result, ctx(src)), { enabled: room.pool_enabled, cardLast4: room.pool_card_last4 });
     await goReview({ ...draft, photos: photos(p, kind) }, p ? [p.local] : []);
@@ -145,8 +150,8 @@ export default function NewExpense() {
 
   const uploadAndParse = async (p: { local: string; storagePath: string | null }) => {
     let next = p;
+    setPhase({ kind: 'parsing' });
     if (!next.storagePath) {
-      setPhase({ kind: 'parsing' });
       try {
         next = { ...p, storagePath: await uploadReceipt(roomId, expenseId, p.local) };
       } catch (err) {
@@ -156,7 +161,13 @@ export default function NewExpense() {
       }
       setPhoto(next);
     }
-    await parse({ kind: 'image', storagePath: next.storagePath! }, 'receipt', next);
+    // 기기 OCR로 읽은 글자만 보낸다(영수증 사진은 Anthropic으로 가지 않는다).
+    // 글자가 안 나오면 지금까지처럼 이미지를 보낸다 — 사용자에게는 차이가 보이지 않는다.
+    // OCR이 읽는 건 preparePhoto가 만든 긴 변 1600px 사본이다. 숫자 인식이 모자라면 storage.ts의 LONG_EDGE가 지렛대다.
+    const text = await recognizeReceipt(next.local, room.base_currency);
+    await (text
+      ? parse({ kind: 'ocr', text }, 'receipt', next)
+      : parse({ kind: 'image', storagePath: next.storagePath! }, 'receipt', next));
   };
 
   const pickPhoto = async (from: 'camera' | 'library') => {

@@ -8,13 +8,16 @@ const CATEGORIES = ['food', 'shopping', 'sightseeing', 'lodging', 'transport', '
 export const ParsedExpense = z.object({
   is_receipt: z.boolean(),
   merchant: z.string().nullable(),
-  paid_local_date: z.string().regex(/^(\d{4}|-)-\d{2}-\d{2}$/).nullable(),
-  paid_local_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable(),
-  currency: z.string().regex(/^[A-Z]{3}$/).nullable(),
+  // 형식을 벗어난 값은 거부하지 않고 null로 접는다. 표시용 필드 하나 때문에 금액까지 버리면 안 된다.
+  // null이어도 뒤에서 메워진다 — currency는 postprocess가 base_currency로, 날짜는 클라이언트가 오늘로(확인 필요 표시).
+  paid_local_date: z.string().regex(/^(\d{4}|-)-\d{2}-\d{2}$/).nullable().catch(null),
+  paid_local_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().catch(null),
+  currency: z.string().regex(/^[A-Z]{3}$/).nullable().catch(null),
   currency_ambiguous: z.boolean(),
   total: z.number().nullable(),
   krw_charged: z.number().nullable(),
-  card_last4: z.string().regex(/^\d{4}$/).nullable(),
+  // 결제앱이 끝자리까지 마스킹하면 '724*'처럼 읽힌다(공금 카드 매칭만 못 할 뿐이다).
+  card_last4: z.string().regex(/^\d{4}$/).nullable().catch(null),
   // 모르는 값·누락은 거부하지 않고 'other'로 접는다(DB check 제약과 같은 코드 집합).
   category: z.enum(CATEGORIES).catch('other'),
   // 이미지일 때만 채운다. optional이라 이 필드를 모르는 구 버전 응답도 그대로 통과한다.
