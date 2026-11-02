@@ -9,7 +9,7 @@ import { Icon } from '@/components/Icon';
 import { InvitePasteBox } from '@/components/InvitePasteBox';
 import { KakaoSymbol, Wordmark } from '@/components/Logo';
 import { toUserError } from '@/lib/errors';
-import { signInWithProvider } from '@/services/auth';
+import { signInAsTestUser, signInWithProvider, TEST_USERS } from '@/services/auth';
 import { colors } from '@/theme/tokens';
 
 // 핸드오프 splito-landing-preview.html 의 `.rise` 와 `.d1`~`.d6` 값 그대로다.
@@ -70,11 +70,11 @@ export default function Login() {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduced, () => setReduced(false));
   }, []);
 
-  const signIn = async (provider: 'kakao' | 'custom:naver') => {
+  const run = async (fn: () => Promise<void>) => {
     setError(undefined);
     setBusy(true);
     try {
-      await signInWithProvider(provider);
+      await fn();
       router.replace('/');
     } catch (e) {
       setError(toUserError(e).message);
@@ -82,6 +82,8 @@ export default function Login() {
       setBusy(false);
     }
   };
+
+  const signIn = (provider: 'kakao' | 'custom:naver') => run(() => signInWithProvider(provider));
 
   return (
     <View className="flex-1 bg-white">
@@ -138,6 +140,16 @@ export default function Login() {
         <Pressable accessibilityRole="button" onPress={() => setInviteOpen(true)} hitSlop={8} className="self-center py-1">
           <Text className="font-semibold text-[13px] text-primary-text">초대 링크를 받으셨나요?</Text>
         </Pressable>
+        {/* dev 빌드 전용: 다른 참여자 화면을 확인하기 위한 테스트 계정 로그인. 릴리스 번들에서는 사라진다. */}
+        {__DEV__ && (
+          <View className="flex-row justify-center gap-4 pt-1">
+            {TEST_USERS.map((u) => (
+              <Pressable key={u.email} accessibilityRole="button" disabled={busy} hitSlop={8} onPress={() => run(() => signInAsTestUser(u.email))}>
+                <Text className="text-xs text-ink-400 underline">DEV: {u.nickname}로 로그인</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
       <BottomSheet visible={inviteOpen} onClose={() => setInviteOpen(false)}>
         <InvitePasteBox />
