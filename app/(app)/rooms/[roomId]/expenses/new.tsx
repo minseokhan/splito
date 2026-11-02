@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
-import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
@@ -288,7 +288,7 @@ export default function NewExpense() {
             <Title title="사진으로 올리기" sub="영수증이든 결제앱 화면이든 알아서 구분해요" />
           </View>
           {/* 빈 공간을 프리뷰로 채운다. 종류 선택은 없앴다 — parse-expense가 photo_kind로 판정한다. */}
-          <View className="mx-5 mt-5 flex-1 overflow-hidden rounded-card-lg bg-ink">
+          <View className="mx-5 mb-3 mt-4 flex-1 overflow-hidden rounded-card bg-ink">
             <CameraPane camRef={camRef} />
           </View>
           <BottomBar>
@@ -300,7 +300,8 @@ export default function NewExpense() {
 
       {phase.kind === 'input' && (method === 'text' || method === 'voice') && (
         <View className="flex-1">
-          <View className="flex-1 gap-6 px-5 pt-2">
+          {/* 입력칸 밖을 누르면 키보드를 내린다 */}
+          <Pressable accessible={false} onPress={() => Keyboard.dismiss()} className="flex-1 gap-6 px-5 pt-2">
             <Title
               title={method === 'text' ? '카드 문자 붙여넣기' : '말로 입력'}
               sub={
@@ -308,7 +309,7 @@ export default function NewExpense() {
                   ? '카드 승인 문자를 그대로 붙여넣어 주세요'
                   : listening
                     ? '듣고 있어요. 다 말했으면 멈춰 주세요(최대 60초)'
-                    : '예: 카레 1만 1천 원, 덮밥 1만 5천 원'
+                    : '예: 민수는 카레 1000엔, 철수는 덮밥 1200엔, 둘 다 맥주 500엔'
               }
             />
             <View className="gap-2">
@@ -329,7 +330,7 @@ export default function NewExpense() {
                 {text.length.toLocaleString()}/{TEXT_LIMIT.toLocaleString()}
               </Text>
             </View>
-          </View>
+          </Pressable>
           <BottomBar>
             {method === 'voice' && (
               <PrimaryButton
@@ -363,7 +364,7 @@ function CameraPane({ camRef }: { camRef: React.RefObject<CameraView | null> }) 
       </View>
     );
   }
-  return <CameraView ref={camRef} style={{ flex: 1 }} facing="back" />;
+  return <CameraView ref={camRef} style={{ flex: 1, borderRadius: 20 }} facing="back" />;
 }
 
 function Title({ title, sub }: { title: string; sub: string }) {

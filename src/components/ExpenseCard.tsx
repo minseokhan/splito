@@ -15,7 +15,8 @@ const SOURCE_LABEL = { receipt: '영수증', card_image: '결제 캡처', card_t
 
 type Props = { row: FeedRow; payerName: string; recorderName: string; onPress: () => void };
 
-// 피드 한 줄(날짜 그룹 카드 안). 구분선은 화면이 그린다. 금액은 서버 확정 값만 표시한다.
+// 피드 한 줄. 구분선은 화면이 그린다.
+// 금액은 결제한 통화를 크게(원화 결제도 ₩ 기호), 확정 원화를 작게 아래에 둔다.
 export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
   const pending = row.krwAmount === null;
   const foreign = row.currency !== 'KRW';
@@ -29,12 +30,12 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`${merchant} ${pending ? `${original} 환율 대기` : formatKrw(row.krwAmount!)}`}
         onPress={onPress}
-        className="flex-row items-center gap-3 py-3.5"
+        className="flex-row items-center gap-3 py-3"
       >
-        <View className="h-11 w-11 items-center justify-center rounded-input bg-muted">
-          <Icon as={source} size={21} color={colors.primary.text} accessibilityLabel={sourceLabel} />
+        <View className="h-[42px] w-[42px] items-center justify-center rounded-input bg-muted">
+          <Icon as={source} size={20} color={colors.primary.text} accessibilityLabel={sourceLabel} />
         </View>
-        <View className="flex-1 gap-[3px]">
+        <View className="flex-1 gap-[2px]">
           <View className="flex-row items-center gap-1.5">
             <Text className="shrink font-semibold text-base text-ink" numberOfLines={1}>
               {merchant}
@@ -46,20 +47,18 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
             {payerRecorderLabel(payerName, recorderName)}
           </Text>
         </View>
-        <View className="items-end gap-[3px]">
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
-            {pending ? original : formatKrw(row.krwAmount!)}
+        <View className="items-end gap-[2px]">
+          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-local">
+            {original}
           </Text>
           {pending ? (
             <View className="flex-row">
               <Badge kind="pending" />
             </View>
           ) : (
-            foreign && (
-              <Text style={{ fontVariant: ['tabular-nums'] }} className="text-xs text-ink-400">
-                {original}
-              </Text>
-            )
+            <Text style={{ fontVariant: ['tabular-nums'] }} className="text-xs text-ink-300">
+              {foreign ? formatKrw(row.krwAmount!) : '원화결제'}
+            </Text>
           )}
         </View>
       </Pressable>
