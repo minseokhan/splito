@@ -10,6 +10,7 @@ import {
   previewKrw,
   previewVisibility,
   setAssignees,
+  removeItem,
   splitItem,
   toDupInput,
   toSavePayload,
@@ -158,6 +159,31 @@ describe('addItem', () => {
   it('마지막에 빈 박스 추가, position은 다음 번호', () => {
     const d = addItem(draftFromParse(parse(), ctx()), () => 'add');
     expect(d.items[2]).toMatchObject({ id: 'add', position: 2, amountOriginal: 0, isAdjustment: false, assigneeMemberIds: [] });
+  });
+});
+
+describe('removeItem', () => {
+  it('해당 박스만 빼고 position을 다시 매긴다', () => {
+    const d = draftFromParse(parse({ total: null, items: [
+      { name_original: 'a', name_ko: 'a', quantity: 1, amount: 1, confidence: 'high' },
+      { name_original: 'b', name_ko: 'b', quantity: 1, amount: 2, confidence: 'high' },
+      { name_original: 'c', name_ko: 'c', quantity: 1, amount: 3, confidence: 'high' },
+    ] }), ctx());
+    const r = removeItem(d, d.items[1].id);
+    expect(r.items.map((i) => i.nameKo)).toEqual(['a', 'c']);
+    expect(r.items.map((i) => i.position)).toEqual([0, 1]);
+  });
+
+  it('마지막 한 박스는 지우지 않는다 — 박스 0개 지출은 저장할 수 없다', () => {
+    const d = draftFromParse(parse({ total: null, items: [
+      { name_original: 'a', name_ko: 'a', quantity: 1, amount: 1, confidence: 'high' },
+    ] }), ctx());
+    expect(removeItem(d, d.items[0].id)).toBe(d);
+  });
+
+  it('없는 id면 그대로', () => {
+    const d = draftFromParse(parse(), ctx());
+    expect(removeItem(d, 'nope')).toBe(d);
   });
 });
 

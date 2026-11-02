@@ -1,3 +1,4 @@
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -51,12 +52,12 @@ export default function NewExpense() {
   const [expenseId] = useState(uuidV4);
   const [phase, setPhase] = useState<Phase>({ kind: 'input' });
   const [noticeDone, setNoticeDone] = useState(false);
-  const [photoKind, setPhotoKind] = useState<PhotoKind>('receipt');
   // 업로드가 끝난 사진은 다시 시도할 때 재사용한다.
   const [photo, setPhoto] = useState<{ local: string; storagePath: string | null } | null>(null);
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
   const finalText = useRef('');
+  const camRef = useRef<CameraView>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useSpeechRecognitionEvent('result', (e) => {
@@ -94,24 +95,26 @@ export default function NewExpense() {
     newId: uuidV4,
   });
 
-  const goReview = async (draft: ExpenseDraft, localPhotos: string[]) => {
+  const goReview = async (draft: ExpenseDraft, localPhotos: string[], nav: 'replace' | 'push' = 'replace') => {
     await saveDraft(roomId, { draft, localPhotos }); // review가 기기에서 다시 읽는다
-    router.replace({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } });
+    router[nav]({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } });
   };
 
-  const photoSource: ExpenseSource = photoKind === 'capture' ? 'card_image' : 'receipt';
-  const photos = (p: typeof photo) => (p?.storagePath ? [{ storagePath: p.storagePath, kind: photoKind }] : []);
+  // 영수증 사진인지 결제앱 캡처인지는 parse-expense가 판정해 photo_kind로 돌려준다(구 버전 응답이면 receipt).
+  const photos = (p: typeof photo, kind: PhotoKind) => (p?.storagePath ? [{ storagePath: p.storagePath, kind }] : []);
 
-  const manual = () => {
-    const source: ExpenseSource = method === 'photo' ? photoSource : method === 'text' ? 'card_text' : method === 'voice' ? 'voice' : 'manual';
+  const manualTo = (nav: 'replace' | 'push') => {
+    const source: ExpenseSource = method === 'photo' ? 'receipt' : method === 'text' ? 'card_text' : method === 'voice' ? 'voice' : 'manual';
     const draft = emptyDraft({ ...ctx(source), currency: room.base_currency });
-    void goReview({ ...draft, photos: photos(photo) }, photo ? [photo.local] : []);
+    void goReview({ ...draft, photos: photos(photo, 'receipt') }, photo ? [photo.local] : [], nav);
   };
+  // onPress에 그대로 넘기므로 인자를 받지 않는다(이벤트 객체가 nav로 새지 않게).
+  const manual = () => manualTo('replace');
 
   // 인식·업로드에 실패해도 사진은 작성 중 지출로 남긴다.
   const keepFailedPhoto = (p: NonNullable<typeof photo>) => {
-    const draft = emptyDraft({ ...ctx(photoSource), currency: room.base_currency });
-    return saveDraft(roomId, { draft: { ...draft, photos: photos(p) }, localPhotos: [p.local] });
+    const draft = emptyDraft({ ...ctx('receipt'), currency: room.base_currency });
+    return saveDraft(roomId, { draft: { ...draft, photos: photos(p, 'receipt') }, localPhotos: [p.local] });
   };
 
   const parse = async (req: { kind: 'image'; storagePath: string } | { kind: 'text'; text: string }, source: ExpenseSource, p: typeof photo) => {
@@ -132,9 +135,12 @@ export default function NewExpense() {
       return;
     }
     if (controller.signal.aborted) return;
+    // 이미지면 AI가 고른 종류로 source를 정한다. 텍스트면 부른 쪽이 준 source를 쓴다.
+    const kind: PhotoKind = result.photo_kind ?? 'receipt';
+    const src: ExpenseSource = req.kind === 'image' ? (kind === 'capture' ? 'card_image' : 'receipt') : source;
     // 공금 카드 끝자리와 일치하면 결제자를 '공금'으로(J7 2번).
-    const draft = autoSelectPayer(draftFromParse(result, ctx(source)), { enabled: room.pool_enabled, cardLast4: room.pool_card_last4 });
-    await goReview({ ...draft, photos: photos(p) }, p ? [p.local] : []);
+    const draft = autoSelectPayer(draftFromParse(result, ctx(src)), { enabled: room.pool_enabled, cardLast4: room.pool_card_last4 });
+    await goReview({ ...draft, photos: photos(p, kind) }, p ? [p.local] : []);
   };
 
   const uploadAndParse = async (p: { local: string; storagePath: string | null }) => {
@@ -150,7 +156,7 @@ export default function NewExpense() {
       }
       setPhoto(next);
     }
-    await parse({ kind: 'image', storagePath: next.storagePath! }, photoSource, next);
+    await parse({ kind: 'image', storagePath: next.storagePath! }, 'receipt', next);
   };
 
   const pickPhoto = async (from: 'camera' | 'library') => {
@@ -165,11 +171,21 @@ export default function NewExpense() {
     const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], exif: false, quality: 1 };
     const res = from === 'camera' ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     if (res.canceled) return;
-    // EXIF를 지운 사본을 기기에 보관한다(앱이 종료돼도 이어 쓰기).
-    const { uri } = await preparePhoto(res.assets[0].uri);
+    await acceptPhoto(res.assets[0].uri);
+  };
+
+  // EXIF를 지운 사본을 기기에 보관한다(앱이 종료돼도 이어 쓰기). 촬영·앨범이 같이 쓴다.
+  const acceptPhoto = async (localUri: string) => {
+    const { uri } = await preparePhoto(localUri);
     const p = { local: await keepPhoto(roomId, uri), storagePath: null };
     setPhoto(p);
     await uploadAndParse(p);
+  };
+
+  const shoot = async () => {
+    const shot = await camRef.current?.takePictureAsync({ quality: 1 }).catch(() => null);
+    if (!shot?.uri) return;
+    await acceptPhoto(shot.uri);
   };
 
   const startVoice = async () => {
@@ -204,7 +220,15 @@ export default function NewExpense() {
 
   if (method === 'manual') {
     // 렌더 중 이동을 피하려고 버튼 대신 즉시 실행한다.
-    return <ManualRedirect onReady={manual} />;
+    // 방법 선택에서 왔으면 review를 push하고 picked를 되돌린다 — 뒤로가기가 방법 선택으로 돌아오게.
+    return (
+      <ManualRedirect
+        onReady={() => {
+          manualTo(picked ? 'push' : 'replace');
+          setPicked(undefined);
+        }}
+      />
+    );
   }
 
   const needNotice = !profile?.ai_notice_ack_at && !noticeDone;
@@ -250,31 +274,14 @@ export default function NewExpense() {
       {phase.kind === 'input' && method === 'photo' && (
         <View className="flex-1">
           <View className="gap-6 px-5 pt-2">
-            <Title title="사진으로 올리기" sub="영수증이나 결제앱 화면을 찍어주세요" />
-            <View className="gap-2">
-              <Text className="font-semibold text-sm text-ink-500">사진 종류</Text>
-              <View className="flex-row gap-2">
-                {(['receipt', 'capture'] as const).map((k) => {
-                  const on = photoKind === k;
-                  return (
-                    <Pressable
-                      key={k}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: on }}
-                      onPress={() => setPhotoKind(k)}
-                      className={`h-11 flex-1 items-center justify-center rounded-input border-[1.5px] ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
-                    >
-                      <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>
-                        {k === 'receipt' ? '영수증' : '결제앱 캡처'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+            <Title title="사진으로 올리기" sub="영수증이든 결제앱 화면이든 알아서 구분해요" />
+          </View>
+          {/* 빈 공간을 프리뷰로 채운다. 종류 선택은 없앴다 — parse-expense가 photo_kind로 판정한다. */}
+          <View className="mx-5 mt-5 flex-1 overflow-hidden rounded-card-lg bg-ink">
+            <CameraPane camRef={camRef} />
           </View>
           <BottomBar>
-            <PrimaryButton title="촬영하기" icon={Camera} onPress={() => void pickPhoto('camera')} />
+            <PrimaryButton title="촬영하기" icon={Camera} onPress={() => void shoot()} />
             <PrimaryButton title="앨범에서 고르기" icon={MediaImage} variant="muted" onPress={() => void pickPhoto('library')} />
           </BottomBar>
         </View>
@@ -329,6 +336,25 @@ export default function NewExpense() {
   );
 }
 
+// 화면 안 카메라 프리뷰. 권한이 없으면 허용 버튼만 보여주고, 앨범 경로는 그대로 쓸 수 있게 둔다.
+function CameraPane({ camRef }: { camRef: React.RefObject<CameraView | null> }) {
+  const [perm, requestPerm] = useCameraPermissions();
+  if (!perm) return null; // 권한 상태 확인 중
+  if (!perm.granted) {
+    return (
+      <View className="flex-1 items-center justify-center gap-3 bg-app px-8">
+        <Text className="text-center text-base text-ink-500">바로 찍으려면 카메라 권한이 필요해요</Text>
+        <PrimaryButton
+          title={perm.canAskAgain ? '카메라 권한 허용' : '설정 열기'}
+          variant="muted"
+          onPress={() => void (perm.canAskAgain ? requestPerm() : Linking.openSettings())}
+        />
+      </View>
+    );
+  }
+  return <CameraView ref={camRef} style={{ flex: 1 }} facing="back" />;
+}
+
 function Title({ title, sub }: { title: string; sub: string }) {
   return (
     <View className="gap-1.5">
@@ -343,8 +369,8 @@ function Title({ title, sub }: { title: string; sub: string }) {
 // 칸마다 배경·아이콘 색이 다르다(시안 6): 문자 민트 / 음성 옐로 / 직접 회색.
 const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; bg: string; iconColor: string }[] = [
   { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, bg: 'bg-success-bg', iconColor: colors.success.DEFAULT },
-  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
-  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
+  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
+  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
 ];
 
 // 시안 6: 지출 올리기 방법 선택(전체 화면).
@@ -383,20 +409,17 @@ function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
               accessibilityRole="button"
               accessibilityLabel={m.a11y}
               onPress={() => onSelect(m.method)}
-              className={`flex-1 items-start gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
+              className={`flex-1 items-center gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
             >
               <Icon as={m.icon} size={24} color={m.iconColor} />
-              <Text className="font-semibold text-[17px] text-ink">{m.label}</Text>
+              {/* 라벨 칸을 2줄 높이로 고정한다 — 한 줄짜리는 그 안에서 가운데, 아이콘은 세 칸 모두 같은 높이 */}
+              <View className="h-[46px] justify-center">
+                <Text style={{ lineHeight: 23 }} className="text-center font-semibold text-[17px] text-ink">
+                  {m.label}
+                </Text>
+              </View>
             </Pressable>
           ))}
-        </View>
-
-        <View className="mt-1.5 gap-2.5">
-          <Text className="font-semibold text-sm text-ink-500">말로 입력 예시</Text>
-          <View style={{ borderStyle: 'dashed' }} className="rounded-button border-[1.5px] border-sky-200 px-4 py-3.5">
-            <Text className="text-[17px] text-primary-on">“카레 1만 1천 원, 덮밥 1만 5천 원, 닭꼬치 6천 원”</Text>
-            <Text className="mt-1 text-sm text-ink-400">→ 품목 박스 3개가 만들어져요</Text>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

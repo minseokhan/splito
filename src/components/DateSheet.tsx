@@ -2,30 +2,39 @@ import { NavArrowLeft, NavArrowRight } from 'iconoir-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { addDays, dateLabel, monthGrid, monthTitle, shiftMonth, WEEKDAYS } from '@/lib/calendar';
+import { dateLabel, monthGrid, monthTitle, shiftMonth, WEEKDAYS } from '@/lib/calendar';
 import { kstToday } from '@/lib/expenseForm';
 
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
 
-type Props = { visible: boolean; value: string; onPick: (date: string) => void; onClose: () => void };
+// min·max는 고를 수 있는 범위(둘 다 포함). 주지 않으면 제한 없음 — 상한 규칙은 부르는 쪽이 갖는다.
+type Props = {
+  visible: boolean;
+  value: string;
+  onPick: (date: string) => void;
+  onClose: () => void;
+  title?: string;
+  min?: string;
+  max?: string;
+};
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const CELL = 'w-[14.28%]';
 
-// 결제일 달력. 닫으면 Calendar가 풀려서 다음에 열 때 선택된 날의 달부터 다시 시작한다.
-export function DateSheet({ visible, value, onPick, onClose }: Props) {
+// 날짜 달력. 닫으면 Calendar가 풀려서 다음에 열 때 선택된 날의 달부터 다시 시작한다.
+export function DateSheet({ visible, value, onPick, onClose, title = '결제일', min, max }: Props) {
   return (
-    <BottomSheet visible={visible} onClose={onClose} title="결제일">
-      {visible && <Calendar value={value} onPick={onPick} />}
+    <BottomSheet visible={visible} onClose={onClose} title={title}>
+      {visible && <Calendar value={value} onPick={onPick} min={min} max={max} />}
     </BottomSheet>
   );
 }
 
-// 월 그리드 하나 + 이전/다음 달. validateDraft가 막는 모레 이후는 누를 수 없다.
-function Calendar({ value, onPick }: Pick<Props, 'value' | 'onPick'>) {
+// 월 그리드 하나 + 이전/다음 달. 범위 밖 날짜는 누를 수 없다.
+function Calendar({ value, onPick, min, max }: Pick<Props, 'value' | 'onPick' | 'min' | 'max'>) {
   const today = kstToday(new Date());
-  const max = addDays(today, 1); // 시차 때문에 '내일'까지는 허용한다(validateDraft와 같은 기준)
+  const blocked = (d: string) => (!!max && d > max) || (!!min && d < min);
   const [month, setMonth] = useState(() => (DATE_RE.test(value) ? value : today).slice(0, 7));
 
   return (
@@ -55,9 +64,9 @@ function Calendar({ value, onPick }: Pick<Props, 'value' | 'onPick'>) {
           ) : (
             <Pressable
               key={d}
-              disabled={d > max}
+              disabled={blocked(d)}
               accessibilityRole="button"
-              accessibilityState={{ selected: d === value, disabled: d > max }}
+              accessibilityState={{ selected: d === value, disabled: blocked(d) }}
               accessibilityLabel={dateLabel(d)}
               onPress={() => onPick(d)}
               className={`h-11 ${CELL} items-center justify-center`}
@@ -65,7 +74,7 @@ function Calendar({ value, onPick }: Pick<Props, 'value' | 'onPick'>) {
               <View className={`h-9 w-9 items-center justify-center rounded-full ${d === value ? 'bg-ink' : ''}`}>
                 <Text
                   style={{ fontVariant: ['tabular-nums'] }}
-                  className={`font-semibold text-sm ${d === value ? 'text-white' : d > max ? 'text-ink-300' : 'text-ink'}`}
+                  className={`font-semibold text-sm ${d === value ? 'text-white' : blocked(d) ? 'text-ink-300' : 'text-ink'}`}
                 >
                   {Number(d.slice(8))}
                 </Text>

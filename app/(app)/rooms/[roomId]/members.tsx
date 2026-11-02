@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, GuestChip } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
-import { InviteSheet } from '@/components/InviteSheet';
+import { INVITE_SUBTITLE, INVITE_TITLE, InviteOptions } from '@/components/InviteSheet';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
@@ -69,24 +69,38 @@ export default function Members() {
         </View>
       </ScrollView>
       <BottomBar bg={colors.app} fade>
-        <PrimaryButton title="게스트 추가" icon={UserPlus} disabled={!me} onPress={() => setSheet('new')} />
-        <PrimaryButton
-          title="초대하기"
-          variant="muted"
-          onPress={() => setInviteOpen(true)}
-        />
+        <PrimaryButton title="초대하기" icon={UserPlus} onPress={() => setInviteOpen(true)} />
       </BottomBar>
-      <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
-      {sheet && me && (
-        <GuestSheet
-          roomId={roomId}
-          guest={sheet === 'new' ? null : sheet}
-          users={users}
-          defaultRep={me.id}
-          names={names}
-          onClose={() => setSheet(null)}
-        />
-      )}
+      {/* 초대와 게스트 추가는 시트 하나를 번갈아 쓴다 — iOS는 Modal이 닫히는 중에 다음 Modal을 띄우면 그걸 무시한다. */}
+      <BottomSheet
+        visible={inviteOpen || (!!sheet && !!me)}
+        onClose={() => {
+          setInviteOpen(false);
+          setSheet(null);
+        }}
+        title={sheet && me ? (sheet === 'new' ? '게스트 추가' : '게스트 수정') : INVITE_TITLE}
+        subtitle={sheet && me ? undefined : INVITE_SUBTITLE}
+      >
+        {sheet && me ? (
+          <GuestForm
+            key={sheet === 'new' ? 'new' : sheet.id}
+            roomId={roomId}
+            guest={sheet === 'new' ? null : sheet}
+            users={users}
+            defaultRep={me.id}
+            names={names}
+            onClose={() => setSheet(null)}
+          />
+        ) : (
+          <InviteOptions
+            roomId={roomId}
+            onAddGuest={() => {
+              setInviteOpen(false);
+              setSheet('new');
+            }}
+          />
+        )}
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -100,8 +114,8 @@ type SheetProps = {
   onClose: () => void;
 };
 
-// 게스트 추가·수정. 대표자를 바꾸면 과거 정산 귀속도 옮겨지므로 한 번 더 확인한다(J9 4번).
-function GuestSheet({ roomId, guest, users, defaultRep, names, onClose }: SheetProps) {
+// 게스트 추가·수정 폼. 바깥 시트가 열고 닫는다. 대표자를 바꾸면 과거 정산 귀속도 옮겨지므로 한 번 더 확인한다(J9 4번).
+function GuestForm({ roomId, guest, users, defaultRep, names, onClose }: SheetProps) {
   const [name, setName] = useState(guest?.name ?? '');
   const [rep, setRep] = useState<MemberId>(guest?.representativeMemberId ?? defaultRep);
   const add = useAddGuest(roomId);
@@ -131,7 +145,7 @@ function GuestSheet({ roomId, guest, users, defaultRep, names, onClose }: SheetP
   };
 
   return (
-    <BottomSheet visible onClose={onClose} title={guest ? '게스트 수정' : '게스트 추가'}>
+    <View className="gap-[18px]">
       <TextInput
         accessibilityLabel="게스트 이름"
         placeholder="이름(예: 엄마)"
@@ -161,6 +175,6 @@ function GuestSheet({ roomId, guest, users, defaultRep, names, onClose }: SheetP
         <PrimaryButton title={guest ? '저장' : '추가'} disabled={busy || !valid} onPress={submit} />
         {guest && <PrimaryButton title="삭제" variant="danger" disabled={busy} onPress={() => remove.mutate(guest.id, done)} />}
       </View>
-    </BottomSheet>
+    </View>
   );
 }

@@ -12,7 +12,7 @@ export function TextField({ invalid, right, onFocus, onBlur, ...input }: Props) 
   return (
     <View
       className="h-[54px] flex-row items-center gap-2 rounded-input bg-white px-4"
-      style={{ borderWidth: 1.5, borderColor: border, boxShadow: focused && !invalid ? '0 0 0 4px rgba(54,182,255,.18)' : undefined }}
+      style={{ borderWidth: 1.5, borderColor: border, boxShadow: focused && !invalid ? '0 0 0 4px rgba(94,196,255,.18)' : undefined }}
     >
       <TextInput
         placeholderTextColor={colors.ink[300]}

@@ -1,4 +1,4 @@
-import { Check, NavArrowRight } from 'iconoir-react-native';
+import { Check, NavArrowRight, Xmark } from 'iconoir-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -31,6 +31,7 @@ type Props = {
   onToggle?: (memberId: string) => void;
   onClearReview?: () => void;
   onSplit?: () => void;
+  onRemove?: () => void; // 주면 박스를 탭했을 때 우상단에 삭제 X가 나온다
 };
 
 const TABULAR = { fontVariant: ['tabular-nums' as const] };
@@ -38,6 +39,8 @@ const TABULAR = { fontVariant: ['tabular-nums' as const] };
 // 시안 7 품목 박스: 흰색 radius 20, 확인필요면 1.5 warning-line 테두리. 금액 해석은 화면이 lib로 한다.
 export function ItemBox(p: Props) {
   const [amount, setAmount] = useState(p.amountText ?? '');
+  // 박스를 한 번 탭해야 삭제 X가 뜬다 — 입력칸 옆에 상시 노출하면 잘못 눌러 인식 결과가 날아간다.
+  const [armed, setArmed] = useState(false);
   const editable = !!p.onChangeName;
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
@@ -49,7 +52,24 @@ export function ItemBox(p: Props) {
   const open = p.expanded ?? pick;
 
   return (
-    <View className={`gap-3 rounded-card border-[1.5px] bg-white p-4 ${p.needsReview ? 'border-warning-line' : 'border-transparent'}`}>
+    <Pressable
+      accessibilityRole={p.onRemove ? 'button' : 'none'}
+      accessibilityLabel={p.onRemove ? `${p.nameKo || p.nameOriginal || '품목'} 박스` : undefined}
+      disabled={!p.onRemove}
+      onPress={() => setArmed((v) => !v)}
+      className={`gap-3 rounded-card border-[1.5px] bg-white p-4 ${p.needsReview ? 'border-warning-line' : 'border-transparent'}`}
+    >
+      {armed && p.onRemove && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="이 품목 삭제"
+          onPress={p.onRemove}
+          hitSlop={8}
+          className="absolute -right-2 -top-2 z-10 h-7 w-7 items-center justify-center rounded-full bg-ink"
+        >
+          <Icon as={Xmark} size={16} color="#FFFFFF" />
+        </Pressable>
+      )}
       <View className="flex-row justify-between gap-2.5">
         <View className="flex-1 gap-0.5">
           <View className="flex-row items-center gap-1.5">
@@ -60,7 +80,8 @@ export function ItemBox(p: Props) {
                 placeholder="품목 이름"
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="품목 이름"
-                className="flex-shrink p-0 font-semibold text-[17px] text-ink"
+                style={{ borderBottomWidth: 1, borderStyle: 'dashed' }}
+                className="flex-shrink border-line p-0 font-semibold text-[17px] text-ink focus:border-primary"
               />
             ) : (
               <Text className="flex-shrink font-semibold text-[17px] text-ink">{p.nameKo || p.nameOriginal || '품목'}</Text>
@@ -83,8 +104,8 @@ export function ItemBox(p: Props) {
                 }}
                 keyboardType="numbers-and-punctuation"
                 accessibilityLabel="품목 금액"
-                style={TABULAR}
-                className={`min-w-20 rounded-badge px-1 py-0 text-right font-semibold text-[22px] focus:bg-sky-50 ${mainCls}`}
+                style={{ ...TABULAR, borderBottomWidth: 1, borderStyle: 'dashed' }}
+                className={`min-w-20 border-line px-1 py-0 text-right font-semibold text-[22px] focus:border-primary focus:bg-sky-50 ${mainCls}`}
               />
             </View>
           ) : (
@@ -184,6 +205,6 @@ export function ItemBox(p: Props) {
           )}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }

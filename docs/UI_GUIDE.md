@@ -22,7 +22,7 @@
 ## 색상 (Tailwind 클래스 = `src/theme/tokens.ts`)
 | 토큰 | 값 | 용도 |
 |------|------|------|
-| `primary` | `#36B6FF` | 기본 CTA, 홈 대표 카드, 상세 히어로, 선택 테두리 |
+| `primary` | `#5EC4FF` | 기본 CTA, 홈 대표 카드, 상세 히어로, 선택 테두리 |
 | `primary-text` | `#0874BB` | 흰 배경 위 링크·강조·아이콘, 받을 돈(+) |
 | `primary-on` | `#0B2B45` | 하늘색 배경 위 글자·아이콘 |
 | `primary-press` | `#1FA3F0` | primary 버튼 눌림 |
@@ -84,7 +84,7 @@ Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **�
 - **아이콘 타일**: 44, radius 14, `muted` 배경, 아이콘 `primary-text` 21 — 입력 방식(사진=camera, 문자=message-text, 음성=microphone, 직접=edit-pencil).
 - **BottomSheet**: 스크림 `rgba(19,25,39,.45)`, 상단 radius 28, 핸들 40×5, 제목 20/600 + 부제 14.
 - **Toast**: 하단 120 위, `ink` pill, check-circle `success-icon`(민트), 14/600, 1.8초.
-- **입력 필드**: 54h, radius 14, 테두리 1.5 `line`, 포커스 시 테두리 `primary` + `0 0 0 4px rgba(54,182,255,.18)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
+- **입력 필드**: 54h, radius 14, 테두리 1.5 `line`, 포커스 시 테두리 `primary` + `0 0 0 4px rgba(94,196,255,.18)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
 - **로고**: `SplitoSymbol`(그라데이션 지갑, `variant` color/white/navy), `Wordmark`(아웃라인 SVG, `variant` ink #0E2A47 / white). 핸드오프 `assets/logo/svg/` 의 도형을 그대로 재현한 것이며 텍스트로 그리지 않는다.
 
 ## 아이콘

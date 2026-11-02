@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: { DEFAULT: '#36B6FF', text: '#0874BB', on: '#0B2B45', press: '#1FA3F0' },
+        primary: { DEFAULT: '#5EC4FF', text: '#0874BB', on: '#0B2B45', press: '#1FA3F0' },
         // 기본 sky 팔레트를 대체한다(extend 안이지만 객체 자체를 바꾼다).
         sky: { 50: '#F5FBFF', 100: '#E6F6FF', 200: '#B8E5FF', 300: '#80D1FF' },
         ink: { DEFAULT: '#131927', 700: '#353A47', 500: '#535764', 400: '#6B7080', 300: '#A0A4AE' },

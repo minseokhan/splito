@@ -17,6 +17,8 @@ export type ParseResult = {
   krw_charged: number | null;
   card_last4: string | null;
   category: string | null;
+  // 이미지일 때만 온다. 서버가 구 버전이면 없을 수 있어 optional.
+  photo_kind?: 'receipt' | 'capture' | null;
   items: { name_original: string; name_ko: string; quantity: number; amount: number; confidence: 'high' | 'low' }[];
   confidence: 'high' | 'low';
 };
@@ -128,6 +130,13 @@ export function splitItem(d: ExpenseDraft, itemId: string, newId: () => string):
 
 export function addItem(d: ExpenseDraft, newId: () => string): ExpenseDraft {
   return { ...d, items: [...d.items, item(newId(), d.items.length)] };
+}
+
+// 박스 0개 지출은 저장할 수 없으므로(validateDraft의 Σ > 0) 마지막 한 박스는 남긴다.
+export function removeItem(d: ExpenseDraft, itemId: string): ExpenseDraft {
+  if (d.items.length <= 1) return d;
+  const items = d.items.filter((it) => it.id !== itemId);
+  return items.length === d.items.length ? d : { ...d, items: renumber(items) };
 }
 
 export function validateDraft(d: ExpenseDraft, todayKst: string):

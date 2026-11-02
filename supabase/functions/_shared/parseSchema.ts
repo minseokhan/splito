@@ -17,6 +17,8 @@ export const ParsedExpense = z.object({
   card_last4: z.string().regex(/^\d{4}$/).nullable(),
   // 모르는 값·누락은 거부하지 않고 'other'로 접는다(DB check 제약과 같은 코드 집합).
   category: z.enum(CATEGORIES).catch('other'),
+  // 이미지일 때만 채운다. optional이라 이 필드를 모르는 구 버전 응답도 그대로 통과한다.
+  photo_kind: z.enum(['receipt', 'capture']).nullable().optional(),
   items: z.array(z.object({
     name_original: z.string().max(80),
     name_ko: z.string().max(80),
@@ -38,7 +40,7 @@ export const parsedExpenseJsonSchema = {
   additionalProperties: false,
   required: [
     'is_receipt', 'merchant', 'paid_local_date', 'paid_local_time', 'currency', 'currency_ambiguous',
-    'total', 'krw_charged', 'card_last4', 'category', 'items', 'confidence',
+    'total', 'krw_charged', 'card_last4', 'category', 'photo_kind', 'items', 'confidence',
   ],
   properties: {
     is_receipt: { type: 'boolean' },
@@ -51,6 +53,7 @@ export const parsedExpenseJsonSchema = {
     krw_charged: nullable({ type: 'number' }),
     card_last4: nullable(str('카드 끝 4자리 숫자')),
     category: { type: 'string', enum: [...CATEGORIES] },
+    photo_kind: nullable({ type: 'string', enum: ['receipt', 'capture'], description: '이미지일 때만. 텍스트면 null' }),
     items: {
       type: 'array',
       items: {

@@ -143,6 +143,24 @@ Deno.test('타임아웃 → PARSE_TIMEOUT, signal이 중단된다', async () => 
   assert(aborted);
 });
 
+Deno.test('photo_kind: 모델이 준 값을 그대로 넘기고, 없으면 undefined로 둔다', async () => {
+  const { deps } = fake([reply(ok({ photo_kind: 'capture' }))]);
+  const res = await parseExpense(deps, { room_id: ROOM, kind: 'image', storage_path: PATH, base_currency: 'JPY' });
+  assert(res.ok);
+  assertEquals(res.data.photo_kind, 'capture');
+
+  const { deps: d2 } = fake([reply(ok())]);
+  const r2 = await parseExpense(d2, { room_id: ROOM, kind: 'image', storage_path: PATH, base_currency: 'JPY' });
+  assert(r2.ok);
+  assertEquals(r2.data.photo_kind, undefined);
+});
+
+Deno.test('프롬프트가 photo_kind 판정 기준을 담는다', async () => {
+  const { deps, calls } = fake([reply(ok())]);
+  await parseExpense(deps, { room_id: ROOM, kind: 'image', storage_path: PATH, base_currency: 'JPY' });
+  assertStringIncludes(String(calls[0].params.system), 'photo_kind');
+});
+
 Deno.test('is_receipt=false 또는 품목 0개 → NOT_A_RECEIPT', async () => {
   for (const body of [ok({ is_receipt: false }), ok({ items: [] })]) {
     const r = await parseExpense(fake([reply(body)]).deps, imageReq());

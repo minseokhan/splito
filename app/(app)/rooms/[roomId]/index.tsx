@@ -11,7 +11,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { ExpenseCard } from '@/components/ExpenseCard';
 import { Icon } from '@/components/Icon';
 import { InviteSheet } from '@/components/InviteSheet';
-import { formatKrw, Money } from '@/components/Money';
+import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
@@ -46,10 +46,19 @@ export default function RoomHome() {
   const events = useRoomEvents(roomId);
   const myId = useAuth().session?.user.id;
   const { data: myAccount } = useMyPayoutAccount();
+  const myMemberId = members.find((m) => m.userId === myId)?.id;
+  // 피드에는 지출만 둔다. 예외: 나에게 온 계좌 등록 요청은 등록으로 들어가는 유일한 입구라 남긴다(J6 3번).
+  const myRequests = useMemo(
+    () =>
+      (events.data ?? []).filter(
+        (e) => e.kind === 'payout_request' && e.targetMemberId === myMemberId && myAccount === null,
+      ),
+    [events.data, myMemberId, myAccount],
+  );
   // groupFeed가 '여행 전' 섹션을 이미 맨 아래에 둔다.
   const sections = useMemo(
-    () => mergeActivity(feed.data ?? [], events.data ?? [], room?.startDate ?? null),
-    [feed.data, events.data, room?.startDate],
+    () => mergeActivity(feed.data ?? [], myRequests, room?.startDate ?? null),
+    [feed.data, myRequests, room?.startDate],
   );
   const pending = useMemo(() => (feed.data ?? []).filter((r) => r.krwAmount === null), [feed.data]);
   // 날짜 캘린더: 'all' | 'pre-trip' | 'YYYY-MM-DD'
@@ -97,7 +106,6 @@ export default function RoomHome() {
   const userName = new Map(members.flatMap((m) => (m.userId ? [[m.userId, m.name] as const] : [])));
   // eventText는 profile id(actor)와 참여자 id(target)를 모두 이름으로 찾는다.
   const names = Object.fromEntries([...members.map((m) => [m.id, m.name]), ...userName]);
-  const myMemberId = members.find((m) => m.userId === myId)?.id;
   const people = members
     .filter((m) => !m.leftAt)
     .map((m) => ({ id: m.id, name: m.name, colorIndex: memberIdx.get(m.id) ?? 0, guest: m.kind === 'guest' }));
@@ -160,13 +168,6 @@ export default function RoomHome() {
           <Text className="text-[13px] text-warning-deep">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
         </View>
       )}
-      <View
-        className="flex-row items-center justify-between rounded-card bg-white px-4 py-3.5"
-        style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}
-      >
-        <Text className="font-semibold text-base text-ink">내 정산</Text>
-        <Money net={room.myNet} />
-      </View>
       {!together && (
         <Text className="px-1 text-[13px] text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>
       )}

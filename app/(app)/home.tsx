@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRecentExpenses } from '@/hooks/useRecentExpenses';
 import { useMyRooms } from '@/hooks/useRooms';
 import { formatForeign } from '@/lib/money';
+import { needsSettlement } from '@/lib/roomList';
 import { colors } from '@/theme/tokens';
 import type { MyRoom } from '@/types/domain';
 
@@ -63,17 +64,23 @@ function Header() {
 export default function Home() {
   const { profile } = useAuth();
   const { data: rooms, isLoading, error, refetch, isRefetching } = useMyRooms();
-  const [showSettled, setShowSettled] = useState(false);
+  const [showRest, setShowRest] = useState(false);
   const active = (rooms ?? []).filter((r) => r.status !== 'settled');
-  const settled = (rooms ?? []).filter((r) => r.status === 'settled');
-  const featured = active.find((r) => r.status === 'settling') ?? active[0];
+  // 카드로 띄우는 건 '정산이 필요한 여행'이다 — 기준은 needsSettlement 하나뿐(review의 '정산할 곳'과 같은 집합).
+  const needsSettle = (rooms ?? []).filter(needsSettlement);
+  // 나머지는 전부 아래 접기로 내린다. 여집합으로 잡아야 어느 쪽에도 안 드는 방이 생기지 않는다.
+  const rest = (rooms ?? []).filter((r) => !needsSettle.includes(r));
+  const featured = needsSettle.find((r) => r.status === 'settling') ?? needsSettle[0];
   const recent = useRecentExpenses(active);
 
   const refresh = () => Promise.all([refetch(), recent.refetch()]);
   const goAmount = (r: MyRoom) =>
     r.memberCount >= 2 ? router.push({ pathname: '/rooms/[roomId]/settle', params: { roomId: r.roomId } }) : goRoom(r.roomId);
+  // 홈에서 올리면 어느 여행인지 고른 적이 없다 — 가장 최근에 올린 곳을 기본값으로 두고, review에서 바꾼다.
+  const lastRoomId = recent.data[0]?.roomId;
+  const target = active.find((r) => r.roomId === lastRoomId) ?? featured ?? active[0];
   const addExpense = () =>
-    featured ? router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId: featured.roomId } }) : goCreate();
+    target ? router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId: target.roomId } }) : goCreate();
 
   if (rooms?.length === 0) {
     return (
@@ -110,7 +117,7 @@ export default function Home() {
             <View className="gap-1">
               <Text className="text-base text-ink-500">{profile?.nickname ? `${profile.nickname}님, 안녕하세요` : '안녕하세요'}</Text>
               <Text className="font-semibold text-2xl text-ink">
-                {active.length ? `진행 중인 여행이\n${active.length}개 있어요` : '진행 중인 여행이\n없어요'}
+                {needsSettle.length ? `정산 중인 여행이\n${needsSettle.length}개 있어요` : '정산 중인 여행이\n없어요'}
               </Text>
             </View>
 
@@ -122,7 +129,7 @@ export default function Home() {
               style={{ marginHorizontal: -20 }}
               contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
             >
-              {active.map((r) => (
+              {needsSettle.map((r) => (
                 <RoomCard
                   key={r.roomId}
                   room={r}
@@ -178,19 +185,19 @@ export default function Home() {
               </View>
             )}
 
-            {settled.length > 0 && (
+            {rest.length > 0 && (
               <View className="gap-1">
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityState={{ expanded: showSettled }}
-                  onPress={() => setShowSettled((v) => !v)}
+                  accessibilityState={{ expanded: showRest }}
+                  onPress={() => setShowRest((v) => !v)}
                   className="flex-row items-center justify-between rounded-button bg-app px-4 py-3.5"
                 >
-                  <Text className="text-sm text-ink-500">정산 완료한 여행 {settled.length}개</Text>
-                  <Icon as={showSettled ? NavArrowDown : NavArrowRight} size={18} color={colors.ink[300]} />
+                  <Text className="text-sm text-ink-500">정산할 게 없는 여행 {rest.length}개</Text>
+                  <Icon as={showRest ? NavArrowDown : NavArrowRight} size={18} color={colors.ink[300]} />
                 </Pressable>
-                {showSettled &&
-                  settled.map((r) => (
+                {showRest &&
+                  rest.map((r) => (
                     <Pressable
                       key={r.roomId}
                       accessibilityRole="button"
