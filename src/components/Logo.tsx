@@ -21,10 +21,15 @@ const SPARKLE = 'M50,52 Q51.6,60.4 60,62 Q51.6,63.6 50,72 Q48.4,63.6 40,62 Q48.4
 
 type SymbolVariant = 'color' | 'white' | 'navy';
 
-// appIcon: 앱 아이콘 구도(흰 둥근 사각 배경 + 꽉 찬 심볼). 로그인 히어로가 쓴다.
-type SymbolProps = { size: number; variant?: SymbolVariant; opacity?: number; appIcon?: boolean };
+// layer: 도형을 겹쳐 그릴 수 있게 한 겹만 그린다(AnimatedSplitoSymbol이 카드만 따로 움직인다).
+// 생략하면 전부 그린다 = 기존 동작. 카드가 위로 튀어도 안 잘리도록 아이콘 viewBox(0 0 100 100)를 쓴다.
+type SymbolLayer = 'mint' | 'yellow' | 'wallet';
 
-export function SplitoSymbol({ size, variant = 'color', opacity, appIcon }: SymbolProps) {
+// appIcon: 앱 아이콘 구도(흰 둥근 사각 배경 + 꽉 찬 심볼). 로그인 히어로가 쓴다.
+type SymbolProps = { size: number; variant?: SymbolVariant; opacity?: number; appIcon?: boolean; layer?: SymbolLayer };
+
+export function SplitoSymbol({ size, variant = 'color', opacity, appIcon, layer }: SymbolProps) {
+  const shows = (l: SymbolLayer) => !layer || layer === l;
   // 같은 화면에 심볼이 여러 개 있으면 <Defs> 그라데이션 id가 충돌하므로 고유 접미사를 붙인다.
   const uid = useId().replace(/[^A-Za-z0-9_-]/g, '');
   // white/navy는 단색 실루엣: 그라데이션·그림자·반짝임 없이 도형만 칠한다.
@@ -32,7 +37,7 @@ export function SplitoSymbol({ size, variant = 'color', opacity, appIcon }: Symb
   const paint = (id: string) => mono ?? `url(#${id}-${uid})`;
 
   return (
-    <Svg width={size} height={size} viewBox={appIcon ? '0 0 100 100' : '12 12 76 76'} opacity={opacity}>
+    <Svg width={size} height={size} viewBox={appIcon || layer ? '0 0 100 100' : '12 12 76 76'} opacity={opacity}>
       {/* splito-appicon-light-rounded.svg: 같은 도형을 100×100 안에 두고 흰 둥근 사각을 뒤에 깐다. */}
       {appIcon && <Rect width={100} height={100} rx={25.7} fill="#FFFFFF" />}
       {!mono && (
@@ -45,20 +50,28 @@ export function SplitoSymbol({ size, variant = 'color', opacity, appIcon }: Symb
           ))}
         </Defs>
       )}
-      <G transform="rotate(-12 38 43)">
-        <Rect x={20} y={20} width={36} height={46} rx={8} fill={paint('gm')} />
-      </G>
-      <G transform="rotate(10 62 43)">
-        <Rect x={44} y={20} width={36} height={46} rx={8} fill={paint('gy')} />
-      </G>
-      <Rect x={16} y={42} width={68} height={40} rx={13} fill={paint('gb')} />
-      {!mono && <Path d={FLAP} fill="#1683CC" opacity={0.3} transform="translate(0,2.2)" />}
-      <Path d={FLAP} fill={paint('gf')} />
-      {!mono && (
+      {shows('mint') && (
+        <G transform="rotate(-12 38 43)">
+          <Rect x={20} y={20} width={36} height={46} rx={8} fill={paint('gm')} />
+        </G>
+      )}
+      {shows('yellow') && (
+        <G transform="rotate(10 62 43)">
+          <Rect x={44} y={20} width={36} height={46} rx={8} fill={paint('gy')} />
+        </G>
+      )}
+      {shows('wallet') && (
         <>
-          <Path d="M24,46 H36" stroke="#FFFFFF" strokeOpacity={0.75} strokeWidth={2} strokeLinecap="round" />
-          <Path d={SPARKLE_SHADOW} fill="#1683CC" opacity={0.3} />
-          <Path d={SPARKLE} fill="#FFFFFF" />
+          <Rect x={16} y={42} width={68} height={40} rx={13} fill={paint('gb')} />
+          {!mono && <Path d={FLAP} fill="#1683CC" opacity={0.3} transform="translate(0,2.2)" />}
+          <Path d={FLAP} fill={paint('gf')} />
+          {!mono && (
+            <>
+              <Path d="M24,46 H36" stroke="#FFFFFF" strokeOpacity={0.75} strokeWidth={2} strokeLinecap="round" />
+              <Path d={SPARKLE_SHADOW} fill="#1683CC" opacity={0.3} />
+              <Path d={SPARKLE} fill="#FFFFFF" />
+            </>
+          )}
         </>
       )}
     </Svg>

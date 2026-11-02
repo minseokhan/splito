@@ -3,10 +3,11 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnimatedSplitoSymbol } from '@/components/AnimatedSymbol';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { InvitePasteBox } from '@/components/InvitePasteBox';
-import { KakaoSymbol, SplitoSymbol, Wordmark } from '@/components/Logo';
+import { KakaoSymbol, Wordmark } from '@/components/Logo';
 import { toUserError } from '@/lib/errors';
 import { signInWithProvider } from '@/services/auth';
 import { colors } from '@/theme/tokens';
@@ -51,7 +52,7 @@ export default function Login() {
       <View className="flex-1 items-center justify-center gap-5 rounded-b-[40px] bg-sky-100" style={{ paddingTop: insets.top + 40 }}>
         {/* 시안의 둥근 앱 아이콘 132px. 그림자는 아이콘 밖에 깔아야 하므로 래퍼에 둔다. */}
         <View className="rounded-[30px]" style={{ boxShadow: '0 10px 32px -4px rgba(8,116,187,.22)' }}>
-          <SplitoSymbol size={132} appIcon />
+          <AnimatedSplitoSymbol size={132} />
         </View>
         <Wordmark size={40} />
         <View className="items-center gap-1.5 px-8 pb-10">
