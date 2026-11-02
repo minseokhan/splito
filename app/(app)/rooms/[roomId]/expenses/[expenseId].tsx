@@ -53,6 +53,7 @@ export default function ExpenseDetailScreen() {
   const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openItems, setOpenItems] = useState<string[]>([]); // 먹은 사람을 펼쳐 본 품목
 
   const paths = e?.expense_photos.map((p) => p.storage_path) ?? [];
   const { data: photoUrls } = useQuery({
@@ -238,6 +239,9 @@ export default function ExpenseDetailScreen() {
                 needsReview={it.needs_review}
                 people={scopePeople.length > 1 ? scopePeople.map((p) => ({ ...p, on: assigned.has(p.id) })) : []}
                 splitLabel={scopePeople.length > 1 ? (n ? `${n}명 · 1인 ${per}` : '전원 1/N') : ''}
+                expanded={openItems.includes(it.id)}
+                onExpand={() => setOpenItems((s) => [...s, it.id])}
+                onCollapse={() => setOpenItems((s) => s.filter((x) => x !== it.id))}
               />
             );
           })}
