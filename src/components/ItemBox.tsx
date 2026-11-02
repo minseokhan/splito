@@ -42,9 +42,11 @@ export function ItemBox(p: Props) {
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
   // 지정이 없으면 전원이 먹은 것으로 보여준다.
-  const selected = p.people.some((m) => m.on) ? p.people.filter((m) => m.on) : p.people;
-  // 펼침은 고를 수 있을 때만. 읽기 전용은 접힌 모양으로 먹은 사람만 보여준다.
-  const open = !!p.onToggle && p.expanded !== false;
+  const allOff = !p.people.some((m) => m.on);
+  const selected = allOff ? p.people : p.people.filter((m) => m.on);
+  const pick = !!p.onToggle; // 고를 수 있는 편집 모드인지(읽기 전용은 보여주기만)
+  // 편집 모드는 기본 펼침, 읽기 전용은 기본 접힘. 화면이 expanded를 주면 그대로 따른다.
+  const open = p.expanded ?? pick;
 
   return (
     <View className={`gap-3 rounded-card border-[1.5px] bg-white p-4 ${p.needsReview ? 'border-warning-line' : 'border-transparent'}`}>
@@ -115,21 +117,24 @@ export function ItemBox(p: Props) {
             >
               {p.people.map((m) => {
                 const c = memberColor(m.colorIndex);
+                // 읽기 전용에서 지정이 없으면 전원 1/N이라 전원을 켜진 모양으로 보여준다.
+                const on = m.on || (!pick && allOff);
                 return (
                   <Pressable
                     key={m.id}
+                    disabled={!pick}
                     onPress={() => p.onToggle?.(m.id)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: m.on }}
+                    accessibilityRole={pick ? 'checkbox' : 'text'}
+                    accessibilityState={pick ? { checked: on } : undefined}
                     accessibilityLabel={m.guest ? `${m.name}(게스트)` : m.name}
                     style={{
-                      borderColor: m.on ? c.fg : colors.line.DEFAULT,
-                      backgroundColor: m.on ? c.tint : '#FFFFFF',
+                      borderColor: on ? c.fg : colors.line.DEFAULT,
+                      backgroundColor: on ? c.tint : '#FFFFFF',
                       borderStyle: m.guest ? 'dashed' : 'solid',
                     }}
                     className="h-9 w-9 items-center justify-center rounded-full border-2"
                   >
-                    <Text style={{ color: m.on ? c.fg : colors.ink[300] }} className="font-semibold text-[15px]">
+                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-[15px]">
                       {m.name.slice(0, 1)}
                     </Text>
                   </Pressable>
@@ -137,7 +142,7 @@ export function ItemBox(p: Props) {
               })}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="사람 선택 닫기"
+                accessibilityLabel={pick ? '사람 선택 닫기' : '먹은 사람 닫기'}
                 onPress={p.onCollapse}
                 className="h-9 w-9 items-center justify-center rounded-full bg-ink"
               >
@@ -149,7 +154,7 @@ export function ItemBox(p: Props) {
               disabled={!p.onExpand}
               onPress={p.onExpand}
               accessibilityRole={p.onExpand ? 'button' : 'text'}
-              accessibilityLabel="먹은 사람 고르기"
+              accessibilityLabel={pick ? '먹은 사람 고르기' : '먹은 사람 보기'}
               className="flex-row items-center gap-1.5 self-start rounded-full bg-app py-0.5 pl-0.5 pr-2.5"
             >
               {selected.slice(0, 1).map((m) => {
