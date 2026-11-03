@@ -1,13 +1,16 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Airplane, Coins, MoreHoriz, NavArrowLeft, NavArrowRight, Plus, UserPlus, Wallet } from 'iconoir-react-native';
-import { Fragment, useCallback, useMemo, useState, type ComponentType } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Coins, MoreHoriz, NavArrowLeft, NavArrowRight, Plus, UserPlus, Wallet, Xmark } from 'iconoir-react-native';
+import { Fragment, useCallback, useMemo, useRef, useState, type ComponentType } from 'react';
+import { Dimensions, FlatList, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop, type SvgProps } from 'react-native-svg';
 
 import { ActivityRow } from '@/components/ActivityRow';
+import { Avatar } from '@/components/Avatar';
+import { AvatarStack } from '@/components/AvatarStack';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ExpenseCard } from '@/components/ExpenseCard';
+import { FlightIcon } from '@/components/FlightIcon';
 import { Icon } from '@/components/Icon';
 import { InviteSheet } from '@/components/InviteSheet';
 import { formatKrw } from '@/components/Money';
@@ -23,6 +26,7 @@ import { eventText, mergeActivity } from '@/lib/activity';
 import { CATEGORIES, type CategoryCode } from '@/lib/category';
 import { buildTripDays, dayCaption, filterByCategory, filterSections, md, type TripDay } from '@/lib/tripDays';
 import { loadDraft } from '@/services/drafts';
+import type { RoomMember } from '@/types/domain';
 import { colors } from '@/theme/tokens';
 
 export default function RoomHome() {
@@ -72,6 +76,9 @@ export default function RoomHome() {
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
+  // 참여자 팝오버: 아바타 스택 바로 아래에 띄우므로 누른 순간의 화면 좌표를 재서 연다.
+  const avatarRef = useRef<View>(null);
+  const [peopleAt, setPeopleAt] = useState<{ top: number; right: number } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   // 입력 화면에서 돌아올 때마다 기기의 작성 중 지출을 다시 확인한다.
@@ -93,6 +100,15 @@ export default function RoomHome() {
   }
 
   const userName = new Map(members.flatMap((m) => (m.userId ? [[m.userId, m.name] as const] : [])));
+  // 아바타 색은 합류 순서(탈퇴 포함)로 고정한다 — 멤버 화면과 같은 규칙.
+  const colorIndex = new Map(members.map((m, i) => [m.id, i]));
+  const active = members.filter((m) => !m.leftAt);
+  const people = active.map((m) => ({
+    id: m.id,
+    name: m.name,
+    colorIndex: colorIndex.get(m.id) ?? 0,
+    guest: m.kind === 'guest',
+  }));
   // eventText는 profile id(actor)와 참여자 id(target)를 모두 이름으로 찾는다.
   const names = Object.fromEntries([...members.map((m) => [m.id, m.name]), ...userName]);
   // 참여자(게스트 포함) 2명 이상일 때만 정산·공금을 연다. 혼자면 초대 시트로 유도한다.
@@ -115,7 +131,7 @@ export default function RoomHome() {
       </Pressable>
       <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
         <View className="h-10 w-10 items-center justify-center rounded-chip border-[1.5px] border-line bg-white">
-          <Icon as={Airplane} size={22} color={colors.primary.text} />
+          <FlightIcon size={22} />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="font-semibold text-[17px] text-ink" numberOfLines={1}>
@@ -153,9 +169,19 @@ export default function RoomHome() {
               {formatKrw(room.totalKrw)}
             </Text>
           </View>
-          <View className="rounded-full bg-[rgba(255,255,255,0.55)] px-2 py-0.5">
-            <Text className="font-semibold text-xs text-primary-on">함께하는 사람 {room.memberCount}명</Text>
-          </View>
+          <Pressable
+            ref={avatarRef}
+            accessibilityRole="button"
+            accessibilityLabel={`참여자 ${people.length}명 보기`}
+            hitSlop={8}
+            onPress={() =>
+              avatarRef.current?.measureInWindow((x, y, w, h) =>
+                setPeopleAt({ top: y + h + 10, right: Math.max(16, Dimensions.get('window').width - (x + w)) }),
+              )
+            }
+          >
+            <AvatarStack people={people} size={30} ring="#FFFFFF" />
+          </Pressable>
         </View>
         <View className="flex-row rounded-button bg-[rgba(255,255,255,0.92)]">
           <Action
@@ -319,7 +345,7 @@ export default function RoomHome() {
           {/* 여행을 만든 사람만 이름·통화·기간을 고칠 수 있다 */}
           {roomRow?.owner_id === myId && (
             <MenuRow
-              label="여행 수정"
+              label="여행 편집"
               onPress={() => {
                 setMenuOpen(false);
                 go('/rooms/[roomId]/edit');
@@ -338,6 +364,13 @@ export default function RoomHome() {
         </View>
       </BottomSheet>
       <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <PeoplePopover
+        at={peopleAt}
+        members={active}
+        colorIndex={colorIndex}
+        myId={myId}
+        onClose={() => setPeopleAt(null)}
+      />
     </View>
   );
 }
@@ -426,5 +459,57 @@ function MenuRow({ label, onPress }: { label: string; onPress: () => void }) {
       <Text className="font-semibold text-base text-ink">{label}</Text>
       <Icon as={NavArrowRight} size={18} color={colors.ink[300]} />
     </Pressable>
+  );
+}
+
+type PeoplePopoverProps = {
+  at: { top: number; right: number } | null;
+  members: RoomMember[];
+  colorIndex: Map<string, number>;
+  myId: string | undefined;
+  onClose: () => void;
+};
+
+// 아바타 스택 아래에 붙는 참여자 목록 카드. at은 스택을 누른 순간 잰 화면 좌표다.
+function PeoplePopover({ at, members, colorIndex, myId, onClose }: PeoplePopoverProps) {
+  return (
+    <Modal visible={!!at} transparent animationType="fade" onRequestClose={onClose}>
+      <View className="flex-1">
+        <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="닫기" onPress={onClose} />
+        {at && (
+          <View
+            className="rounded-card bg-white px-4 pb-2 pt-3"
+            style={{
+              position: 'absolute',
+              top: at.top,
+              right: at.right,
+              minWidth: 212,
+              maxWidth: 280,
+              boxShadow: '0 12px 28px -8px rgba(19,25,39,.22)',
+            }}
+          >
+            <View className="flex-row items-center justify-between gap-4 pb-1">
+              <Text className="font-semibold text-[15px] text-ink">참여자 {members.length}명</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="참여자 목록 닫기" hitSlop={8} onPress={onClose}>
+                <Icon as={Xmark} size={18} color={colors.ink[400]} />
+              </Pressable>
+            </View>
+            <ScrollView style={{ maxHeight: 264 }} showsVerticalScrollIndicator={false}>
+              {members.map((m) => (
+                <View key={m.id} className="flex-row items-center gap-2.5 py-2">
+                  <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={28} />
+                  <Text className="flex-1 text-[15px] text-ink" numberOfLines={1}>
+                    {m.name}
+                  </Text>
+                  {(m.userId === myId || m.kind === 'guest') && (
+                    <Text className="text-[13px] text-ink-300">{m.userId === myId ? '나' : '게스트'}</Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+    </Modal>
   );
 }
