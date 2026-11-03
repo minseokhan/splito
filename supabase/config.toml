@@ -392,6 +392,10 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# 호출자는 DB 트리거(pg_net)뿐이라 JWT가 없다. 인증은 x-push-secret 헤더로 한다.
+[functions.push]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

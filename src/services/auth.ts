@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 import { buildConsentUpdate, consentSchema, nicknameSchema, type ConsentInput } from '@/lib/profile';
 
+import { clearPushToken, registerPushToken } from './push';
 import { supabase } from './supabase';
 
 const REDIRECT_TO = 'splito://auth/callback';
@@ -42,6 +43,7 @@ export async function signInWithProvider(provider: 'kakao' | 'custom:naver'): Pr
 }
 
 export async function signOut(): Promise<void> {
+  await clearPushToken().catch(() => undefined); // 토큰 정리 실패가 로그아웃을 막지 않는다
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
@@ -65,6 +67,14 @@ export async function updateNickname(nickname: string): Promise<void> {
     .update({ nickname: nicknameSchema.parse(nickname) })
     .eq('id', await myId());
   if (error) throw error;
+}
+
+// 알림을 끄면 이 기기 토큰도 지운다(계정 플래그만 끄면 재설치 때 옛 토큰이 남는다).
+export async function updatePushEnabled(enabled: boolean): Promise<void> {
+  const { error } = await supabase.from('profiles').update({ push_enabled: enabled }).eq('id', await myId());
+  if (error) throw error;
+  if (enabled) await registerPushToken();
+  else await clearPushToken();
 }
 
 // 내 정보의 마케팅 수신 토글. 필수 동의 시각은 건드리지 않는다.

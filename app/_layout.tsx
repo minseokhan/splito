@@ -8,6 +8,7 @@ import { Text, TextInput } from 'react-native';
 
 import { ToastProvider } from '@/components/Toast';
 import { AuthProvider } from '@/hooks/useAuth';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { queryClient } from '@/services/queryClient';
 import { MAX_FONT_SIZE_MULTIPLIER } from '@/theme/tokens';
 
@@ -15,6 +16,12 @@ import { MAX_FONT_SIZE_MULTIPLIER } from '@/theme/tokens';
 type WithDefaultProps = { defaultProps?: { maxFontSizeMultiplier?: number } };
 for (const C of [Text, TextInput] as unknown as WithDefaultProps[]) {
   C.defaultProps = { ...C.defaultProps, maxFontSizeMultiplier: MAX_FONT_SIZE_MULTIPLIER };
+}
+
+// 푸시 등록·알림 탭 라우팅은 AuthProvider 안에서만 돌 수 있다.
+function Root() {
+  usePushNotifications();
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
@@ -29,7 +36,7 @@ export default function RootLayout() {
       <AuthProvider>
         <ToastProvider>
           <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <Root />
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
