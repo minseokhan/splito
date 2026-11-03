@@ -152,9 +152,9 @@ export default function BookingLookup() {
             className="flex-row items-center gap-2.5"
           >
             <View
-              className={`h-[26px] w-[26px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
+              className={`h-[22px] w-[22px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
             >
-              <Icon as={Check} size={14} color="#FFFFFF" />
+              <Icon as={Check} size={12} color="#FFFFFF" />
             </View>
             <Text className="flex-1 font-semibold text-[15px] text-ink">
               <Text className="text-primary-text">[필수]</Text> 개인정보 제3자 제공 동의
@@ -317,7 +317,7 @@ function ResultBox({ tone, icon, title, body, action }: BoxProps) {
           <Pressable
             accessibilityRole="button"
             onPress={action.onPress}
-            className={`mt-2.5 h-9 flex-row items-center gap-0.5 self-start rounded-chip border-[1.5px] bg-white pl-3.5 pr-2.5 active:opacity-70 ${t.btn}`}
+            className={`mt-2.5 h-9 flex-row items-center gap-0.5 self-end rounded-chip border-[1.5px] bg-white pl-3.5 pr-2.5 active:opacity-70 ${t.btn}`}
           >
             <Text className={`font-semibold text-[13px] ${t.btnText}`}>{action.label}</Text>
             <Icon as={NavArrowRight} size={14} color={t.btnIcon} />

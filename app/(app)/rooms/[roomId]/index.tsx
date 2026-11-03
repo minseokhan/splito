@@ -95,6 +95,8 @@ export default function RoomHome() {
   const [peopleAt, setPeopleAt] = useState<{ top: number; right: number } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
+  // 고정된 상단과 스크롤되는 목록을 구분하는 그림자. 맨 위에서는 띄우지 않는다.
+  const [scrolled, setScrolled] = useState(false);
   const toast = useToast();
   // ── 패키지 일정: 예약이 붙은 방에서만 날짜별 피드 대신 일정 영역을 그린다(명세 §5)
   const { data: booking } = useTripBooking(roomId);
@@ -268,7 +270,10 @@ export default function RoomHome() {
   );
 
   const header = (
-    <View className="pt-1">
+    <View
+      className="bg-white pt-1"
+      style={{ zIndex: 1, boxShadow: scrolled ? '0 6px 14px -8px rgba(19,25,39,.22)' : undefined }}
+    >
       {summary}
       {(offline || !together || hasDraft || pending.length > 0) && (
         <View className="gap-2 px-5 pt-3.5">
@@ -329,6 +334,11 @@ export default function RoomHome() {
         data={linked ? [] : visibleSections}
         keyExtractor={(s) => s.key}
         contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const next = e.nativeEvent.contentOffset.y > 0;
+          setScrolled((v) => (v === next ? v : next));
+        }}
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />}
         renderItem={({ item: section }) => {
           const sum = section.data.reduce((s, r) => s + ('kind' in r ? 0 : (r.krwAmount ?? 0)), 0);

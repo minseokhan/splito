@@ -17,13 +17,13 @@ type CardProps = {
   onPress: () => void;
 };
 
-// 선택 카드: radius 20, 테두리 1.5, 아이콘 타일 48/radius 16. 세로 패딩 24로 높이를 키운다.
+// 선택 카드: radius 20, 테두리 1.5, 아이콘 타일 48/radius 16. 세로 패딩 28로 높이를 키운다.
 function Card({ icon, title, badge, description, onPress }: CardProps) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="flex-row items-center gap-3.5 rounded-card border-[1.5px] border-line px-[18px] py-6 active:bg-sky-50"
+      className="flex-row items-center gap-3.5 rounded-card border-[1.5px] border-line px-[18px] py-7 active:bg-sky-50"
     >
       <View className="h-12 w-12 items-center justify-center rounded-button bg-sky-100">
         <Icon as={icon} size={24} color={colors.primary.text} />
@@ -37,7 +37,7 @@ function Card({ icon, title, badge, description, onPress }: CardProps) {
             </View>
           )}
         </View>
-        <Text className="text-sm text-ink-500">{description}</Text>
+        <Text className="text-[15px] leading-5 text-ink-500">{description}</Text>
       </View>
       <Icon as={NavArrowRight} size={20} color={colors.ink[300]} />
     </Pressable>
