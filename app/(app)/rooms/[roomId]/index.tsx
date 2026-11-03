@@ -180,7 +180,7 @@ export default function RoomHome() {
               )
             }
           >
-            <AvatarStack people={people} size={30} ring="#FFFFFF" />
+            <AvatarStack people={people} size={30} />
           </Pressable>
         </View>
         <View className="flex-row rounded-button bg-[rgba(255,255,255,0.92)]">
