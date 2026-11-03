@@ -13,9 +13,12 @@ import { Icon } from '@/components/Icon';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
+import { BottomSheet } from '@/components/BottomSheet';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
+import { ScheduleChip } from '@/components/ScheduleChip';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useScheduleItems } from '@/hooks/useBooking';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
@@ -45,6 +48,7 @@ import {
 } from '@/lib/expenseForm';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
 import { needsSettlement } from '@/lib/roomList';
+import { dayIndexOfDate } from '@/lib/schedule';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
 import { clearDraft, keepPhoto, saveDraft } from '@/services/drafts';
@@ -75,7 +79,12 @@ const asUserError = (err: unknown): UserError =>
 
 export default function ReviewExpense() {
   // edit가 있으면 저장된 지출을 고치는 편집 모드. 편집 draft는 메모리에만 두고 기기의 작성 중 지출과 섞지 않는다.
-  const { roomId, edit, version } = useLocalSearchParams<{ roomId: string; edit?: string; version?: string }>();
+  const { roomId, edit, version, scheduleId } = useLocalSearchParams<{
+    roomId: string;
+    edit?: string;
+    version?: string;
+    scheduleId?: string;
+  }>();
   const { session } = useAuth();
   const { data: members } = useRoomMembers(roomId);
   const { data: room } = useRoom(roomId);
@@ -102,6 +111,12 @@ export default function ReviewExpense() {
   // 박스는 펼친 채로 시작한다. 체크를 누른 박스만 접는다.
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [dupDismissed, setDupDismissed] = useState(false);
+  // ── 일정 연결: 일정 카드의 [+ 지출]로 들어온 경우에만 값이 있다(명세 §7)
+  const { data: scheduleItems = [] } = useScheduleItems(roomId);
+  const target = scheduleItems.find((x) => x.id === scheduleId) ?? null;
+  // 포함 사항에 식사가 있으면 '따로 결제한 게 맞나요?' 한 줄만 보여주고 저장은 막지 않는다.
+  const mealWarn = target?.includes.find((l) => /^[조중석]식 포함$/.test(l))?.slice(0, 2) ?? null;
+  const [dateConflict, setDateConflict] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 쪼개기는 기존 박스 금액을 바꾸므로 금액 입력칸을 다시 그린다.
   const [splitRev, setSplitRev] = useState(0);
@@ -206,7 +221,24 @@ export default function ReviewExpense() {
     sectionY.current[s] = e.nativeEvent.layout.y;
   };
 
+  // 결제일이 일정 날짜와 다르면 어디에 넣을지 먼저 묻는다(명세 §7).
   const onSave = async () => {
+    if (
+      target &&
+      !dateConflict &&
+      dayIndexOfDate(draft.paidLocalDate, room?.start_date ?? null, room?.end_date ?? null) !== target.dayIndex
+    ) {
+      const v0 = validateDraft(draft, kstToday(new Date()));
+      if (v0.ok) {
+        setDateConflict(true);
+        return;
+      }
+    }
+    await commit(scheduleId ?? null);
+  };
+
+  const commit = async (linkTo: string | null) => {
+    setDateConflict(false);
     const v = validateDraft(draft, kstToday(new Date()));
     if (!v.ok) {
       setError(toUserError({ message: v.code }).message);
@@ -234,8 +266,10 @@ export default function ReviewExpense() {
       return;
     }
     try {
-      await save.mutateAsync({ payload: toSavePayload(draft, meMemberId, activeIds), expectedVersion: null });
-      toast('지출을 저장했어요');
+      const saved = await save.mutateAsync({ payload: toSavePayload(draft, meMemberId, activeIds), expectedVersion: null });
+      // 금액·배분은 save_expense가 확정했다. 연결은 표시용 메타라 따로 붙인다.
+      if (linkTo) await api.setExpenseMeta({ expenseId: saved.id, scheduleId: linkTo });
+      toast(linkTo && target ? `‘${target.title}’ 일정에 연결했어요` : '지출을 저장했어요');
       leave();
     } catch (err) {
       setError(asUserError(err).message);
@@ -264,6 +298,9 @@ export default function ReviewExpense() {
   const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(draft.paidLocalDate)
     ? `${Number(draft.paidLocalDate.slice(5, 7))}월 ${Number(draft.paidLocalDate.slice(8, 10))}일`
     : '';
+  // 결제일이 속한 일차. 0이면 여행 기간 밖이라 '여행 전'으로 넣는다(명세 §7).
+  const conflictDay = dayIndexOfDate(draft.paidLocalDate, room?.start_date ?? null, room?.end_date ?? null);
+  const conflictDayLabel = conflictDay === 0 ? '여행 전' : `${conflictDay}일차`;
   const splitLabel = (i: number) => {
     const it = draft.items[i];
     const n = it.assigneeMemberIds.length;
@@ -286,6 +323,7 @@ export default function ReviewExpense() {
         contentContainerStyle={{ paddingBottom: 160 }}
         keyboardShouldPersistTaps="handled"
       >
+        {!!target && <ScheduleChip title={target.title} />}
         {dup && <DupBanner dup={dup} members={members} onMerge={onMerge} onDismiss={() => setDupDismissed(true)} />}
 
         <View onLayout={(e) => setY('top', e)} className="flex-row items-center gap-3.5 rounded-card bg-white p-[18px]">
@@ -524,6 +562,9 @@ export default function ReviewExpense() {
       </ScrollView>
 
       <BottomBar shadow>
+        {!!mealWarn && (
+          <Text className="text-[13px] text-warning">이 일정은 {mealWarn}이 포함돼 있어요. 따로 결제한 게 맞나요?</Text>
+        )}
         {error && <Text className="text-[13px] text-danger-text">{error}</Text>}
         <PrimaryButton
           title={total ? `${total} 저장하기` : '저장하기'}
@@ -531,6 +572,27 @@ export default function ReviewExpense() {
           disabled={save.isPending || updateExpense.isPending}
         />
       </BottomBar>
+
+      <BottomSheet
+        visible={dateConflict}
+        onClose={() => setDateConflict(false)}
+        title="이 일정에 넣을까요?"
+        subtitle={
+          target
+            ? `결제일은 ${dateLabel}인데, ‘${target.title}’ 일정은 ${target.dayIndex}일차예요.`
+            : ''
+        }
+      >
+        <View className="gap-2">
+          <PrimaryButton title="이 일정에 넣기" variant="dark" onPress={() => void commit(scheduleId ?? null)} />
+          <PrimaryButton
+            title={`결제일(${conflictDayLabel}) 그 외 지출로 넣기`}
+            variant="muted"
+            size="md"
+            onPress={() => void commit(null)}
+          />
+        </View>
+      </BottomSheet>
 
       <DateSheet
         visible={dateOpen}

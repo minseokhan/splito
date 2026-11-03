@@ -23,7 +23,7 @@ const SOURCE_ICON = { receipt: Camera, card_image: Camera, card_text: MessageTex
 const CARD_STEP = 286 + 12; // 카드 폭(RoomCard w-[286px]) + gap
 
 const goRoom = (roomId: string) => router.push({ pathname: '/rooms/[roomId]', params: { roomId } });
-const goCreate = () => router.push('/rooms/new');
+const goCreate = () => router.push('/rooms/start');
 
 // 홈 우상단 두 아이콘만 커스텀 SVG(둥근 굵은 선, 속 비움). 다른 화면에서는 쓰지 않는다.
 const PlusGlyph = () => (

@@ -38,6 +38,9 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
     ['INVALID_PAYER', '결제자를 다시 선택해 주세요', '선택'],
     ['ALREADY_CONFIRMED', '이미 받은 분이 확인한 송금이에요', '새로고침'],
     ['POOL_IN_USE', '공금 기록이 있어 끌 수 없어요', undefined],
+    ['ALREADY_LINKED', '이미 예약이 연결된 여행이에요', '연동 해제 후 다시 시도'],
+    ['BOOKING_TAKEN', '다른 여행 방에 연결된 예약이에요', '기존 방으로 이동'],
+    ['NOT_LINKED', '연결된 예약이 없어요', '패키지 예약 불러오기'],
   ])('%s', (code, message, action) => {
     expect(toUserError({ code: 'P0001', message: code })).toEqual(
       action === undefined ? { code, message } : { code, message, action },
@@ -45,7 +48,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
   });
 
   it('표의 코드를 빠짐없이 다룬다', () => {
-    expect(ERROR_CODES).toHaveLength(34);
+    expect(ERROR_CODES).toHaveLength(37);
   });
 });
 
