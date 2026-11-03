@@ -10,6 +10,7 @@ import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { CategoryCard, CompareCard, MatesCard, type MateRow } from '@/components/StatsCharts';
 import { useToast } from '@/components/Toast';
+import { api } from '@/services/api';
 import { useApplyBudgetPlan, useMyBudget, useMyShares } from '@/hooks/useBudget';
 import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
 import { useBalances } from '@/hooks/useSettlement';
@@ -28,7 +29,6 @@ import {
   type CheerVersion,
 } from '@/lib/budget';
 import { categoryLabel, type CategoryCode } from '@/lib/category';
-import { supabase } from '@/services/supabase';
 import { memberColor } from '@/theme/tokens';
 import type { BudgetPlan, Krw, MyShare } from '@/types/domain';
 
@@ -112,17 +112,19 @@ export default function MyStats() {
   const loadPlans = async () => {
     setCoachLoading(true);
     try {
-      // api.ts는 다른 작업자가 소유해 budget-coach 래퍼를 넣지 못했다. Edge Function을 직접 호출한다.
       const spent = Object.fromEntries(
         categoryBreakdown(shares.filter((s) => isBudgetTarget(s.category)))
           .filter((r) => ALLOC_CATEGORIES.includes(r.code))
           .map((r) => [r.code, r.amount]),
       );
-      const { data, error } = await supabase.functions.invoke<{ plans: BudgetPlan[] }>('budget-coach', {
-        body: { room_id: roomId, kind: 'plans', per: stats.per, n: stats.n, spent },
+      const { plans: next } = await api.budgetCoach<{ plans: BudgetPlan[] }>({
+        room_id: roomId,
+        kind: 'plans',
+        per: stats.per,
+        n: stats.n,
+        spent,
       });
-      if (error) throw error;
-      setPlans(data?.plans ?? []);
+      setPlans(next ?? []);
     } catch {
       toast('조정안을 불러오지 못했어요');
     } finally {

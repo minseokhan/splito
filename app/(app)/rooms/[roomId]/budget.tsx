@@ -10,10 +10,10 @@ import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { useToast } from '@/components/Toast';
+import { api } from '@/services/api';
 import { useMyBudget, useMyShares, useSaveBudget } from '@/hooks/useBudget';
 import { ALLOC_CATEGORIES, allocByRatio, categoryBreakdown, isBudgetTarget } from '@/lib/budget';
 import { categoryLabel, type CategoryCode } from '@/lib/category';
-import { supabase } from '@/services/supabase';
 import { colors } from '@/theme/tokens';
 import type { Krw, TripBudget } from '@/types/domain';
 
@@ -52,12 +52,14 @@ export default function Budget() {
     if (totalKrw <= 0) return;
     setAiLoading(true);
     try {
-      // api.ts는 다른 작업자가 소유해 budget-coach 래퍼를 넣지 못했다. Edge Function을 직접 호출한다.
-      const { data, error } = await supabase.functions.invoke<{ alloc: Alloc }>('budget-coach', {
-        body: { room_id: roomId, kind: 'alloc', total_krw: totalKrw, spent: spentByCategory },
+      const { alloc } = await api.budgetCoach<{ alloc: Alloc }>({
+        room_id: roomId,
+        kind: 'alloc',
+        total_krw: totalKrw,
+        spent: spentByCategory,
       });
-      if (error || !data?.alloc) throw error ?? new Error('EMPTY');
-      setAiAlloc(data.alloc);
+      if (!alloc) throw new Error('EMPTY');
+      setAiAlloc(alloc);
     } catch {
       // 실패하면 지금까지 지출 비율로 나눈다.
       setAiAlloc(allocByRatio(totalKrw, spentByCategory));

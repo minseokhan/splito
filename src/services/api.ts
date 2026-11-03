@@ -264,6 +264,16 @@ export const api = {
     return data!;
   },
 
+  // AI 예산 코칭(내 통계). kind='alloc'이면 카테고리 배분 비율, 'plans'면 조정안 2~3개.
+  async budgetCoach<T extends { alloc: Partial<Record<CategoryCode, number>> } | { plans: BudgetPlan[] }>(
+    body: Record<string, unknown>,
+  ): Promise<T> {
+    const { data, error } = await supabase.functions.invoke<T>('budget-coach', { body });
+    if (error) throw await functionError(error);
+    if (!data) throw new Error('EMPTY');
+    return data;
+  },
+
   async fxRate(date: string, currency: string): Promise<FxRateResult> {
     const { data, error } = await supabase.functions.invoke<FxRateResult>('fx-rate', { body: { date, currency } });
     if (error) throw await functionError(error);
