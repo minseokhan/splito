@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, Link as LinkIcon, WarningCircle, WarningTriangle, XmarkCircle } from 'iconoir-react-native';
+import { Check, CheckCircle, Link as LinkIcon, WarningCircle, WarningTriangle, XmarkCircle } from 'iconoir-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -143,8 +143,10 @@ export default function BookingLookup() {
             onPress={() => setConsent((v) => !v)}
             className="flex-row items-center gap-2.5"
           >
-            <View className={`h-6 w-6 items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}>
-              <Icon as={CheckCircle} size={16} color="#FFFFFF" />
+            <View
+              className={`h-[26px] w-[26px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
+            >
+              <Icon as={Check} size={16} color="#FFFFFF" />
             </View>
             <Text className="flex-1 font-semibold text-[15px] text-ink">
               <Text className="text-primary-text">[필수]</Text> 개인정보 제3자 제공 동의
