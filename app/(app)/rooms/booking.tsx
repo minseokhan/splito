@@ -151,12 +151,13 @@ export default function BookingLookup() {
             onPress={() => setConsent((v) => !v)}
             className="flex-row items-center gap-2.5"
           >
+            {/* 라벨 줄 높이를 원 지름과 같게 두고(22), 한글 글자가 박스 안에서 살짝 위에 앉는 만큼 1px 내린다 */}
             <View
-              className={`h-[22px] w-[22px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
+              className={`mt-px h-[22px] w-[22px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
             >
               <Icon as={Check} size={12} color="#FFFFFF" />
             </View>
-            <Text className="flex-1 font-semibold text-[15px] text-ink">
+            <Text className="flex-1 font-semibold text-[15px] leading-[22px] text-ink">
               <Text className="text-primary-text">[필수]</Text> 개인정보 제3자 제공 동의
             </Text>
             <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setTerms(true)}>
