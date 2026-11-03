@@ -90,11 +90,40 @@ describe('buildScheduleDays', () => {
     expect(days.map((d) => d.dayIndex)).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it('일차 소제목에 날짜와 대표 일정을 붙인다', () => {
+  it('날짜 제목은 일반 여행 상세와 같은 형식이다', () => {
     const days = buildScheduleDays({ items, expenses: [], hiddenIds: [], startDate: START, endDate: END });
-    expect(days.find((d) => d.dayIndex === 1)!.header).toBe('1일차 · 10.20 (월) · 인천 → 간사이');
+    expect(days.find((d) => d.dayIndex === 1)!.header).toBe('10월 20일 (월)');
     expect(days.find((d) => d.dayIndex === 0)!.header).toBe('여행 전');
-    expect(days.find((d) => d.dayIndex === 3)!.header).toBe('3일차 · 10.22 (수)');
+    expect(days.find((d) => d.dayIndex === 3)!.header).toBe('10월 22일 (수)');
+  });
+
+  it('기간이 없으면 날짜를 못 만들어 일차로 떨어진다', () => {
+    const days = buildScheduleDays({
+      items: [item({ id: 'x', dayIndex: 2, startTime: '10:00' })],
+      expenses: [],
+      hiddenIds: [],
+      startDate: null,
+      endDate: null,
+    });
+    expect(days.find((d) => d.dayIndex === 2)!.header).toBe('2일차');
+  });
+
+  it('날짜 합계는 일정 연결분과 그 외 지출을 모두 더한다', () => {
+    const days = buildScheduleDays({
+      items,
+      expenses: [exp('e1', '2025-10-20', 81_000, 's12'), exp('e2', '2025-10-20', 19_000)],
+      hiddenIds: [],
+      startDate: START,
+      endDate: END,
+    });
+    const day1 = days.find((d) => d.dayIndex === 1)!;
+    expect(day1.daySum).toBe(100_000);
+    expect(day1.hasExpense).toBe(true);
+  });
+
+  it('지출이 없는 날은 합계를 쓰지 않는다', () => {
+    const days = buildScheduleDays({ items, expenses: [], hiddenIds: [], startDate: START, endDate: END });
+    expect(days.find((d) => d.dayIndex === 3)!.hasExpense).toBe(false);
   });
 
   it('연결된 지출은 그 카드에 들어가고 합계는 결제 총액이다', () => {

@@ -75,7 +75,15 @@ export function ScheduleSection({
     <View className="gap-3 px-5 pt-1.5">
       {days.map((d) => (
         <View key={d.key} className="gap-2.5">
-          <Text className="pt-1.5 font-semibold text-[13px] text-ink-500">{d.header}</Text>
+          {/* 일반 여행 상세의 날짜 섹션과 같은 줄 구성: 왼쪽 날짜, 오른쪽 그날 합계 */}
+          <View className="flex-row justify-between py-1.5">
+            <Text className="font-semibold text-[15px] text-ink-700">{d.header}</Text>
+            {d.hasExpense && (
+              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[15px] text-ink-500">
+                {formatKrw(d.daySum)}
+              </Text>
+            )}
+          </View>
 
           {d.cards.map((c) => (
             <View key={c.item.id} className="flex-row gap-2.5">
