@@ -120,7 +120,6 @@ describe('buildScheduleDays', () => {
     });
     const day2 = days.find((d) => d.dayIndex === 2)!;
     expect(day2.extra.map((e) => e.id)).toEqual(['e3']);
-    expect(day2.extraSum).toBe(114_680);
     expect(day2.extraLabel).toBe('그 외 지출');
   });
 

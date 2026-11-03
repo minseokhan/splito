@@ -299,7 +299,7 @@ export default function RoomHome() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 14 }}
+        contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14 }}
       >
         {[{ code: null as CategoryCode | null, label: '전체' }, ...CATEGORIES].map((c) => {
           const on = category === c.code;
@@ -310,7 +310,7 @@ export default function RoomHome() {
               accessibilityRole="radio"
               accessibilityState={{ selected: on }}
               onPress={() => setCategory(c.code)}
-              className={`h-10 flex-row items-center gap-1.5 rounded-full px-4 ${on ? 'bg-sky-100' : 'bg-app'}`}
+              className={`h-10 flex-row items-center gap-1.5 rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-app'}`}
             >
               {icon && <Icon as={icon} size={17} color={on ? colors.primary.text : colors.ink[500]} />}
               <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.label}</Text>
@@ -324,10 +324,10 @@ export default function RoomHome() {
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {topBar}
+      {header}
       <FlatList
         data={linked ? [] : visibleSections}
         keyExtractor={(s) => s.key}
-        ListHeaderComponent={header}
         contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />}
         renderItem={({ item: section }) => {

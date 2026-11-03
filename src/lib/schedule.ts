@@ -48,7 +48,6 @@ export type ScheduleDay<E> = {
   hiddenCount: number;
   extraLabel: string;
   extra: E[];
-  extraSum: number;
 };
 
 export function isValidScheduleTime(value: string): boolean {
@@ -140,7 +139,6 @@ export function buildScheduleDays<E extends SchedulableExpense>({
       hiddenCount,
       extraLabel: d === 0 ? '여행 전 지출' : '그 외 지출',
       extra,
-      extraSum: extra.reduce((s, e) => s + (e.krwAmount ?? 0), 0),
     });
   }
   return out;

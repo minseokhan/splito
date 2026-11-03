@@ -1,5 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, CheckCircle, Link as LinkIcon, WarningCircle, WarningTriangle, XmarkCircle } from 'iconoir-react-native';
+import {
+  Check,
+  CheckCircle,
+  Link as LinkIcon,
+  NavArrowRight,
+  WarningCircle,
+  WarningTriangle,
+  XmarkCircle,
+} from 'iconoir-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -146,7 +154,7 @@ export default function BookingLookup() {
             <View
               className={`h-[26px] w-[26px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
             >
-              <Icon as={Check} size={16} color="#FFFFFF" />
+              <Icon as={Check} size={14} color="#FFFFFF" />
             </View>
             <Text className="flex-1 font-semibold text-[15px] text-ink">
               <Text className="text-primary-text">[필수]</Text> 개인정보 제3자 제공 동의
@@ -262,27 +270,57 @@ type BoxProps = {
   action?: { label: string; onPress: () => void };
 };
 
+// 성공 카드(sky-50 + sky-200 테두리 + radius 20)와 같은 생김새를 쓰고 색만 톤별로 바꾼다.
+// 버튼도 박스 톤을 따라가야 겉돌지 않는다 — 흰 배경에 회색 테두리면 박스에서 떠 보인다.
 const TONE = {
-  danger: { box: 'bg-[#FEF3F2]', icon: colors.danger.DEFAULT, title: 'text-[#B42318]', body: 'text-[#7A271A]' },
-  muted: { box: 'bg-app', icon: colors.primary.text, title: 'text-ink', body: 'text-ink-500' },
-  warning: { box: 'bg-warning-banner', icon: colors.warning.DEFAULT, title: 'text-warning-deep', body: 'text-warning-deep' },
+  danger: {
+    box: 'bg-[#FEF3F2] border-danger-soft',
+    icon: colors.danger.DEFAULT,
+    title: 'text-[#B42318]',
+    body: 'text-[#7A271A]',
+    btn: 'border-danger-soft',
+    btnText: 'text-[#B42318]',
+    btnIcon: '#B42318',
+  },
+  muted: {
+    box: 'bg-app border-line',
+    icon: colors.primary.text,
+    title: 'text-ink',
+    body: 'text-ink-500',
+    btn: 'border-line',
+    btnText: 'text-ink',
+    btnIcon: colors.ink.DEFAULT,
+  },
+  warning: {
+    box: 'bg-warning-banner border-warning-line',
+    icon: colors.warning.DEFAULT,
+    title: 'text-warning-deep',
+    body: 'text-warning-deep',
+    btn: 'border-warning-line',
+    btnText: 'text-warning',
+    btnIcon: colors.warning.DEFAULT,
+  },
 } as const;
 
 function ResultBox({ tone, icon, title, body, action }: BoxProps) {
   const t = TONE[tone];
   return (
-    <View className={`flex-row gap-2.5 rounded-button p-3.5 ${t.box}`}>
-      <Icon as={icon} size={20} color={t.icon} />
-      <View className="flex-1 gap-0.5">
+    <View className={`flex-row gap-2.5 rounded-card border p-4 ${t.box}`}>
+      {/* 아이콘은 제목 첫 줄에 맞춘다 */}
+      <View className="pt-px">
+        <Icon as={icon} size={20} color={t.icon} />
+      </View>
+      <View className="flex-1 gap-1">
         <Text className={`font-semibold text-[15px] ${t.title}`}>{title}</Text>
-        <Text className={`text-[13px] ${t.body}`}>{body}</Text>
+        <Text className={`text-[13px] leading-5 ${t.body}`}>{body}</Text>
         {!!action && (
           <Pressable
             accessibilityRole="button"
             onPress={action.onPress}
-            className="mt-2 h-[34px] self-start justify-center rounded-[10px] border-[1.5px] border-line bg-white px-3"
+            className={`mt-2.5 h-9 flex-row items-center gap-0.5 self-start rounded-chip border-[1.5px] bg-white pl-3.5 pr-2.5 active:opacity-70 ${t.btn}`}
           >
-            <Text className="font-semibold text-[13px] text-ink">{action.label}</Text>
+            <Text className={`font-semibold text-[13px] ${t.btnText}`}>{action.label}</Text>
+            <Icon as={NavArrowRight} size={14} color={t.btnIcon} />
           </Pressable>
         )}
       </View>

@@ -1,4 +1,4 @@
-import { Check, EditPencil, Minus, Plus, Suitcase } from 'iconoir-react-native';
+import { Check, EditPencil, Minus, Plus } from 'iconoir-react-native';
 import { Fragment } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -26,15 +26,6 @@ type Props = {
   onUnhide: (dayIndex: number) => void;
   onOpenExpense: (expenseId: string) => void;
 };
-
-// 하나투어 배지 — 11/600, radius 6.
-function ProviderBadge() {
-  return (
-    <View className="rounded-[6px] bg-sky-100 px-[7px] py-px">
-      <Text className="font-semibold text-[11px] text-primary-text">하나투어</Text>
-    </View>
-  );
-}
 
 function Tag({ label }: { label: string }) {
   const warn = label === '예산 제외';
@@ -82,12 +73,6 @@ export function ScheduleSection({
 }: Props) {
   return (
     <View className="gap-3 px-5 pt-1.5">
-      <View className="flex-row items-center gap-2">
-        <Icon as={Suitcase} size={18} color={colors.primary.text} />
-        <Text className="font-semibold text-[18px] text-ink">패키지 일정</Text>
-        <ProviderBadge />
-      </View>
-
       {days.map((d) => (
         <View key={d.key} className="gap-2.5">
           <Text className="pt-1.5 font-semibold text-[13px] text-ink-500">{d.header}</Text>
@@ -180,12 +165,7 @@ export function ScheduleSection({
 
           {d.extra.length > 0 && (
             <View className="rounded-2xl bg-app px-3.5 py-2.5">
-              <View className="flex-row justify-between pb-0.5">
-                <Text className="font-semibold text-[13px] text-ink-500">{d.extraLabel}</Text>
-                <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[13px] text-ink-500">
-                  {formatKrw(d.extraSum)}
-                </Text>
-              </View>
+              <Text className="pb-0.5 font-semibold text-[13px] text-ink-500">{d.extraLabel}</Text>
               {d.extra.map((e, i) => (
                 <Fragment key={e.id}>
                   <Pressable
