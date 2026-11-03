@@ -59,6 +59,15 @@ const config: ExpoConfig = {
       },
     ],
     [
+      "expo-notifications",
+      {
+        // 안드로이드 상태바 아이콘은 단색만 쓸 수 있다. 앱 아이콘을 그대로 넣으면 흰 덩어리로 보인다.
+        icon: "./assets/images/android-icon-monochrome.png",
+        color: "#208AEF",
+        defaultChannel: "default",
+      },
+    ],
+    [
       "expo-splash-screen",
       {
         backgroundColor: "#208AEF",
