@@ -1,6 +1,6 @@
 import * as Application from 'expo-application';
 import { router } from 'expo-router';
-import { Bank, LogOut, Mail, NavArrowRight, Page, ShieldCheck } from 'iconoir-react-native';
+import { Bank, Bell, LogOut, Mail, NavArrowRight, Page, ShieldCheck } from 'iconoir-react-native';
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMyPayoutAccount } from '@/hooks/usePayoutAccount';
 import { toUserError } from '@/lib/errors';
 import { nicknameSchema } from '@/lib/profile';
-import { signOut, updateMarketing, updateNickname } from '@/services/auth';
+import { signOut, updateMarketing, updateNickname, updatePushEnabled } from '@/services/auth';
 import { colors } from '@/theme/tokens';
 
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
@@ -73,6 +73,19 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const [marketing, setMarketing] = useState<boolean>();
+  const [push, setPush] = useState<boolean>();
+  const pushOn = push ?? (profile?.push_enabled ?? true);
+  const togglePush = async (on: boolean) => {
+    setPush(on);
+    try {
+      await updatePushEnabled(on);
+      await refreshProfile();
+      toast(on ? '알림을 켰어요' : '알림을 껐어요');
+    } catch (e) {
+      setPush(!on);
+      toast(toUserError(e).message);
+    }
+  };
   const marketingOn = marketing ?? !!profile?.marketing_opt_in;
   const toggleMarketing = async (on: boolean) => {
     setMarketing(on);
@@ -143,6 +156,7 @@ export default function Settings() {
           />
           <Row icon={Page} label="이용약관" onPress={() => Linking.openURL(`https://${LINK_DOMAIN}/terms`)} />
           <Row icon={ShieldCheck} label="개인정보 처리방침" onPress={() => Linking.openURL(`https://${LINK_DOMAIN}/privacy`)} />
+          <Row icon={Bell} label="알림 받기" right={<Toggle on={pushOn} label="알림 받기" onChange={(on) => void togglePush(on)} />} />
           <Row icon={Mail} label="마케팅 정보 수신" right={<Toggle on={marketingOn} label="마케팅 정보 수신" onChange={(on) => void toggleMarketing(on)} />} />
         </View>
 

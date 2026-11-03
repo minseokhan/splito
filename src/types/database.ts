@@ -331,17 +331,37 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "age14_confirmed_at": string | null,"ai_notice_ack_at": string | null,"avatar_url": string | null,"created_at": string,"deleted_at": string | null,"id": string,"marketing_opt_in": boolean,"marketing_opt_in_at": string | null,"nickname": string,"overseas_notice_ack_at": string | null,"terms_agreed_at": string | null,"terms_version": string | null
+                    "age14_confirmed_at": string | null,"ai_notice_ack_at": string | null,"avatar_url": string | null,"created_at": string,"deleted_at": string | null,"id": string,"marketing_opt_in": boolean,"marketing_opt_in_at": string | null,"nickname": string,"overseas_notice_ack_at": string | null,"push_enabled": boolean,"terms_agreed_at": string | null,"terms_version": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "age14_confirmed_at"?: string | null,"ai_notice_ack_at"?: string | null,"avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"id": string,"marketing_opt_in"?: boolean,"marketing_opt_in_at"?: string | null,"nickname"?: string,"overseas_notice_ack_at"?: string | null,"terms_agreed_at"?: string | null,"terms_version"?: string | null
+                    "age14_confirmed_at"?: string | null,"ai_notice_ack_at"?: string | null,"avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"id": string,"marketing_opt_in"?: boolean,"marketing_opt_in_at"?: string | null,"nickname"?: string,"overseas_notice_ack_at"?: string | null,"push_enabled"?: boolean,"terms_agreed_at"?: string | null,"terms_version"?: string | null
                   }
                   Update: {
-                    "age14_confirmed_at"?: string | null,"ai_notice_ack_at"?: string | null,"avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"marketing_opt_in"?: boolean,"marketing_opt_in_at"?: string | null,"nickname"?: string,"overseas_notice_ack_at"?: string | null,"terms_agreed_at"?: string | null,"terms_version"?: string | null
+                    "age14_confirmed_at"?: string | null,"ai_notice_ack_at"?: string | null,"avatar_url"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"marketing_opt_in"?: boolean,"marketing_opt_in_at"?: string | null,"nickname"?: string,"overseas_notice_ack_at"?: string | null,"push_enabled"?: boolean,"terms_agreed_at"?: string | null,"terms_version"?: string | null
                   }
                   Relationships: [
                     
+                  ]
+                },"push_tokens": {
+                  Row: {
+                    "created_at": string,"platform": string,"token": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"platform": string,"token": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"platform"?: string,"token"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_tokens_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"room_events": {
                   Row: {
@@ -673,11 +693,29 @@ isOneToOne: true
               "base_date": string,"rate": number
             }[]
                            },
+"_member_user_id":
+{ Args: { "p_member_id": string }; Returns: string
+                           },
 "_payout_key":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"_push":
+{ Args: { "p_body": string,"p_path": string,"p_targets": (string)[],"p_title": string }; Returns: undefined
+                           },
+"_push_krw":
+{ Args: { "p_amount": number }; Returns: string
+                           },
+"_push_nickname":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
+"_push_room_name":
+{ Args: { "p_room_id": string }; Returns: string
+                           },
 "_record_history":
 { Args: { "p_action": string,"p_expense_id": string }; Returns: undefined
+                           },
+"_room_user_ids":
+{ Args: { "p_except": string,"p_room_id": string }; Returns: (string)[]
                            },
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
@@ -705,6 +743,9 @@ isOneToOne: true
                            },
 "delete_expense":
 { Args: { "p_expected_version": number,"p_id": string }; Returns: undefined
+                           },
+"delete_push_token":
+{ Args: { "p_token": string }; Returns: undefined
                            },
 "delete_schedule_item":
 { Args: { "p_id": string }; Returns: undefined
@@ -791,6 +832,9 @@ isOneToOne: true
                            },
 "set_pool":
 { Args: { "p_card_last4": (string)[],"p_enabled": boolean,"p_owner_member_id": string,"p_room_id": string }; Returns: undefined
+                           },
+"set_push_token":
+{ Args: { "p_platform": string,"p_token": string }; Returns: undefined
                            },
 "set_schedule_hidden":
 { Args: { "p_hidden": boolean,"p_schedule_id": string }; Returns: undefined
