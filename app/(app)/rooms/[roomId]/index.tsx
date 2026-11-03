@@ -148,10 +148,7 @@ export default function RoomHome() {
 
   // 요약 카드: 135° 그라데이션(#36B6FF → primary). 전역 primary는 그대로 두고 여기서만 시작색을 쓴다.
   const summary = (
-    <View
-      className="mx-4 overflow-hidden rounded-card-lg"
-      style={{ boxShadow: '0 12px 24px -12px rgba(8,116,187,.45)' }}
-    >
+    <View className="mx-4 overflow-hidden rounded-card-lg">
       <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id="tripHero" x1="0" y1="0" x2="1" y2="1">
