@@ -619,6 +619,32 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"trip_budgets": {
+                  Row: {
+                    "alloc": NonNullable<Json>,"alloc_mode": string,"applied_plan": Json | null,"room_id": string,"total_krw": number,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alloc"?: NonNullable<Json>,"alloc_mode"?: string,"applied_plan"?: Json | null,"room_id": string,"total_krw": number,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "alloc"?: NonNullable<Json>,"alloc_mode"?: string,"applied_plan"?: Json | null,"room_id"?: string,"total_krw"?: number,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trip_budgets_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "trip_budgets_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -720,6 +746,9 @@ isOneToOne: true
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
                            },
+"apply_budget_plan":
+{ Args: { "p_plan": Json,"p_room_id": string }; Returns: undefined
+                           },
 "booking_owner":
 { Args: { "p_booking_no": string,"p_provider": string }; Returns: Json
                            },
@@ -778,12 +807,17 @@ isOneToOne: true
               "avatar_url": string,"id": string,"nickname": string
             }[]
                            },
+"my_expense_shares":
+{ Args: { "p_room_id": string }; Returns: {
+              "amount_original": number,"category": string,"currency": string,"expense_id": string,"krw_amount": number,"merchant": string,"my_share": number,"paid_local_date": string,"payer_kind": string,"payer_member_id": string,"visibility": string
+            }[]
+                           },
 "my_member_id":
 { Args: { "p_room_id": string }; Returns: string
                            },
 "my_rooms":
 { Args: Record<PropertyKey, never>; Returns: {
-              "base_currency": string,"end_date": string,"member_count": number,"my_net": number,"name": string,"room_id": string,"start_date": string,"status": string,"total_krw": number
+              "base_currency": string,"end_date": string,"has_booking": boolean,"member_count": number,"my_net": number,"name": string,"room_id": string,"start_date": string,"status": string,"total_krw": number
             }[]
                            },
 "new_invite_token":
@@ -823,6 +857,9 @@ isOneToOne: true
                            },
 "save_schedule_item":
 { Args: { "p_payload": Json }; Returns: string
+                           },
+"save_trip_budget":
+{ Args: { "p_alloc": Json,"p_alloc_mode": string,"p_room_id": string,"p_total_krw": number }; Returns: undefined
                            },
 "set_expense_meta":
 { Args: { "p_expense_id": string,"p_flags"?: (string)[],"p_schedule_id"?: string }; Returns: undefined

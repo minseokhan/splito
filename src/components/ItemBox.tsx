@@ -1,4 +1,4 @@
-import { Check, NavArrowRight, Xmark } from 'iconoir-react-native';
+import { Check, NavArrowRight, Scissor, Xmark } from 'iconoir-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -36,7 +36,7 @@ type Props = {
 
 const TABULAR = { fontVariant: ['tabular-nums' as const] };
 
-// 시안 7 품목 박스: 흰색 radius 20, 확인필요면 1.5 warning-line 테두리. 금액 해석은 화면이 lib로 한다.
+// 시안 11 품목 박스: 흰색 radius 20, 확인필요면 1.5 warning-line 테두리. 금액 해석은 화면이 lib로 한다.
 export function ItemBox(p: Props) {
   const [amount, setAmount] = useState(p.amountText ?? '');
   // 박스를 한 번 탭해야 삭제 X가 뜬다 — 입력칸 옆에 상시 노출하면 잘못 눌러 인식 결과가 날아간다.
@@ -64,10 +64,12 @@ export function ItemBox(p: Props) {
           accessibilityRole="button"
           accessibilityLabel="이 품목 삭제"
           onPress={p.onRemove}
-          hitSlop={8}
-          className="absolute -right-2 -top-2 z-10 h-7 w-7 items-center justify-center rounded-full bg-ink"
+          // 24px 원이라 hitSlop 10으로 터치 영역을 44 이상으로 맞춘다.
+          hitSlop={10}
+          style={{ boxShadow: '0 2px 6px -2px rgba(14,27,61,.18)' }}
+          className="absolute -right-2 -top-2 z-10 h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-line bg-white"
         >
-          <Icon as={Xmark} size={16} color="#FFFFFF" />
+          <Icon as={Xmark} size={14} color={colors.ink[400]} />
         </Pressable>
       )}
       <View className="flex-row justify-between gap-2.5">
@@ -81,14 +83,14 @@ export function ItemBox(p: Props) {
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="품목 이름"
                 style={{ borderBottomWidth: 1, borderStyle: 'dashed' }}
-                className="flex-shrink border-line p-0 font-semibold text-[17px] text-ink focus:border-primary"
+                className="flex-shrink border-line p-0 font-semibold text-base text-ink focus:border-primary"
               />
             ) : (
-              <Text className="flex-shrink font-semibold text-[17px] text-ink">{p.nameKo || p.nameOriginal || '품목'}</Text>
+              <Text className="flex-shrink font-semibold text-base text-ink">{p.nameKo || p.nameOriginal || '품목'}</Text>
             )}
             {p.needsReview && <Badge kind="review" onPress={p.onClearReview} accessibilityLabel={p.onClearReview ? '확인 필요 해제' : undefined} />}
           </View>
-          {!!p.nameOriginal && <Text className="text-[13px] text-ink-400">{p.nameOriginal}</Text>}
+          {!!p.nameOriginal && <Text className="text-xs text-ink-400">{p.nameOriginal}</Text>}
         </View>
         <View className="items-end gap-0.5">
           {editable ? (
@@ -105,7 +107,7 @@ export function ItemBox(p: Props) {
                 keyboardType="numbers-and-punctuation"
                 accessibilityLabel="품목 금액"
                 style={{ ...TABULAR, borderBottomWidth: 1, borderStyle: 'dashed' }}
-                className={`min-w-20 border-line px-1 py-0 text-right font-semibold text-[22px] focus:border-primary focus:bg-sky-50 ${mainCls}`}
+                className={`min-w-20 border-line px-1 py-0 text-right font-semibold text-[18px] focus:border-primary focus:bg-sky-50 ${mainCls}`}
               />
             </View>
           ) : (
@@ -113,13 +115,13 @@ export function ItemBox(p: Props) {
               {p.quantity !== 1 && (
                 <Text className="rounded-badge bg-muted px-1.5 py-0.5 font-semibold text-[15px] text-ink-500">{p.quantity} ×</Text>
               )}
-              <Text style={TABULAR} className={`font-semibold text-[22px] ${mainCls}`}>
+              <Text style={TABULAR} className={`font-semibold text-[18px] ${mainCls}`}>
                 {mainLabel}
               </Text>
             </View>
           )}
           {!p.isKrw && !!p.krwLabel && (
-            <Text style={TABULAR} className="text-sm text-ink-300">
+            <Text style={TABULAR} className="text-[13px] text-ink-300">
               {p.krwLabel}
             </Text>
           )}
@@ -153,9 +155,9 @@ export function ItemBox(p: Props) {
                       backgroundColor: on ? c.tint : '#FFFFFF',
                       borderStyle: m.guest ? 'dashed' : 'solid',
                     }}
-                    className="h-9 w-9 items-center justify-center rounded-full border-2"
+                    className="h-[34px] w-[34px] items-center justify-center rounded-full border-2"
                   >
-                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-[15px]">
+                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-sm">
                       {m.name.slice(0, 1)}
                     </Text>
                   </Pressable>
@@ -165,7 +167,7 @@ export function ItemBox(p: Props) {
                 accessibilityRole="button"
                 accessibilityLabel={pick ? '사람 선택 닫기' : '먹은 사람 닫기'}
                 onPress={p.onCollapse}
-                className="h-9 w-9 items-center justify-center rounded-full bg-ink"
+                className="h-[34px] w-[34px] items-center justify-center rounded-full bg-ink"
               >
                 <Icon as={Check} size={18} color="#FFFFFF" />
               </Pressable>
@@ -183,24 +185,30 @@ export function ItemBox(p: Props) {
                 return (
                   <View
                     key={m.id}
-                    style={{ backgroundColor: c.tint, borderStyle: m.guest ? 'dashed' : 'solid' }}
-                    className="h-9 w-9 items-center justify-center rounded-full border-2 border-white"
+                    style={{ backgroundColor: c.tint, borderStyle: m.guest ? 'dashed' : 'solid', boxShadow: '0 1px 3px rgba(19,25,39,.12)' }}
+                    className="h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-white"
                   >
-                    <Text style={{ color: c.fg }} className="font-semibold text-[15px]">
+                    <Text style={{ color: c.fg }} className="font-semibold text-sm">
                       {m.name.slice(0, 1)}
                     </Text>
                   </View>
                 );
               })}
-              {selected.length > 1 && <Text className="font-semibold text-sm text-ink-500">+{selected.length - 1}</Text>}
+              {selected.length > 1 && <Text className="font-semibold text-[13px] text-ink-500">+{selected.length - 1}</Text>}
               {!!p.onExpand && <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />}
             </Pressable>
           ))}
-        <View className="ml-auto items-end gap-1">
-          <Text className="text-right font-semibold text-[13px] text-ink-500">{p.splitLabel}</Text>
+        <View className="ml-auto items-end gap-1.5">
+          <Text className="text-right font-semibold text-xs text-ink-500">{p.splitLabel}</Text>
           {p.onSplit && (
-            <Pressable accessibilityRole="button" onPress={p.onSplit} hitSlop={8}>
-              <Text className="font-semibold text-[13px] text-primary-text">쪼개기</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={p.onSplit}
+              hitSlop={8}
+              className="flex-row items-center gap-[3px]"
+            >
+              <Icon as={Scissor} size={15} color={colors.primary.text} />
+              <Text className="font-semibold text-xs text-primary-text">쪼개기</Text>
             </Pressable>
           )}
         </View>

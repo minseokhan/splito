@@ -11,6 +11,7 @@ import { Wordmark } from '@/components/Logo';
 import { formatKrw } from '@/components/Money';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { RoomCard, roomPeriod } from '@/components/RoomCard';
+import { TabBar } from '@/components/TabBar';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecentExpenses } from '@/hooks/useRecentExpenses';
 import { useMyRooms } from '@/hooks/useRooms';
@@ -20,7 +21,7 @@ import { colors } from '@/theme/tokens';
 import type { MyRoom } from '@/types/domain';
 
 const SOURCE_ICON = { receipt: Camera, card_image: Camera, card_text: MessageText, voice: Microphone, manual: EditPencil } as const;
-const CARD_STEP = 286 + 12; // 카드 폭(RoomCard w-[286px]) + gap
+const CARD_STEP = 260 + 12; // 카드 폭(RoomCard w-[260px]) + gap
 
 const goRoom = (roomId: string) => router.push({ pathname: '/rooms/[roomId]', params: { roomId } });
 const goCreate = () => router.push('/rooms/start');
@@ -42,7 +43,7 @@ const MeGlyph = () => (
 function Header() {
   return (
     <View className="flex-row items-center justify-between">
-      <Wordmark size={24} />
+      <Wordmark size={27} />
       <View className="flex-row items-center gap-1.5">
         <Pressable
           accessibilityRole="button"
@@ -107,7 +108,7 @@ export default function Home() {
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <ScrollView
-        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 140, gap: 22 }}
+        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 130, gap: 22 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refresh} />}
       >
         <Header />
@@ -220,9 +221,7 @@ export default function Home() {
           </>
         )}
       </ScrollView>
-      <BottomBar fade>
-        <PrimaryButton title="지출 올리기" variant="dark" icon={Camera} onPress={addExpense} />
-      </BottomBar>
+      <TabBar active="home" onAdd={addExpense} />
     </SafeAreaView>
   );
 }

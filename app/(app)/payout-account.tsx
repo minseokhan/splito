@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
-import { SplitoSymbol } from '@/components/Logo';
+import { SplitoMark } from '@/components/Logo';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { TextField } from '@/components/TextField';
@@ -143,7 +143,7 @@ export default function PayoutAccountScreen() {
               {/* 어두운 배경 위 흰 실루엣은 10%면 안 보인다. 시안대로 컬러 심볼을 그대로 깐다.
                   크기·위치는 심볼 윗변이 '암호화 저장' 배지 아래로 내려가게 잡는다(카드가 길어지면 간격만 더 벌어진다). */}
               <View className="absolute" style={{ right: -14, bottom: -46 }}>
-                <SplitoSymbol size={124} opacity={0.95} />
+                <SplitoMark size={124} opacity={0.95} />
               </View>
               <View className="flex-row items-center justify-between">
                 <Text className="font-semibold text-[17px] text-white">{current.bankName}</Text>

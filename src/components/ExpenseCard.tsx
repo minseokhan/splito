@@ -16,7 +16,7 @@ const SOURCE_LABEL = { receipt: '영수증', card_image: '결제 캡처', card_t
 type Props = { row: FeedRow; payerName: string; recorderName: string; onPress: () => void };
 
 // 피드 한 줄. 구분선은 화면이 그린다.
-// 금액은 결제한 통화를 크게(원화 결제도 ₩ 기호), 확정 원화를 작게 아래에 둔다.
+// 금액은 결제한 통화를 크게(외화면 local 파랑, 원화 결제는 ink), 확정 원화를 작게 아래에 둔다.
 export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
   const pending = row.krwAmount === null;
   const foreign = row.currency !== 'KRW';
@@ -32,7 +32,7 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
         onPress={onPress}
         className="flex-row items-center gap-3 py-3"
       >
-        <View className="h-[42px] w-[42px] items-center justify-center rounded-input bg-muted">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-sky-100">
           <Icon as={source} size={20} color={colors.primary.text} accessibilityLabel={sourceLabel} />
         </View>
         <View className="flex-1 gap-[2px]">
@@ -48,7 +48,10 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
           </Text>
         </View>
         <View className="items-end gap-[2px]">
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-local">
+          <Text
+            style={{ fontVariant: ['tabular-nums'] }}
+            className={`font-semibold text-base ${foreign ? 'text-local' : 'text-ink'}`}
+          >
             {original}
           </Text>
           {pending ? (

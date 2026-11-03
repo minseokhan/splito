@@ -387,14 +387,14 @@ function Title({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-// 칸마다 배경·아이콘 색이 다르다(시안 6): 문자 민트 / 음성 옐로 / 직접 회색.
+// 칸마다 배경·아이콘 색이 다르다(시안 10): 문자 민트 / 음성 옐로 / 직접 회색. 라벨은 시안대로 두 줄.
 const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; bg: string; iconColor: string }[] = [
   { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, bg: 'bg-success-bg', iconColor: colors.success.DEFAULT },
-  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
-  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
+  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
+  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
 ];
 
-// 시안 6: 지출 올리기 방법 선택(전체 화면).
+// 시안 10: 지출 올리기 방법 선택(전체 화면).
 function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) => void; scheduleTitle?: string }) {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>

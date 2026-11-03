@@ -4,7 +4,10 @@
 
 | 파일 | 용도 |
 |---|---|
-| splito-symbol.svg | 기본 심볼. 민트·옐로 카드 2장 + 하늘색 지갑 본체 + 덮개 + 반짝임 (viewBox `12 12 76 76`) |
+| **splito-mark.svg** | **현행 마크.** S + 출발 삼각형(네이비 그라데이션) + 금색 별 3개 (viewBox `10 4 84 92`) |
+| **splito-mark-tile.svg** | 현행 마크 + 흰 둥근 타일 (viewBox `0 0 100 100`, `rx 23`) |
+| **splito-landing-icon.svg** / **-symbol.svg** | 랜딩 애니메이션 내장본. 순서는 `LANDING-ANIMATION.md` |
+| splito-symbol.svg | ~~구 심볼(반짝 지갑)~~. 2026-11-04 폐기. 코드에서 쓰지 않는다 |
 | splito-wordmark.svg | "splito" 워드마크. 아웃라인 path이므로 폰트가 필요 없다 (`#0E2A47`, viewBox `0 -90.5 310.7 113.7`) |
 | splito-wordmark-white.svg | 같은 워드마크 path에 흰 fill. 어두운 배경용 |
 | splito-appicon-light.svg | 앱 아이콘 원본(밝은 배경, 정사각) |

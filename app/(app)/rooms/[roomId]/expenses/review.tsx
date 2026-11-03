@@ -22,8 +22,10 @@ import { useScheduleItems } from '@/hooks/useBooking';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
+import { useMyBudget, useMyShares } from '@/hooks/useBudget';
 import { useMyRooms, useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { addDays, dateLabel as longDateLabel } from '@/lib/calendar';
+import { budgetStats, myShareOfDraft, overRecWarning } from '@/lib/budget';
 import { CATEGORIES } from '@/lib/category';
 import { CURRENCIES } from '@/lib/currency';
 import { describeDuplicate, findDuplicate, type DupCandidate } from '@/lib/duplicate';
@@ -31,6 +33,7 @@ import { toUserError, type UserError } from '@/lib/errors';
 import {
   addItem,
   draftFromExpense,
+  effScope,
   kstToday,
   mergePayload,
   parseAmountInput,
@@ -88,6 +91,9 @@ export default function ReviewExpense() {
   const { session } = useAuth();
   const { data: members } = useRoomMembers(roomId);
   const { data: room } = useRoom(roomId);
+  // 예산 안내(명세 §8). 예산이 없으면 아무것도 안 뜨고, 저장을 막지도 않는다.
+  const { data: budget } = useMyBudget(roomId);
+  const { data: myShares } = useMyShares(roomId);
   const { stored, setStored, loaded } = useDraft(roomId);
   const save = useSaveExpense(roomId);
   const updateExpense = useUpdateExpense();
@@ -301,6 +307,27 @@ export default function ReviewExpense() {
   // 결제일이 속한 일차. 0이면 여행 기간 밖이라 '여행 전'으로 넣는다(명세 §7).
   const conflictDay = dayIndexOfDate(draft.paidLocalDate, room?.start_date ?? null, room?.end_date ?? null);
   const conflictDayLabel = conflictDay === 0 ? '여행 전' : `${conflictDay}일차`;
+  // 저장하면 오늘 권장액을 넘는지(명세 §8·§9-4). 결제일이 오늘일 때만 뜻이 있다.
+  const todayLocal = kstToday(new Date());
+  const budgetWarn =
+    draft.paidLocalDate === todayLocal && room?.start_date
+      ? overRecWarning(
+          budgetStats({
+            budget: budget?.totalKrw ?? null,
+            shares: myShares ?? [],
+            startDate: room.start_date,
+            endDate: room.end_date,
+            today: todayLocal,
+          }),
+          myShareOfDraft({
+            boxKrw: preview?.boxKrw ?? [],
+            items: draft.items,
+            scopeMemberIds: effScope(draft, meMemberId, activeIds),
+            payerMemberId: draft.payerKind === 'member' ? draft.payerMemberId : null,
+            meMemberId,
+          }),
+        )
+      : null;
   const splitLabel = (i: number) => {
     const it = draft.items[i];
     const n = it.assigneeMemberIds.length;
@@ -513,7 +540,7 @@ export default function ReviewExpense() {
             <View className="mt-px h-[18px] w-[18px] items-center justify-center rounded-full bg-alert">
               <Text className="font-semibold text-xs text-white">!</Text>
             </View>
-            <Text className="flex-1 text-[13px] text-primary-on">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
+            <Text className="flex-1 text-[13px] text-ink">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
           </View>
         )}
 
@@ -565,6 +592,7 @@ export default function ReviewExpense() {
         {!!mealWarn && (
           <Text className="text-[13px] text-warning">이 일정은 {mealWarn}이 포함돼 있어요. 따로 결제한 게 맞나요?</Text>
         )}
+        {!!budgetWarn && <Text className="text-[13px] text-warning-accent">{budgetWarn}</Text>}
         {error && <Text className="text-[13px] text-danger-text">{error}</Text>}
         <PrimaryButton
           title={total ? `${total} 저장하기` : '저장하기'}

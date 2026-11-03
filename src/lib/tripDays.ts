@@ -1,9 +1,7 @@
 import type { FeedSection } from './feed';
 
-// top은 요일 자리(없으면 빈 문자열), bottom이 null인 칸('전체')은 top만 그린다.
-export type TripDay = { key: string; top: string; bottom: string | null };
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+// 기간 선택 pill·드롭다운 한 칸. label='전체 기간'·'여행 전'·'N일차', sub=날짜(없으면 빈 문자열).
+export type TripDay = { key: string; label: string; sub: string };
 
 const PRE_TRIP = 'pre-trip';
 
@@ -27,18 +25,41 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Args = { startDate: string | null; endDate: string | null; sectionKeys: string[] };
 
-// 캘린더 칸: 전체 → (여행 전 지출이 있으면) 여행 전 → 기간의 각 날짜.
-// 기간 밖 날짜의 지출은 '전체'에서만 보인다(groupFeed가 숨기지 않으므로 누락은 아니다).
+// 기간 메뉴: 전체 기간 → (여행 전 지출이 있으면) 여행 전 → 기간의 각 날짜.
+// 기간 밖 날짜의 지출은 '전체 기간'에서만 보인다(groupFeed가 숨기지 않으므로 누락은 아니다).
 export function buildTripDays({ startDate, endDate, sectionKeys }: Args): TripDay[] {
-  const days: TripDay[] = [{ key: 'all', top: '전체', bottom: null }];
-  if (sectionKeys.includes(PRE_TRIP)) days.push({ key: PRE_TRIP, top: '', bottom: '여행 전' });
+  const last = startDate && endDate && endDate >= startDate ? endDate : startDate;
+  const days: TripDay[] = [
+    {
+      key: 'all',
+      label: '전체 기간',
+      sub: !startDate ? '' : last === startDate ? md(startDate) : `${md(startDate)} – ${md(last!)}`,
+    },
+  ];
+  if (sectionKeys.includes(PRE_TRIP)) days.push({ key: PRE_TRIP, label: '여행 전', sub: '' });
   if (!startDate) return days;
-  const last = endDate && endDate >= startDate ? utc(endDate) : utc(startDate);
-  for (let t = utc(startDate); t <= last; t += DAY_MS) {
+  let n = 1;
+  for (let t = utc(startDate); t <= utc(last!); t += DAY_MS, n += 1) {
     const key = iso(t);
-    days.push({ key, top: WEEKDAYS[new Date(t).getUTCDay()], bottom: String(Number(key.slice(8))) });
+    days.push({ key, label: `${n}일차`, sub: md(key) });
   }
   return days;
+}
+
+// pill과 메뉴 행에 쓰는 한 줄 문구. '전체 기간 · 10.20 – 10.23' / '여행 전'
+export function tripDayText(day: TripDay): string {
+  return day.sub ? `${day.label} · ${day.sub}` : day.label;
+}
+
+// 고른 기간을 문장으로 푼다. 내 통계 화면(my-stats)이 카드 캡션으로 쓴다.
+export function dayCaption(day: string, startDate: string | null, endDate: string | null): string {
+  if (day === PRE_TRIP) return '여행 전 지출';
+  if (DATE_RE.test(day)) {
+    const [, m, d] = day.split('-').map(Number);
+    return `${m}월 ${d}일`;
+  }
+  if (!startDate) return '';
+  return endDate ? `${md(startDate)} – ${md(endDate)}` : md(startDate);
 }
 
 export function filterSections<T>(sections: FeedSection<T>[], day: string): FeedSection<T>[] {
@@ -57,14 +78,3 @@ export function filterByCategory<T>(sections: FeedSection<T>[], category: string
     }))
     .filter((s) => s.data.length > 0);
 }
-
-export function dayCaption(day: string, startDate: string | null, endDate: string | null): string {
-  if (day === PRE_TRIP) return '여행 전 지출';
-  if (DATE_RE.test(day)) {
-    const [, m, d] = day.split('-').map(Number);
-    return `${m}월 ${d}일`;
-  }
-  if (!startDate) return '';
-  return endDate ? `${md(startDate)} – ${md(endDate)}` : md(startDate);
-}
-

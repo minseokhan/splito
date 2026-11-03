@@ -48,3 +48,23 @@ describe('ItemBox 먹은 사람 펼침', () => {
     expect(screen.getByRole('button', { name: '사람 선택 닫기' })).toBeOnTheScreen();
   });
 });
+
+describe('ItemBox 쪼개기·삭제', () => {
+  it('쪼개기는 가위 아이콘을 붙여도 이름으로 찾을 수 있다', async () => {
+    const onSplit = jest.fn();
+    await render(<ItemBox {...base} people={people} onSplit={onSplit} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: '쪼개기' }));
+    expect(onSplit).toHaveBeenCalled();
+  });
+
+  it('삭제 X는 박스를 한 번 눌러야 뜬다', async () => {
+    const onRemove = jest.fn();
+    await render(<ItemBox {...base} people={people} onRemove={onRemove} />);
+
+    expect(screen.queryByRole('button', { name: '이 품목 삭제' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: '타코야키 박스' }));
+    await fireEvent.press(screen.getByRole('button', { name: '이 품목 삭제' }));
+    expect(onRemove).toHaveBeenCalled();
+  });
+});

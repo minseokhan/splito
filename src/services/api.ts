@@ -10,7 +10,7 @@ import type { TransferRecord } from '@/lib/settleView';
 import type { ScheduleItem } from '@/lib/schedule';
 import type { BookingInfo } from './hanatour';
 import type { Json, Tables } from '@/types/database';
-import type { BalanceRow, ExpenseId, FxSource, Krw, MemberId, MyRoom, RoomId, RoomMember, RoomStatus, SaveExpensePayload } from '@/types/domain';
+import type { BalanceRow, BudgetPlan, ExpenseId, FxSource, Krw, MemberId, MyRoom, MyShare, RoomId, RoomMember, RoomStatus, SaveExpensePayload, TripBudget } from '@/types/domain';
 
 import { supabase } from './supabase';
 
@@ -165,7 +165,53 @@ export const api = {
       memberCount: r.member_count,
       myNet: r.my_net,
       totalKrw: r.total_krw,
+      hasBooking: r.has_booking,
     }));
+  },
+
+  // 내 통계: 지출 1건당 내 분담액. 기간·카테고리 집계는 화면에서 한다(src/lib/budget.ts).
+  async myExpenseShares(roomId: RoomId): Promise<MyShare[]> {
+    const rows = unwrap(await supabase.rpc('my_expense_shares', { p_room_id: roomId }));
+    return rows.map((r) => ({
+      expenseId: r.expense_id,
+      paidLocalDate: r.paid_local_date,
+      category: r.category as CategoryCode | null,
+      merchant: r.merchant,
+      payerKind: r.payer_kind as 'member' | 'pool',
+      payerMemberId: r.payer_member_id,
+      visibility: r.visibility as 'shared' | 'private',
+      currency: r.currency,
+      amountOriginal: Number(r.amount_original),
+      krwAmount: r.krw_amount,
+      myShare: r.my_share,
+    }));
+  },
+
+  async myBudget(roomId: RoomId): Promise<TripBudget | null> {
+    const rows = unwrap(await supabase.from('trip_budgets').select('*').eq('room_id', roomId));
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      totalKrw: row.total_krw,
+      allocMode: row.alloc_mode as TripBudget['allocMode'],
+      alloc: (row.alloc ?? {}) as Partial<Record<CategoryCode, number>>,
+      appliedPlan: (row.applied_plan ?? null) as TripBudget['appliedPlan'],
+    };
+  },
+
+  async saveBudget(input: { roomId: RoomId; totalKrw: number; allocMode: TripBudget['allocMode']; alloc: Partial<Record<CategoryCode, number>> }): Promise<void> {
+    unwrap(
+      await supabase.rpc('save_trip_budget', {
+        p_room_id: input.roomId,
+        p_total_krw: input.totalKrw,
+        p_alloc_mode: input.allocMode,
+        p_alloc: input.alloc,
+      }),
+    );
+  },
+
+  async applyBudgetPlan(input: { roomId: RoomId; plan: BudgetPlan | null }): Promise<void> {
+    unwrap(await supabase.rpc('apply_budget_plan', { p_room_id: input.roomId, p_plan: input.plan }));
   },
 
   // member_profiles 뷰에는 FK가 없어 임베드할 수 없으므로 두 번 조회해 합친다.

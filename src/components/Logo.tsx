@@ -3,77 +3,72 @@ import Svg, { Defs, G, LinearGradient, Path, Rect, Stop, type SvgProps } from 'r
 
 import { colors } from '@/theme/tokens';
 
-// assets/logo/svg/splito-symbol.svg · splito-wordmark.svg 의 도형을 그대로 옮긴 것이다.
-// 심볼(viewBox "12 12 76 76"): 민트·옐로 카드 2장 + 하늘색 지갑 본체 + 덮개 + 반짝임.
+// assets/logo/svg/splito-mark.svg · splito-mark-tile.svg · splito-wordmark.svg 의 도형을 그대로 옮긴 것이다.
+// 마크(viewBox "10 4 84 92"): S + 출발 삼각형(네이비 그라데이션) + 금색 별 3개.
 // 워드마크(viewBox "0 -90.5 310.7 113.7"): 아웃라인 path이므로 폰트가 필요 없다.
 
-const GRADIENTS = [
-  ['gb', '#5EC8FF', '#1668E3'], // 본체
-  ['gf', '#C2EEFF', '#6FCBFA'], // 덮개
-  ['gm', '#7CF0D8', '#12B39C'], // 민트 카드
-  ['gy', '#FFE68A', '#FF9F2E'], // 옐로 카드
-] as const;
+// 1차 소스의 좌표계: 모든 도형이 <g transform="translate(-8.5 0)"> 안에 있다.
+export const MARK_SHIFT_X = -8.5;
+export const MARK_MID = ['#1E4FD8', '#0E1B3D'] as const; // userSpaceOnUse 25,15 → 75,88
+export const MARK_GOLD = ['#FFE27A', '#FFB020'] as const;
+// S는 세로로 0.88 눌려 있다(translate(0 50) scale(1 .88) translate(0 -50)).
+export const MARK_S =
+  'M43,15 C29,25 29,42 45,50 L63,60 C70,64 71,74 63,85 C85,78 89,57 73,46 L56,35.5 C48,31 41,26 43,15 Z';
+export const MARK_TRIANGLE = 'M37.5,59.8 L56.5,70.3 L37.5,80.8 Z';
+export const MARK_STAR = 'M69.5,16 Q71.04,25.46 80.5,27 Q71.04,28.54 69.5,38 Q67.96,28.54 58.5,27 Q67.96,25.46 69.5,16 Z';
+export const MARK_MINI_A = 'M83.5,9.8 Q83.95,12.55 86.7,13 Q83.95,13.45 83.5,16.2 Q83.05,13.45 80.3,13 Q83.05,12.55 83.5,9.8 Z';
+export const MARK_MINI_B = 'M57,11.1 Q57.34,13.16 59.4,13.5 Q57.34,13.84 57,15.9 Q56.66,13.84 54.6,13.5 Q56.66,13.16 57,11.1 Z';
+// 타일(splito-mark-tile.svg): 100×100 흰 둥근 사각 rx 23.
+export const MARK_TILE_RADIUS_RATIO = 23 / 100;
 
-const FLAP =
-  'M16,55 V54 C16,47 21,42 28,42 H72 C79,42 84,47 84,54 V55 C84,59 81,62 77,62 H23 C19,62 16,59 16,55 Z';
-const SPARKLE_SHADOW = 'M50,53.2 Q51.6,61.6 60,63.2 Q51.6,64.8 50,73.2 Q48.4,64.8 40,63.2 Q48.4,61.6 50,53.2 Z';
-const SPARKLE = 'M50,52 Q51.6,60.4 60,62 Q51.6,63.6 50,72 Q48.4,63.6 40,62 Q48.4,60.4 50,52 Z';
+// layer: 도형을 겹쳐 그릴 수 있게 한 겹만 그린다(AnimatedSplitoMark가 각 겹을 따로 움직인다).
+// 생략하면 전부 그린다. mini는 반짝이 작은 별 2개로, 정지 상태에서는 그린다.
+type MarkLayer = 's' | 'triangle' | 'star' | 'miniA' | 'miniB';
 
-type SymbolVariant = 'color' | 'white' | 'navy';
+type MarkProps = {
+  size: number;
+  /** 흰 둥근 타일을 뒤에 깐다(앱 아이콘 구도). */
+  tile?: boolean;
+  layer?: MarkLayer;
+  /** 움직이는 도형이 잘리지 않도록 viewBox를 넓힌다(랜딩 애니메이션용). */
+  bleed?: boolean;
+  opacity?: number;
+};
 
-// layer: 도형을 겹쳐 그릴 수 있게 한 겹만 그린다(AnimatedSplitoSymbol이 카드만 따로 움직인다).
-// 생략하면 전부 그린다 = 기존 동작. 카드가 위로 튀어도 안 잘리도록 아이콘 viewBox(0 0 100 100)를 쓴다.
-type SymbolLayer = 'mint' | 'yellow' | 'wallet';
-
-// appIcon: 앱 아이콘 구도(흰 둥근 사각 배경 + 꽉 찬 심볼). 로그인 히어로가 쓴다.
-type SymbolProps = { size: number; variant?: SymbolVariant; opacity?: number; appIcon?: boolean; layer?: SymbolLayer };
-
-export function SplitoSymbol({ size, variant = 'color', opacity, appIcon, layer }: SymbolProps) {
-  const shows = (l: SymbolLayer) => !layer || layer === l;
-  // 같은 화면에 심볼이 여러 개 있으면 <Defs> 그라데이션 id가 충돌하므로 고유 접미사를 붙인다.
+// 타일 없는 마크의 viewBox는 1차 소스와 같은 "10 4 84 92". 타일을 깔면 "0 0 100 100".
+export function SplitoMark({ size, tile, layer, bleed, opacity }: MarkProps) {
+  const shows = (l: MarkLayer) => !layer || layer === l;
+  // 같은 화면에 마크가 여러 개면 <Defs> 그라데이션 id가 충돌하므로 고유 접미사를 붙인다.
   const uid = useId().replace(/[^A-Za-z0-9_-]/g, '');
-  // white/navy는 단색 실루엣: 그라데이션·그림자·반짝임 없이 도형만 칠한다.
-  const mono = variant === 'white' ? '#FFFFFF' : variant === 'navy' ? colors.ink.DEFAULT : undefined;
-  const paint = (id: string) => mono ?? `url(#${id}-${uid})`;
+  const box = bleed ? '-12 -10 124 124' : tile ? '0 0 100 100' : '10 4 84 92';
+  const ratio = bleed ? 124 / 100 : 1;
 
   return (
-    <Svg width={size} height={size} viewBox={appIcon || layer ? '0 0 100 100' : '12 12 76 76'} opacity={opacity}>
-      {/* splito-appicon-light-rounded.svg: 같은 도형을 100×100 안에 두고 흰 둥근 사각을 뒤에 깐다. */}
-      {appIcon && <Rect width={100} height={100} rx={25.7} fill="#FFFFFF" />}
-      {!mono && (
-        <Defs>
-          {GRADIENTS.map(([id, from, to]) => (
-            <LinearGradient key={id} id={`${id}-${uid}`} x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={from} />
-              <Stop offset="1" stopColor={to} />
-            </LinearGradient>
-          ))}
-        </Defs>
-      )}
-      {shows('mint') && (
-        <G transform="rotate(-12 38 43)">
-          <Rect x={20} y={20} width={36} height={46} rx={8} fill={paint('gm')} />
-        </G>
-      )}
-      {shows('yellow') && (
-        <G transform="rotate(10 62 43)">
-          <Rect x={44} y={20} width={36} height={46} rx={8} fill={paint('gy')} />
-        </G>
-      )}
-      {shows('wallet') && (
-        <>
-          <Rect x={16} y={42} width={68} height={40} rx={13} fill={paint('gb')} />
-          {!mono && <Path d={FLAP} fill="#1683CC" opacity={0.3} transform="translate(0,2.2)" />}
-          <Path d={FLAP} fill={paint('gf')} />
-          {!mono && (
-            <>
-              <Path d="M24,46 H36" stroke="#FFFFFF" strokeOpacity={0.75} strokeWidth={2} strokeLinecap="round" />
-              <Path d={SPARKLE_SHADOW} fill="#1683CC" opacity={0.3} />
-              <Path d={SPARKLE} fill="#FFFFFF" />
-            </>
-          )}
-        </>
-      )}
+    <Svg width={size * ratio} height={size * ratio} viewBox={box} opacity={opacity}>
+      <Defs>
+        <LinearGradient id={`mid-${uid}`} gradientUnits="userSpaceOnUse" x1="25" y1="15" x2="75" y2="88">
+          <Stop offset="0" stopColor={MARK_MID[0]} />
+          <Stop offset="1" stopColor={MARK_MID[1]} />
+        </LinearGradient>
+        <LinearGradient id={`gold-${uid}`} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={MARK_GOLD[0]} />
+          <Stop offset="1" stopColor={MARK_GOLD[1]} />
+        </LinearGradient>
+      </Defs>
+      {tile && !layer && <Rect width={100} height={100} rx={100 * MARK_TILE_RADIUS_RATIO} fill="#FFFFFF" />}
+      <G transform={`translate(${MARK_SHIFT_X} 0)`}>
+        {shows('s') && (
+          <Path
+            transform="translate(0 50) scale(1 0.88) translate(0 -50)"
+            d={MARK_S}
+            fill={`url(#mid-${uid})`}
+          />
+        )}
+        {shows('triangle') && <Path d={MARK_TRIANGLE} fill={`url(#mid-${uid})`} />}
+        {shows('star') && <Path d={MARK_STAR} fill={`url(#gold-${uid})`} />}
+        {shows('miniA') && <Path d={MARK_MINI_A} fill={`url(#gold-${uid})`} />}
+        {shows('miniB') && <Path d={MARK_MINI_B} fill={`url(#gold-${uid})`} />}
+      </G>
     </Svg>
   );
 }

@@ -155,7 +155,7 @@ export function validateDraft(d: ExpenseDraft, todayKst: string):
 // 빈 지정은 '전원 1/N'이라 그 박스는 활동 참여자 전원을 보탠다(0명으로 세면 전원 1/N이
 // 남은 몇 명 몫으로 줄고, 결제자가 나일 때 지출 전체가 나만 보기로 뒤집힌다).
 // 서버는 scope 0명을 거부하므로(SCOPE_EMPTY) 참여자 목록까지 비면 마지막으로 나 혼자로 채운다.
-function effScope(d: ExpenseDraft, meMemberId: string | null, activeMemberIds: string[]): string[] {
+export function effScope(d: ExpenseDraft, meMemberId: string | null, activeMemberIds: string[]): string[] {
   const union = [
     ...new Set(d.items.flatMap((it) => (it.assigneeMemberIds.length ? it.assigneeMemberIds : activeMemberIds))),
   ];

@@ -16,7 +16,7 @@ type Props = {
   round?: boolean;
 };
 
-// 체크 켜짐 #5EC4FF, 꺼짐 #D0D5DD.
+// 체크 켜짐 primary(#1D3C8F), 꺼짐 line-off(#D0D5DD).
 export function Checkbox({ label, checked, onChange, bold, tag, round }: Props) {
   const color = checked ? colors.primary.DEFAULT : colors.line.off;
   return (

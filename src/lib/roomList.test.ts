@@ -3,7 +3,7 @@ import type { MyRoom } from '@/types/domain';
 
 const room = (over: Partial<MyRoom>): MyRoom => ({
   roomId: 'r1', name: '여행', baseCurrency: 'KRW', startDate: null, endDate: null,
-  status: 'shared', memberCount: 2, myNet: 0, totalKrw: 0, ...over,
+  status: 'shared', memberCount: 2, myNet: 0, totalKrw: 0, hasBooking: false, ...over,
 });
 
 describe('needsSettlement', () => {
