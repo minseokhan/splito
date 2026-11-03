@@ -47,6 +47,9 @@ const MESSAGES = {
   INVALID_PAYER: { message: '결제자를 다시 선택해 주세요', action: '선택' },
   ALREADY_CONFIRMED: { message: '이미 받은 분이 확인한 송금이에요', action: '새로고침' },
   POOL_IN_USE: { message: '공금 기록이 있어 끌 수 없어요' },
+  ALREADY_LINKED: { message: '이미 예약이 연결된 여행이에요', action: '연동 해제 후 다시 시도' },
+  BOOKING_TAKEN: { message: '다른 여행 방에 연결된 예약이에요', action: '기존 방으로 이동' },
+  NOT_LINKED: { message: '연결된 예약이 없어요', action: '패키지 예약 불러오기' },
 } as const satisfies Record<string, { message: string; action?: string }>;
 
 export type ErrorCode = keyof typeof MESSAGES;

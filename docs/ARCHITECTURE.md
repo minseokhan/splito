@@ -267,6 +267,13 @@ create index on room_members (user_id) where left_at is null;
 | `set_payout_account(…)` / `get_payout_account(room_id, owner_member_id)` | §4 계좌번호 참고 | `RATE_LIMITED` |
 | `set_manual_rate(room_id, currency, rate)` (P1) | 방 단위 수동 환율을 저장하고, 해당 통화의 환율 대기 지출을 재확정한다 | |
 | `expense_history(expense_id)` | 이력 목록(삭제된 지출 포함) | |
+| `booking_owner(provider, booking_no)` | 그 예약이 붙은 방. 내가 참여자가 아니면 방 이름·id를 가린다 | `FORBIDDEN` |
+| `link_booking(room_id, payload)` | 방에 패키지 예약을 붙이고 API 일정을 넣는다(`source='api'`). 한 방 = 한 예약, 한 예약 = 한 방 | `ALREADY_LINKED`, `BOOKING_TAKEN`, `INVALID_INPUT`, `FORBIDDEN` |
+| `refetch_booking(room_id, payload)` | 사용자가 손대지 않고 지출도 안 붙은 `source='api'` 일정만 갈아 끼운다 | `NOT_LINKED`, `FORBIDDEN` |
+| `unlink_booking(room_id)` | 예약 행만 지운다. 일정과 지출의 `schedule_id`는 재연동에 대비해 남긴다 | `FORBIDDEN` |
+| `save_schedule_item(payload)` / `delete_schedule_item(id)` | 참여자 누구나 일정을 고치고 더한다. 수정하면 `edited_at`을 찍고 불포함 칩은 지운다. 삭제하면 연결된 지출의 `schedule_id`만 풀어 '그 외 지출'로 보낸다 | `INVALID_INPUT`, `FORBIDDEN` |
+| `set_schedule_hidden(schedule_id, hidden)` | 선택관광 [안 해요] — **사용자별**이라 다른 참여자에게 영향이 없다 | `FORBIDDEN` |
+| `set_expense_meta(expense_id, schedule_id?, flags?)` | 지출의 **표시용** 메타만 바꾼다. 금액·배분·환율은 `save_expense`가 확정한 값 그대로 둔다. `room_balances`는 두 컬럼을 보지 않는다 | `INVALID_INPUT`, `FORBIDDEN` |
 
 ### 5.2 Edge Functions
 | 함수 | 요청 → 응답 | 비고 |
@@ -376,6 +383,9 @@ room_balances(room_id, false) → 사람별 net(화면용, 확인 대기 송금 
 | `INVALID_PAYER` | 결제자 오류(공금 꺼짐 등) | 결제자를 다시 선택해 주세요 | 선택 |
 | `ALREADY_CONFIRMED` | 확인된 송금 취소 시도 | 이미 받은 분이 확인한 송금이에요 | 새로고침 |
 | `POOL_IN_USE` | 공금 끄기 차단 | 공금 기록이 있어 끌 수 없어요 | — |
+| `ALREADY_LINKED` | 예약이 이미 붙은 방에 다시 연동 | 이미 예약이 연결된 여행이에요 | 연동 해제 후 다시 시도 |
+| `BOOKING_TAKEN` | 같은 예약번호가 다른 방에 연결됨 | 다른 여행 방에 연결된 예약이에요 | 기존 방으로 이동 |
+| `NOT_LINKED` | 연결된 예약 없이 다시 불러오기 | 연결된 예약이 없어요 | 패키지 예약 불러오기 |
 
 ## 9. 테스트 전략
 | 대상 | 도구 | 필수 케이스 |

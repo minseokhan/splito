@@ -157,14 +157,14 @@ isOneToOne: false
                   ]
                 },"expenses": {
                   Row: {
-                    "ai_result": Json | null,"amount_original": number,"card_last4": string | null,"category": string | null,"created_at": string,"created_by": string,"currency": string,"deleted_at": string | null,"deleted_by": string | null,"fx_base_date": string | null,"fx_rate": number | null,"fx_source": string,"id": string,"krw_amount": number | null,"krw_charged": number | null,"merchant": string | null,"needs_review": boolean,"paid_local_date": string,"paid_local_time": string | null,"payer_kind": string,"payer_member_id": string | null,"room_id": string,"source": string,"updated_by": string | null,"version": number,"visibility": string
+                    "ai_result": Json | null,"amount_original": number,"card_last4": string | null,"category": string | null,"created_at": string,"created_by": string,"currency": string,"deleted_at": string | null,"deleted_by": string | null,"flags": (string)[],"fx_base_date": string | null,"fx_rate": number | null,"fx_source": string,"id": string,"krw_amount": number | null,"krw_charged": number | null,"merchant": string | null,"needs_review": boolean,"paid_local_date": string,"paid_local_time": string | null,"payer_kind": string,"payer_member_id": string | null,"room_id": string,"schedule_id": string | null,"source": string,"updated_by": string | null,"version": number,"visibility": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "ai_result"?: Json | null,"amount_original": number,"card_last4"?: string | null,"category"?: string | null,"created_at"?: string,"created_by": string,"currency": string,"deleted_at"?: string | null,"deleted_by"?: string | null,"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source": string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date": string,"paid_local_time"?: string | null,"payer_kind": string,"payer_member_id"?: string | null,"room_id": string,"source": string,"updated_by"?: string | null,"version"?: number,"visibility"?: string
+                    "ai_result"?: Json | null,"amount_original": number,"card_last4"?: string | null,"category"?: string | null,"created_at"?: string,"created_by": string,"currency": string,"deleted_at"?: string | null,"deleted_by"?: string | null,"flags"?: (string)[],"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source": string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date": string,"paid_local_time"?: string | null,"payer_kind": string,"payer_member_id"?: string | null,"room_id": string,"schedule_id"?: string | null,"source": string,"updated_by"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Update: {
-                    "ai_result"?: Json | null,"amount_original"?: number,"card_last4"?: string | null,"category"?: string | null,"created_at"?: string,"created_by"?: string,"currency"?: string,"deleted_at"?: string | null,"deleted_by"?: string | null,"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source"?: string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date"?: string,"paid_local_time"?: string | null,"payer_kind"?: string,"payer_member_id"?: string | null,"room_id"?: string,"source"?: string,"updated_by"?: string | null,"version"?: number,"visibility"?: string
+                    "ai_result"?: Json | null,"amount_original"?: number,"card_last4"?: string | null,"category"?: string | null,"created_at"?: string,"created_by"?: string,"currency"?: string,"deleted_at"?: string | null,"deleted_by"?: string | null,"flags"?: (string)[],"fx_base_date"?: string | null,"fx_rate"?: number | null,"fx_source"?: string,"id"?: string,"krw_amount"?: number | null,"krw_charged"?: number | null,"merchant"?: string | null,"needs_review"?: boolean,"paid_local_date"?: string,"paid_local_time"?: string | null,"payer_kind"?: string,"payer_member_id"?: string | null,"room_id"?: string,"schedule_id"?: string | null,"source"?: string,"updated_by"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Relationships: [
                     {
@@ -191,6 +191,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "rooms"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_schedule_id_room_id_fkey"
+      columns: ["schedule_id","room_id"]
+isOneToOne: false
+      referencedRelation: "schedule_items"
+      referencedColumns: ["id","room_id"]
     },{
       foreignKeyName: "expenses_updated_by_fkey"
       columns: ["updated_by"]
@@ -465,6 +471,64 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"schedule_hides": {
+                  Row: {
+                    "created_at": string,"room_id": string,"schedule_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"room_id": string,"schedule_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"room_id"?: string,"schedule_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "schedule_hides_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "schedule_hides_schedule_id_fkey"
+      columns: ["schedule_id"]
+isOneToOne: false
+      referencedRelation: "schedule_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "schedule_hides_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"schedule_items": {
+                  Row: {
+                    "created_at": string,"day_index": number,"edited_at": string | null,"edited_by": string | null,"est_amount": number,"excludes": (string)[],"id": string,"includes": (string)[],"optional": boolean,"room_id": string,"source": string,"start_time": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"day_index": number,"edited_at"?: string | null,"edited_by"?: string | null,"est_amount"?: number,"excludes"?: (string)[],"id"?: string,"includes"?: (string)[],"optional"?: boolean,"room_id": string,"source": string,"start_time": string,"title": string
+                  }
+                  Update: {
+                    "created_at"?: string,"day_index"?: number,"edited_at"?: string | null,"edited_by"?: string | null,"est_amount"?: number,"excludes"?: (string)[],"id"?: string,"includes"?: (string)[],"optional"?: boolean,"room_id"?: string,"source"?: string,"start_time"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "schedule_items_edited_by_fkey"
+      columns: ["edited_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "schedule_items_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"transfers": {
                   Row: {
                     "amount_krw": number,"confirmed_at": string | null,"created_at": string,"from_member_id": string,"id": string,"recorded_by": string | null,"room_id": string,"to_member_id": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
@@ -509,6 +573,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"trip_bookings": {
+                  Row: {
+                    "booking_no": string,"destination": string | null,"end_date": string | null,"holder_masked": string,"last_fetched_at": string,"linked_at": string,"linked_by": string,"paid_amount": number,"paid_at": string | null,"pax": number,"product_name": string,"provider": string,"room_id": string,"start_date": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "booking_no": string,"destination"?: string | null,"end_date"?: string | null,"holder_masked": string,"last_fetched_at"?: string,"linked_at"?: string,"linked_by": string,"paid_amount": number,"paid_at"?: string | null,"pax": number,"product_name": string,"provider": string,"room_id": string,"start_date"?: string | null
+                  }
+                  Update: {
+                    "booking_no"?: string,"destination"?: string | null,"end_date"?: string | null,"holder_masked"?: string,"last_fetched_at"?: string,"linked_at"?: string,"linked_by"?: string,"paid_amount"?: number,"paid_at"?: string | null,"pax"?: number,"product_name"?: string,"provider"?: string,"room_id"?: string,"start_date"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trip_bookings_linked_by_fkey"
+      columns: ["linked_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "trip_bookings_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: true
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -534,6 +624,9 @@ isOneToOne: false
                            },
 "_expense_snapshot":
 { Args: { "p_expense_id": string }; Returns: Json
+                           },
+"_insert_schedule":
+{ Args: { "p_items": Json,"p_room_id": string }; Returns: undefined
                            },
 "_lock_guest":
 { Args: { "p_member_id": string }; Returns: {
@@ -589,6 +682,9 @@ isOneToOne: false
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
                            },
+"booking_owner":
+{ Args: { "p_booking_no": string,"p_provider": string }; Returns: Json
+                           },
 "can_read_expense":
 { Args: { "p_expense_id": string }; Returns: boolean
                            },
@@ -610,6 +706,9 @@ isOneToOne: false
 "delete_expense":
 { Args: { "p_expected_version": number,"p_id": string }; Returns: undefined
                            },
+"delete_schedule_item":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "expense_history":
 { Args: { "p_expense_id": string }; Returns: Json[]
                            },
@@ -629,6 +728,9 @@ isOneToOne: false
                            },
 "leave_room":
 { Args: { "p_room_id": string }; Returns: undefined
+                           },
+"link_booking":
+{ Args: { "p_payload": Json,"p_room_id": string }; Returns: undefined
                            },
 "member_profile_rows":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -655,6 +757,9 @@ isOneToOne: false
 "record_transfer":
 { Args: { "p_amount_krw": number,"p_from_member_id": string,"p_id": string,"p_room_id": string,"p_to_member_id": string }; Returns: undefined
                            },
+"refetch_booking":
+{ Args: { "p_payload": Json,"p_room_id": string }; Returns: undefined
+                           },
 "reject_transfer":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -675,11 +780,23 @@ isOneToOne: false
 "save_expense":
 { Args: { "p_expected_version"?: number,"p_payload": Json }; Returns: Json
                            },
+"save_schedule_item":
+{ Args: { "p_payload": Json }; Returns: string
+                           },
+"set_expense_meta":
+{ Args: { "p_expense_id": string,"p_flags"?: (string)[],"p_schedule_id"?: string }; Returns: undefined
+                           },
 "set_payout_account":
 { Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined
                            },
 "set_pool":
 { Args: { "p_card_last4": (string)[],"p_enabled": boolean,"p_owner_member_id": string,"p_room_id": string }; Returns: undefined
+                           },
+"set_schedule_hidden":
+{ Args: { "p_hidden": boolean,"p_schedule_id": string }; Returns: undefined
+                           },
+"unlink_booking":
+{ Args: { "p_room_id": string }; Returns: undefined
                            },
 "update_guest":
 { Args: { "p_member_id": string,"p_name"?: string,"p_representative_member_id"?: string }; Returns: undefined

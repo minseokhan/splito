@@ -11,8 +11,10 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
 import { ParsingState } from '@/components/ParsingState';
+import { ScheduleChip } from '@/components/ScheduleChip';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
+import { useScheduleItems } from '@/hooks/useBooking';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
@@ -40,9 +42,14 @@ function localToday(): string {
 
 const codeError = (code: string) => toUserError({ message: code });
 
+
 export default function NewExpense() {
-  const params = useLocalSearchParams<{ roomId: string; method?: InputMethod }>();
+  const params = useLocalSearchParams<{ roomId: string; method?: InputMethod; scheduleId?: string }>();
   const roomId = params.roomId;
+  // 일정 카드의 [+ 지출]로 들어오면 저장 뒤 그 일정에 연결한다(명세 §7). review까지 들고 간다.
+  const scheduleId = params.scheduleId;
+  const { data: scheduleItems = [] } = useScheduleItems(roomId);
+  const scheduleTitle = scheduleItems.find((x) => x.id === scheduleId)?.title;
   // method 없이 열리면 방법 선택 화면을 먼저 보여준다.
   const [picked, setPicked] = useState<InputMethod | undefined>(undefined);
   const method = params.method ?? picked;
@@ -82,7 +89,7 @@ export default function NewExpense() {
   }, [listening]);
   useEffect(() => () => ExpoSpeechRecognitionModule.abort(), []);
 
-  if (!method) return <MethodPicker onSelect={setPicked} />;
+  if (!method) return <MethodPicker onSelect={setPicked} scheduleTitle={scheduleTitle} />;
 
   const me = members?.find((m) => m.userId === session?.user.id && !m.leftAt);
   if (!room || !members || !me || profile === undefined) return null;
@@ -98,7 +105,7 @@ export default function NewExpense() {
 
   const goReview = async (draft: ExpenseDraft, localPhotos: string[], nav: 'replace' | 'push' = 'replace') => {
     await saveDraft(roomId, { draft, localPhotos }); // review가 기기에서 다시 읽는다
-    router[nav]({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } });
+    router[nav]({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } });
   };
 
   // 영수증 사진인지 결제앱 캡처인지는 parse-expense가 판정해 photo_kind로 돌려준다(구 버전 응답이면 receipt).
@@ -388,11 +395,12 @@ const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typ
 ];
 
 // 시안 6: 지출 올리기 방법 선택(전체 화면).
-function MethodPicker({ onSelect }: { onSelect: (m: InputMethod) => void }) {
+function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) => void; scheduleTitle?: string }) {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <NavBar close />
       <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-2">
+        {!!scheduleTitle && <ScheduleChip title={scheduleTitle} />}
         <View className="gap-1.5">
           <Text className="font-semibold text-[26px] text-ink">
             어떻게 올릴까요?

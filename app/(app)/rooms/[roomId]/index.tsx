@@ -6,9 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop, type SvgProps } from 'react-native-svg';
 
 import { ActivityRow } from '@/components/ActivityRow';
+import { ScheduleSection, type ScheduleRow } from '@/components/ScheduleSection';
+import { ScheduleSheet, draftOf, type ScheduleDraft } from '@/components/ScheduleSheet';
 import { Avatar } from '@/components/Avatar';
 import { AvatarStack } from '@/components/AvatarStack';
-import { BottomSheet } from '@/components/BottomSheet';
 import { ExpenseCard } from '@/components/ExpenseCard';
 import { FlightIcon } from '@/components/FlightIcon';
 import { Icon } from '@/components/Icon';
@@ -17,17 +18,32 @@ import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
+import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  useDeleteScheduleItem,
+  useHiddenSchedules,
+  useSaveScheduleItem,
+  useScheduleItems,
+  useSetScheduleHidden,
+  useTripBooking,
+} from '@/hooks/useBooking';
 import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useMyPayoutAccount } from '@/hooks/usePayoutAccount';
 import { useRoomEvents } from '@/hooks/useRoomEvents';
-import { useMyRooms, useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
 import { eventText, mergeActivity } from '@/lib/activity';
 import { CATEGORIES, type CategoryCode } from '@/lib/category';
+import { formatForeign } from '@/lib/money';
+import { buildScheduleDays } from '@/lib/schedule';
 import { buildTripDays, dayCaption, filterByCategory, filterSections, md, type TripDay } from '@/lib/tripDays';
+import type { FeedRow } from '@/services/api';
 import { loadDraft } from '@/services/drafts';
 import type { RoomMember } from '@/types/domain';
 import { colors } from '@/theme/tokens';
+
+// expenses.flags → 배지 문구. 모르는 값은 보여주지 않는다.
+const FLAG_LABEL: Record<string, string> = { auto_prepay: '자동 등록', budget_excluded: '예산 제외' };
 
 export default function RoomHome() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -36,7 +52,6 @@ export default function RoomHome() {
   const room = rooms?.find((r) => r.roomId === roomId);
   const feed = useFeed(roomId);
   const { data: members = [] } = useRoomMembers(roomId);
-  const { data: roomRow } = useRoom(roomId);
   const reconfirm = useReconfirmPendingFx(roomId);
   const events = useRoomEvents(roomId);
   const myId = useAuth().session?.user.id;
@@ -75,12 +90,59 @@ export default function RoomHome() {
   );
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
-  const [menuOpen, setMenuOpen] = useState(false);
   // 참여자 팝오버: 아바타 스택 바로 아래에 띄우므로 누른 순간의 화면 좌표를 재서 연다.
   const avatarRef = useRef<View>(null);
   const [peopleAt, setPeopleAt] = useState<{ top: number; right: number } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
+  const toast = useToast();
+  // ── 패키지 일정: 예약이 붙은 방에서만 날짜별 피드 대신 일정 영역을 그린다(명세 §5)
+  const { data: booking } = useTripBooking(roomId);
+  const { data: scheduleItems = [] } = useScheduleItems(roomId);
+  const { data: hiddenIds = [] } = useHiddenSchedules(roomId);
+  const saveSchedule = useSaveScheduleItem(roomId);
+  const deleteSchedule = useDeleteScheduleItem(roomId);
+  const setHidden = useSetScheduleHidden(roomId);
+  const [draft, setDraft] = useState<ScheduleDraft | null>(null);
+  const linked = !!booking;
+  const scheduleRows = useMemo<ScheduleRow[]>(() => {
+    const name = (r: FeedRow) =>
+      r.payerKind === 'pool' ? '공금' : (members.find((m) => m.id === r.payerMemberId)?.name ?? '참여자');
+    return (feed.data ?? [])
+      .filter((r) => category === null || r.category === category)
+      .map((r) => {
+        const local = r.currency !== 'KRW';
+        const prepay = r.flags.includes('auto_prepay');
+        return {
+          id: r.id,
+          scheduleId: r.scheduleId,
+          paidLocalDate: r.paidLocalDate,
+          krwAmount: r.krwAmount,
+          title: r.merchant ?? '지출',
+          who: `${name(r)} 결제${prepay ? ' · 하나투어' : ''}`,
+          main: local ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount ?? 0),
+          mainLocal: local,
+          sub: prepay ? '선결제' : local ? formatKrw(r.krwAmount ?? 0) : null,
+          tags: r.flags.flatMap((f) => (FLAG_LABEL[f] ? [FLAG_LABEL[f]] : [])),
+        };
+      });
+    // feed.data만 보면 되지만 lint 규칙이 feed 전체를 요구한다.
+  }, [feed, category, members]);
+  const scheduleDays = useMemo(
+    () =>
+      buildScheduleDays({
+        items: scheduleItems,
+        expenses: scheduleRows,
+        hiddenIds,
+        startDate: room?.startDate ?? null,
+        endDate: room?.endDate ?? null,
+      }),
+    [scheduleItems, scheduleRows, hiddenIds, room?.startDate, room?.endDate],
+  );
+  const visibleDays = useMemo(
+    () => (day === 'all' ? scheduleDays : scheduleDays.filter((d) => d.key === day)),
+    [scheduleDays, day],
+  );
   // 입력 화면에서 돌아올 때마다 기기의 작성 중 지출을 다시 확인한다.
   useFocusEffect(
     useCallback(() => {
@@ -140,7 +202,13 @@ export default function RoomHome() {
           {!!period && <Text className="text-[13px] text-ink-300">{period}</Text>}
         </View>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="방 메뉴" onPress={() => setMenuOpen(true)} hitSlop={4} className="p-2">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="여행 방 설정"
+        onPress={() => router.push({ pathname: '/rooms/[roomId]/settings', params: { roomId } })}
+        hitSlop={4}
+        className="p-2"
+      >
         <Icon as={MoreHoriz} size={26} color={colors.ink.DEFAULT} />
       </Pressable>
     </View>
@@ -257,7 +325,7 @@ export default function RoomHome() {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {topBar}
       <FlatList
-        data={visibleSections}
+        data={linked ? [] : visibleSections}
         keyExtractor={(s) => s.key}
         ListHeaderComponent={header}
         contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
@@ -305,8 +373,34 @@ export default function RoomHome() {
             </View>
           );
         }}
+        ListFooterComponent={
+          linked ? (
+            <ScheduleSection
+              days={visibleDays}
+              onEdit={(id) => {
+                const it = scheduleItems.find((x) => x.id === id);
+                if (it) setDraft(draftOf(it));
+              }}
+              onAddSchedule={(dayIndex) =>
+                setDraft({ dayIndex, startTime: '', title: '', includes: [], optional: false, estAmount: 0 })
+              }
+              onAddExpense={(scheduleId) =>
+                router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId, scheduleId } })
+              }
+              onSkip={(scheduleId) => setHidden.mutate({ scheduleId, hidden: true })}
+              onUnhide={(dayIndex) =>
+                scheduleItems
+                  .filter((x) => x.dayIndex === dayIndex && hiddenIds.includes(x.id))
+                  .forEach((x) => setHidden.mutate({ scheduleId: x.id, hidden: false }))
+              }
+              onOpenExpense={(expenseId) =>
+                router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId } })
+              }
+            />
+          ) : null
+        }
         ListEmptyComponent={
-          feed.isLoading ? null : (
+          linked || feed.isLoading ? null : (
             <View className="flex-1 items-center justify-center gap-1.5 px-5 py-14">
               <Text className="text-center font-semibold text-base text-ink">
                 {day === 'all' && category === null
@@ -330,36 +424,31 @@ export default function RoomHome() {
           onPress={() => router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId } })}
         />
       </BottomBar>
-      <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
-        <View>
-          <MenuRow
-            label="멤버"
-            onPress={() => {
-              setMenuOpen(false);
-              go('/rooms/[roomId]/members');
-            }}
-          />
-          {/* 여행을 만든 사람만 이름·통화·기간을 고칠 수 있다 */}
-          {roomRow?.owner_id === myId && (
-            <MenuRow
-              label="여행 편집"
-              onPress={() => {
-                setMenuOpen(false);
-                go('/rooms/[roomId]/edit');
-              }}
-            />
-          )}
-          {together && (
-            <MenuRow
-              label="공금 지갑"
-              onPress={() => {
-                setMenuOpen(false);
-                go('/rooms/[roomId]/pool');
-              }}
-            />
-          )}
-        </View>
-      </BottomSheet>
+      <ScheduleSheet
+        draft={draft}
+        dayLabel={draft ? (scheduleDays.find((d) => d.dayIndex === draft.dayIndex)?.header ?? '') : ''}
+        saving={saveSchedule.isPending}
+        onClose={() => setDraft(null)}
+        onSave={(d) =>
+          saveSchedule.mutate(
+            { id: d.id, roomId, dayIndex: d.dayIndex, startTime: d.startTime, title: d.title, includes: d.includes, optional: d.optional, estAmount: d.estAmount },
+            {
+              onSuccess: () => {
+                setDraft(null);
+                toast(d.id ? '일정을 수정했어요' : '일정을 추가했어요');
+              },
+            },
+          )
+        }
+        onDelete={(id) =>
+          deleteSchedule.mutate(id, {
+            onSuccess: () => {
+              setDraft(null);
+              toast('일정을 삭제했어요. 연결된 지출은 그 외 지출로 옮겼어요');
+            },
+          })
+        }
+      />
       <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
       <PeoplePopover
         at={peopleAt}
@@ -446,15 +535,6 @@ function Banner({ text, onPress, warning, disabled }: BannerProps) {
     >
       <Text className={`flex-1 font-semibold text-base ${warning ? 'text-warning' : 'text-primary-text'}`}>{text}</Text>
       <Icon as={NavArrowRight} size={18} color={warning ? colors.warning.DEFAULT : colors.ink[300]} />
-    </Pressable>
-  );
-}
-
-function MenuRow({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} className="h-14 flex-row items-center justify-between">
-      <Text className="font-semibold text-base text-ink">{label}</Text>
-      <Icon as={NavArrowRight} size={18} color={colors.ink[300]} />
     </Pressable>
   );
 }

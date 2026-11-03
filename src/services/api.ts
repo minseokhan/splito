@@ -7,6 +7,8 @@ import type { ParseResult } from '@/lib/expenseForm';
 import type { RoomEvent } from '@/lib/activity';
 import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
+import type { ScheduleItem } from '@/lib/schedule';
+import type { BookingInfo } from './hanatour';
 import type { Json, Tables } from '@/types/database';
 import type { BalanceRow, ExpenseId, FxSource, Krw, MemberId, MyRoom, RoomId, RoomMember, RoomStatus, SaveExpensePayload } from '@/types/domain';
 
@@ -32,6 +34,8 @@ export type FeedRow = {
   needsReview: boolean;
   visibility: 'shared' | 'private';
   category: CategoryCode;
+  scheduleId: string | null; // 패키지 일정 연결. 정산·예산 계산은 이 값을 보지 않는다.
+  flags: string[]; // 'auto_prepay' | 'budget_excluded' 같은 표시용 태그
 };
 
 // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
@@ -257,7 +261,7 @@ export const api = {
       await supabase
         .from('expenses')
         .select(
-          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review, visibility, category',
+          'id, merchant, paid_local_date, paid_local_time, created_at, currency, amount_original, krw_amount, fx_source, source, payer_kind, payer_member_id, created_by, needs_review, visibility, category, schedule_id, flags',
         )
         .eq('room_id', roomId)
         .is('deleted_at', null)
@@ -281,6 +285,8 @@ export const api = {
       needsReview: r.needs_review,
       visibility: r.visibility as FeedRow['visibility'],
       category: toCategory(r.category),
+      scheduleId: r.schedule_id,
+      flags: r.flags,
     }));
   },
 
@@ -582,6 +588,106 @@ export const api = {
   async poolDeposits(roomId: RoomId): Promise<{ memberId: MemberId; amountKrw: Krw }[]> {
     const rows = unwrap(await supabase.from('pool_deposits').select('member_id, amount_krw').eq('room_id', roomId));
     return rows.map((r) => ({ memberId: r.member_id, amountKrw: r.amount_krw }));
+  },
+
+  // ───────── 패키지 예약 ─────────
+  // 같은 예약번호가 이미 다른 방에 붙어 있는지. 내가 그 방 참여자가 아니면 방 이름은 가려서 온다.
+  async bookingOwner(bookingNo: string): Promise<{ roomId: RoomId | null; roomName: string | null } | null> {
+    const r = unwrap(
+      await supabase.rpc('booking_owner', { p_provider: 'hanatour', p_booking_no: bookingNo }),
+    ) as { room_id: string | null; room_name: string | null } | null;
+    return r ? { roomId: r.room_id, roomName: r.room_name } : null;
+  },
+
+  async linkBooking(input: { roomId: RoomId; booking: BookingInfo }): Promise<void> {
+    unwrap(await supabase.rpc('link_booking', { p_room_id: input.roomId, p_payload: input.booking as unknown as Json }));
+  },
+
+  async refetchBooking(input: { roomId: RoomId; booking: BookingInfo }): Promise<void> {
+    unwrap(await supabase.rpc('refetch_booking', { p_room_id: input.roomId, p_payload: input.booking as unknown as Json }));
+  },
+
+  async unlinkBooking(roomId: RoomId): Promise<void> {
+    unwrap(await supabase.rpc('unlink_booking', { p_room_id: roomId }));
+  },
+
+  async tripBooking(roomId: RoomId): Promise<Tables<'trip_bookings'> | null> {
+    return unwrap(await supabase.from('trip_bookings').select('*').eq('room_id', roomId).maybeSingle());
+  },
+
+  async scheduleItems(roomId: RoomId): Promise<ScheduleItem[]> {
+    const rows = unwrap(
+      await supabase
+        .from('schedule_items')
+        .select('id, day_index, start_time, title, includes, excludes, optional, est_amount, edited_at')
+        .eq('room_id', roomId)
+        .order('day_index')
+        .order('start_time')
+        .order('created_at'),
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      dayIndex: r.day_index,
+      startTime: r.start_time,
+      title: r.title,
+      includes: r.includes,
+      excludes: r.excludes,
+      optional: r.optional,
+      estAmount: r.est_amount,
+      edited: r.edited_at !== null,
+    }));
+  },
+
+  // 내가 숨긴 선택관광만 돌아온다(RLS).
+  async hiddenScheduleIds(roomId: RoomId): Promise<string[]> {
+    const rows = unwrap(await supabase.from('schedule_hides').select('schedule_id').eq('room_id', roomId));
+    return rows.map((r) => r.schedule_id);
+  },
+
+  async saveScheduleItem(input: {
+    id?: string;
+    roomId: RoomId;
+    dayIndex: number;
+    startTime: string;
+    title: string;
+    includes: string[];
+    optional: boolean;
+    estAmount: number;
+  }): Promise<string> {
+    return unwrap(
+      await supabase.rpc('save_schedule_item', {
+        p_payload: {
+          id: input.id ?? null,
+          room_id: input.roomId,
+          day_index: input.dayIndex,
+          start_time: input.startTime,
+          title: input.title,
+          includes: input.includes,
+          optional: input.optional,
+          est_amount: input.estAmount,
+        },
+      }),
+    );
+  },
+
+  async deleteScheduleItem(id: string): Promise<void> {
+    unwrap(await supabase.rpc('delete_schedule_item', { p_id: id }));
+  },
+
+  async setScheduleHidden(input: { scheduleId: string; hidden: boolean }): Promise<void> {
+    unwrap(await supabase.rpc('set_schedule_hidden', { p_schedule_id: input.scheduleId, p_hidden: input.hidden }));
+  },
+
+  // 지출의 표시용 메타만 바꾼다. 금액·배분·환율은 save_expense가 이미 확정한 그대로 둔다.
+  async setExpenseMeta(input: { expenseId: ExpenseId; scheduleId: string | null; flags?: string[] }): Promise<void> {
+    unwrap(
+      // 생성 타입이 null 인자를 표현하지 못한다. 연결 해제는 인자를 빼서 SQL 기본값 null로 보낸다.
+      await supabase.rpc('set_expense_meta', {
+        p_expense_id: input.expenseId,
+        ...(input.scheduleId ? { p_schedule_id: input.scheduleId } : {}),
+        ...(input.flags ? { p_flags: input.flags } : {}),
+      }),
+    );
   },
 
   async ackAiNotice(): Promise<void> {
