@@ -304,7 +304,7 @@ export default function RoomHome() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14 }}
+        contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8 }}
       >
         {[{ code: null as CategoryCode | null, label: '전체' }, ...CATEGORIES].map((c) => {
           const on = category === c.code;
