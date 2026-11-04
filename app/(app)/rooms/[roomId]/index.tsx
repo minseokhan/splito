@@ -381,7 +381,7 @@ export default function RoomHome() {
   const listTop = (
       <View
         className="min-h-[28px] flex-row items-center justify-between gap-3 px-5 pb-2 pt-3.5"
-        style={{ backgroundColor: showSchedule ? colors.app : '#FFFFFF' }}
+        style={{ backgroundColor: colors.app }}
       >
         {/* 일정표 토글은 패키지 연동 방에만 둔다. 아닌 방은 지출 내역뿐이다 */}
         {linked ? (
@@ -419,7 +419,7 @@ export default function RoomHome() {
       <FlatList
         data={showSchedule ? [] : visibleSections}
         keyExtractor={(s) => s.key}
-        style={{ backgroundColor: showSchedule ? colors.app : '#FFFFFF' }}
+        style={{ backgroundColor: colors.app }}
         contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
         ListHeaderComponent={listTop}
         ItemSeparatorComponent={() => <View className="h-4" />}
