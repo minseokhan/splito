@@ -8,6 +8,7 @@ import type { RoomEvent } from '@/lib/activity';
 import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
 import type { ScheduleItem } from '@/lib/schedule';
+import type { SpotExpense, SpotParticipant } from '@/lib/spotSettle';
 import type { BookingInfo } from './hanatour';
 import type { Json, Tables } from '@/types/database';
 import type { BalanceRow, BudgetPlan, ExpenseId, FxSource, Krw, MemberId, MyRoom, MyShare, RoomId, RoomMember, RoomStatus, SaveExpensePayload, TripBudget } from '@/types/domain';
@@ -37,6 +38,26 @@ export type FeedRow = {
   scheduleId: string | null; // 패키지 일정 연결. 정산·예산 계산은 이 값을 보지 않는다.
   flags: string[]; // 'auto_prepay' | 'budget_excluded' 같은 표시용 태그
 };
+
+// 이 자리 정산 한 건. 금액은 서버가 계산하지 않고 박스 원화를 그대로 준다 —
+// 1인 금액은 lib/spotSettle이 장부와 같은 규칙으로 접는다.
+export type SpotSettle = {
+  id: string;
+  roomId: RoomId;
+  scheduleId: string;
+  scheduleTitle: string;
+  scheduleTime: string;
+  payerMemberId: MemberId;
+  token: string;
+  sentAt: string | null;
+  /** QR 참여자에게 보여줄 계좌가 결제자에게 등록돼 있는가 */
+  payerHasAccount: boolean;
+  expenses: (SpotExpense & { selected: boolean })[];
+  participants: SpotParticipantRow[];
+};
+
+/** QR 참여자가 '송금했어요'를 누른 시각만 더한다. 나머지는 lib/spotSettle과 같은 모양. */
+export type SpotParticipantRow = SpotParticipant & { reportedAt: string | null };
 
 // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
 export type ExpenseDetail = Tables<'expenses'> & {
@@ -105,6 +126,39 @@ async function functionError(error: unknown): Promise<unknown> {
     return cause?.name === 'AbortError' ? toUserError({ message: 'PARSE_TIMEOUT' }) : toUserError(cause);
   }
   return toUserError(error);
+}
+
+// _spot_payload(jsonb) → SpotSettle. 키 이름만 바꾸고 계산은 하지 않는다.
+function toSpotSettle(raw: unknown): SpotSettle {
+  const r = raw as Record<string, never>;
+  const num = (v: unknown) => Number(v ?? 0);
+  return {
+    id: r.id,
+    roomId: r.room_id,
+    scheduleId: r.schedule_id,
+    scheduleTitle: r.schedule_title ?? '',
+    scheduleTime: r.schedule_time ?? '',
+    payerMemberId: r.payer_member_id,
+    token: r.token,
+    sentAt: r.sent_at ?? null,
+    payerHasAccount: !!r.payer_has_account,
+    expenses: ((r.expenses ?? []) as Record<string, never>[]).map((e) => ({
+      id: e.id,
+      merchant: e.merchant ?? '지출',
+      payerMemberId: e.payer_member_id,
+      krwAmount: num(e.krw_amount),
+      boxes: ((e.boxes ?? []) as unknown[]).map(num),
+      currency: e.currency,
+      amountOriginal: num(e.amount_original),
+      selected: !!e.selected,
+    })),
+    participants: ((r.participants ?? []) as Record<string, never>[]).map((p) => ({
+      memberId: p.member_id,
+      isQr: !!p.is_qr,
+      reportedAt: p.reported_at ?? null,
+      confirmed: !!p.confirmed,
+    })),
+  };
 }
 
 export const api = {
@@ -747,6 +801,37 @@ export const api = {
         p_expense_id: input.expenseId,
         ...(input.scheduleId ? { p_schedule_id: input.scheduleId } : {}),
         ...(input.flags ? { p_flags: input.flags } : {}),
+      }),
+    );
+  },
+
+  async roomSpotSettles(roomId: RoomId): Promise<SpotSettle[]> {
+    const rows = unwrap(await supabase.rpc('room_spot_settles', { p_room_id: roomId }));
+    return (rows as unknown[]).map(toSpotSettle);
+  },
+
+  async openSpotSettle(scheduleId: string): Promise<SpotSettle> {
+    return toSpotSettle(unwrap(await supabase.rpc('open_spot_settle', { p_schedule_id: scheduleId })));
+  },
+
+  async sendSpotSettle(input: { spotId: string; expenseIds: ExpenseId[]; memberIds: MemberId[] }): Promise<SpotSettle> {
+    return toSpotSettle(
+      unwrap(
+        await supabase.rpc('send_spot_settle', {
+          p_spot_id: input.spotId,
+          p_expense_ids: input.expenseIds,
+          p_member_ids: input.memberIds,
+        }),
+      ),
+    );
+  },
+
+  async confirmSpotTransfer(input: { spotId: string; memberId: MemberId; confirmed: boolean }): Promise<void> {
+    unwrap(
+      await supabase.rpc('confirm_spot_transfer', {
+        p_spot_id: input.spotId,
+        p_member_id: input.memberId,
+        p_confirmed: input.confirmed,
       }),
     );
   },

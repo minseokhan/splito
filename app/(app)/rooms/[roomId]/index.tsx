@@ -20,7 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 
 import { ActivityRow } from '@/components/ActivityRow';
-import { ScheduleSection, type ScheduleRow } from '@/components/ScheduleSection';
+import { ScheduleSection, type ScheduleRow, type SpotCardState } from '@/components/ScheduleSection';
+import { SpotSettleSheet } from '@/components/SpotSettleSheet';
 import { ScheduleSheet, draftOf, type ScheduleDraft } from '@/components/ScheduleSheet';
 import { Avatar } from '@/components/Avatar';
 import { AvatarStack } from '@/components/AvatarStack';
@@ -47,11 +48,13 @@ import { useFeed, useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useMyPayoutAccount } from '@/hooks/usePayoutAccount';
 import { useRoomEvents } from '@/hooks/useRoomEvents';
 import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
+import { useConfirmSpotTransfer, useOpenSpotSettle, useRoomSpotSettles, useSendSpotSettle } from '@/hooks/useSpotSettle';
 import { eventText, mergeActivity } from '@/lib/activity';
 import { CATEGORIES, categoryLabel, type CategoryCode } from '@/lib/category';
 import { currencyFlag } from '@/lib/flag';
 import { formatForeign } from '@/lib/money';
 import { buildScheduleDays } from '@/lib/schedule';
+import { qrProgress, spotStatusText, spotTotals } from '@/lib/spotSettle';
 import { buildTripDays, filterByCategory, filterSections, tripDayText } from '@/lib/tripDays';
 import type { FeedRow } from '@/services/api';
 import { loadDraft } from '@/services/drafts';
@@ -141,6 +144,7 @@ export default function RoomHome() {
           krwAmount: r.krwAmount,
           title: r.merchant ?? '지출',
           who: `${name(r)} 결제${prepay ? ' · 하나투어' : ''}`,
+          category: r.category,
           main: local ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount ?? 0),
           mainLocal: local,
           sub: prepay ? '선결제' : local ? formatKrw(r.krwAmount ?? 0) : null,
@@ -148,6 +152,35 @@ export default function RoomHome() {
       });
     // feed.data만 보면 되지만 lint 규칙이 feed 전체를 요구한다.
   }, [feed, category, members]);
+  // ── 이 자리 정산: 일정 카드의 상태 줄 + 바텀시트(명세 §1~§3)
+  const [openSpotId, setOpenSpotId] = useState<string | null>(null);
+  // 시트가 열려 있는 동안에는 짧게 다시 묻는다 — QR 참여는 앱 밖(웹)에서 일어난다.
+  const { data: spots = [] } = useRoomSpotSettles(roomId, openSpotId !== null);
+  const openSpot = useOpenSpotSettle(roomId);
+  const sendSpot = useSendSpotSettle(roomId);
+  const confirmSpot = useConfirmSpotTransfer(roomId);
+  const openSpotSettle = (scheduleId: string) => {
+    const known = spots.find((x) => x.scheduleId === scheduleId);
+    if (known) return setOpenSpotId(known.id);
+    openSpot.mutate(scheduleId, { onSuccess: (x) => setOpenSpotId(x.id), onError: (e) => toast((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요') });
+  };
+  // 보낸 정산만 카드에 상태 줄로 그린다. 문구·완료 판정은 여기서 만든다(컴포넌트는 표시만).
+  const spotCards = useMemo(() => {
+    const out = new Map<string, SpotCardState>();
+    for (const x of spots) {
+      if (!x.sentAt) continue;
+      const picked = x.expenses.filter((e) => e.selected);
+      const { share } = spotTotals(picked, x.participants.length);
+      const { due, done } = qrProgress(x.participants, x.payerMemberId);
+      out.set(x.scheduleId, {
+        text: spotStatusText({ expenseCount: picked.length, people: x.participants.length, share, due, done }),
+        done: due === 0 || done === due,
+      });
+    }
+    return out;
+  }, [spots]);
+  const openSpotData = spots.find((x) => x.id === openSpotId) ?? null;
+
   const scheduleDays = useMemo(
     () =>
       buildScheduleDays({
@@ -462,6 +495,8 @@ export default function RoomHome() {
               onOpenExpense={(expenseId) =>
                 router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId } })
               }
+              spots={spotCards}
+              onSpot={openSpotSettle}
             />
           ) : null
         }
@@ -516,6 +551,36 @@ export default function RoomHome() {
         }
       />
       <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
+
+      {openSpotData && (
+        <SpotSettleSheet
+          key={openSpotData.id}
+          spot={openSpotData}
+          members={members}
+          myMemberId={myMemberId}
+          busy={sendSpot.isPending || confirmSpot.isPending}
+          onClose={() => setOpenSpotId(null)}
+          onSend={({ expenseIds, memberIds }) =>
+            sendSpot.mutate(
+              { spotId: openSpotData.id, expenseIds, memberIds },
+              {
+                onSuccess: () => toast('함께한 사람에게 정산 요청을 보냈어요'),
+                onError: (e) => toast((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요'),
+              },
+            )
+          }
+          onConfirm={({ memberId, confirmed }) =>
+            confirmSpot.mutate(
+              { spotId: openSpotData.id, memberId, confirmed },
+              {
+                onSuccess: () =>
+                  confirmed && toast(`${members.find((m) => m.id === memberId)?.name ?? ''}님 송금을 확인했어요`),
+                onError: (e) => toast((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요'),
+              },
+            )
+          }
+        />
+      )}
       <PeoplePopover
         at={peopleAt}
         members={active}

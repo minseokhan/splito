@@ -1,4 +1,5 @@
 import {
+  buildSpotUrl,
   nextExpenseSelection,
   qrProgress,
   spotStatusText,
@@ -18,12 +19,7 @@ const ex = (over: Partial<SpotExpense> = {}): SpotExpense => ({
   ...over,
 });
 
-const p = (id: string, kind: SpotParticipant['kind'], over: Partial<SpotParticipant> = {}): SpotParticipant => ({
-  memberId: id,
-  name: id,
-  kind,
-  ...over,
-});
+const p = (id: string, isQr: boolean, confirmed = false): SpotParticipant => ({ memberId: id, isQr, confirmed });
 
 describe('spotTotals — 서버 분담 규칙(박스마다 floor, 자투리는 결제자)과 같은 값', () => {
   it('나눠떨어지면 모두 같은 몫', () => {
@@ -100,12 +96,7 @@ describe('nextExpenseSelection — 지출 체크 규칙', () => {
 });
 
 describe('qrProgress — 송금 done/대상', () => {
-  const people = [
-    p('m-minji', 'me'),
-    p('m-jihun', 'mate'),
-    p('m-sky', 'qr', { confirmedAt: '2026-11-04T10:00:00Z' }),
-    p('m-park', 'qr'),
-  ];
+  const people = [p('m-minji', false), p('m-jihun', false), p('m-sky', true, true), p('m-park', true)];
 
   it('QR 참여자 중 결제자가 아닌 사람이 대상, 확인된 수가 done', () => {
     expect(qrProgress(people, 'm-jihun')).toEqual({ due: 2, done: 1 });
@@ -116,9 +107,16 @@ describe('qrProgress — 송금 done/대상', () => {
   });
 
   // '송금했어요'만 누른 상태는 아직 done이 아니다 — 확정 기준은 결제자의 확인이다(PRD §7.2와 같은 규칙).
-  it('보고만 하고 확인 전이면 done이 아니다', () => {
-    const reported = [p('m-sky', 'qr', { reportedAt: '2026-11-04T10:00:00Z' })];
-    expect(qrProgress(reported, 'm-jihun')).toEqual({ due: 1, done: 0 });
+  it('확인 전이면 done이 아니다', () => {
+    expect(qrProgress([p('m-sky', true)], 'm-jihun')).toEqual({ due: 1, done: 0 });
+  });
+});
+
+describe('buildSpotUrl', () => {
+  // 초대(/i/)와 경로가 달라야 한다 — /i/는 app.config.ts에서 앱으로 딥링크되지만
+  // 이 자리 정산은 웹에서 끝나야 하므로 앱이 가로채면 안 된다.
+  it('/s/ 경로를 쓴다', () => {
+    expect(buildSpotUrl('splito-trip.vercel.app', 'abc')).toBe('https://splito-trip.vercel.app/s/abc');
   });
 });
 

@@ -1,9 +1,12 @@
-import { Check, EditPencil, Minus, Plus } from 'iconoir-react-native';
+import { Check, EditPencil, Minus, Plus, QrCode } from 'iconoir-react-native';
 import { Fragment } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { formatKrw } from '@/components/Money';
+import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { Icon } from '@/components/Icon';
+import { SpotStatusRow } from '@/components/SpotSettleSheet';
+import type { CategoryCode } from '@/lib/category';
 import type { ScheduleDay, SchedulableExpense } from '@/lib/schedule';
 import { colors } from '@/theme/tokens';
 
@@ -11,10 +14,14 @@ import { colors } from '@/theme/tokens';
 export type ScheduleRow = SchedulableExpense & {
   title: string;
   who: string;
+  category: CategoryCode;
   main: string; // 큰 금액. 외화 결제면 현지 통화로 쓴다
   mainLocal: boolean; // 현지 통화면 파란색(local)
   sub: string | null; // 작은 보조 — 원화 환산 또는 '선결제' 같은 문구
 };
+
+/** 일정 카드 아래에 그릴 '이 자리 정산' 상태. 문구·완료 판정은 화면이 만든다(여기는 표시만). */
+export type SpotCardState = { text: string; done: boolean };
 
 type Props = {
   days: ScheduleDay<ScheduleRow>[];
@@ -24,6 +31,9 @@ type Props = {
   onSkip: (scheduleId: string) => void;
   onUnhide: (dayIndex: number) => void;
   onOpenExpense: (expenseId: string) => void;
+  /** 보낸 정산만 들어온다. 없으면 [이 자리 정산] 버튼을 보여준다. */
+  spots: Map<string, SpotCardState>;
+  onSpot: (scheduleId: string) => void;
 };
 
 function Tag({ label }: { label: string }) {
@@ -50,11 +60,16 @@ function IncludeChip({ label, on }: { label: string; on: boolean }) {
 
 function ExpenseLine({ row, onPress }: { row: ScheduleRow; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} className="flex-row items-baseline justify-between gap-2">
-      <Text className="min-w-0 flex-1 text-[13px] text-ink-700" numberOfLines={1}>
-        {row.title} <Text className="text-ink-300">{row.who}</Text>
-      </Text>
-      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[13px] text-ink">
+    <Pressable accessibilityRole="button" onPress={onPress} className="flex-row items-center justify-between gap-2">
+      <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+        <View className="h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] bg-muted">
+          <Icon as={CATEGORY_ICON[row.category]} size={13} color={colors.primary.text} />
+        </View>
+        <Text className="min-w-0 flex-1 text-[13px] text-ink-700" numberOfLines={1}>
+          {row.title} <Text className="text-ink-300">{row.who}</Text>
+        </Text>
+      </View>
+      <Text style={{ fontVariant: ['tabular-nums'] }} className="shrink-0 font-semibold text-[13px] text-ink">
         {formatKrw(row.krwAmount ?? 0)}
       </Text>
     </Pressable>
@@ -69,6 +84,8 @@ export function ScheduleSection({
   onSkip,
   onUnhide,
   onOpenExpense,
+  spots,
+  onSpot,
 }: Props) {
   return (
     <View className="gap-3 px-5 pt-1.5">
@@ -125,19 +142,43 @@ export function ScheduleSection({
                   <ExpenseLine key={e.id} row={e} onPress={() => onOpenExpense(e.id)} />
                 ))}
 
-                <View className="flex-row items-center justify-between border-t border-muted pt-2">
-                  <Text className={`text-xs ${c.expenses.length ? 'font-semibold text-ink' : 'text-ink-300'}`}>
-                    {c.expenses.length ? `연결된 지출 ${formatKrw(c.sum)}` : '연결된 지출 없음'}
+                {/* 보낸 정산이 있으면 버튼 대신 상태 줄. 누르면 시트가 다시 열린다(명세 §1) */}
+                {spots.has(c.item.id) && (
+                  <SpotStatusRow
+                    text={spots.get(c.item.id)!.text}
+                    done={spots.get(c.item.id)!.done}
+                    onPress={() => onSpot(c.item.id)}
+                  />
+                )}
+
+                <View className="flex-row items-center justify-between gap-1.5 border-t border-muted pt-2">
+                  {/* 지출이 있으면 합계 문구를 쓰지 않는다 — 줄마다 금액이 이미 보인다(시안) */}
+                  <Text className={`min-w-0 flex-1 text-xs text-ink-300 ${c.expenses.length ? 'hidden' : ''}`}>
+                    연결된 지출 없음
                   </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${c.item.title}에 지출 올리기`}
-                    onPress={() => onAddExpense(c.item.id)}
-                    className="h-[30px] flex-row items-center gap-[3px] rounded-full border-[1.5px] border-line px-2.5"
-                  >
-                    <Icon as={Plus} size={14} color={colors.primary.text} />
-                    <Text className="font-semibold text-[13px] text-primary-text">지출</Text>
-                  </Pressable>
+                  <View className="flex-row gap-1.5">
+                    {/* 지출이 1건 이상이고 아직 안 보냈을 때만 보여준다(명세 §1) */}
+                    {c.expenses.length > 0 && !spots.has(c.item.id) && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${c.item.title} 이 자리 정산`}
+                        onPress={() => onSpot(c.item.id)}
+                        className="h-[30px] flex-row items-center gap-1 rounded-full border-[1.5px] border-line px-2.5"
+                      >
+                        <Icon as={QrCode} size={14} color={colors.ink.DEFAULT} />
+                        <Text className="font-semibold text-[13px] text-ink">이 자리 정산</Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${c.item.title}에 지출 올리기`}
+                      onPress={() => onAddExpense(c.item.id)}
+                      className="h-[30px] flex-row items-center gap-[3px] rounded-full border-[1.5px] border-line px-2.5"
+                    >
+                      <Icon as={Plus} size={14} color={colors.primary.text} />
+                      <Text className="font-semibold text-[13px] text-primary-text">지출</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
             </View>

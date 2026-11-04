@@ -15,14 +15,12 @@ export type SpotExpense = {
   amountOriginal: number;
 };
 
+// 서버 _spot_payload의 participants와 같은 모양으로 둔다 — 중간 변환을 만들지 않는다.
 export type SpotParticipant = {
   memberId: string;
-  name: string;
-  kind: 'me' | 'mate' | 'guest' | 'qr';
-  /** QR 참여자가 '송금했어요'를 누른 시각 */
-  reportedAt?: string | null;
-  /** 결제자가 '받았어요'로 확인한 시각. 확정 기준은 이쪽이다 */
-  confirmedAt?: string | null;
+  isQr: boolean;
+  /** 결제자가 '받았어요'로 확인해 송금이 기록된 상태. 확정 기준은 이쪽이다 */
+  confirmed: boolean;
 };
 
 export type SpotTotals = {
@@ -77,10 +75,17 @@ export function nextExpenseSelection(
   return { selected: next, payerMemberId: target.payerMemberId };
 }
 
-// QR로 들어온 사람만 결제자에게 직접 송금한다. 확정 기준은 결제자의 확인(confirmedAt)이다.
+// QR로 들어온 사람만 결제자에게 직접 송금한다. '송금했어요'는 알림일 뿐이고,
+// 확정 기준은 결제자가 확인해 송금이 기록된 것이다(PRD §7.2와 같은 규칙).
 export function qrProgress(people: SpotParticipant[], payerMemberId: string): { due: number; done: number } {
-  const due = people.filter((m) => m.kind === 'qr' && m.memberId !== payerMemberId);
-  return { due: due.length, done: due.filter((m) => !!m.confirmedAt).length };
+  const due = people.filter((m) => m.isQr && m.memberId !== payerMemberId);
+  return { due: due.length, done: due.filter((m) => m.confirmed).length };
+}
+
+// QR이 가리키는 공개 웹 주소. /i(초대)와 달리 앱 딥링크를 걸지 않는다 —
+// 처음 만난 사람에게 설치를 강요하지 않고 웹에서 끝나야 한다(app.config.ts의 intent-filter는 /i/ 뿐).
+export function buildSpotUrl(domain: string, token: string): string {
+  return `https://${domain}/s/${token}`;
 }
 
 export function spotStatusText(a: {

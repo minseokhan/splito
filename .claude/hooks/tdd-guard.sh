@@ -41,6 +41,16 @@ case "$FILE_PATH" in
     ;;
 esac
 
+# Edge Function 엔트리포인트(supabase/functions/<name>/index.ts)는 Deno.serve 와 클라이언트 생성만
+# 하는 배선 파일 — services/ 와 같은 이유로 유닛 테스트 대상 외다. 로직은 같은 폴더의 모듈에 두고
+# 거기서 TDD를 강제한다(예: spot/handler.ts ↔ spot/handler.test.ts, deno test 로 돌린다).
+# index.ts 안에 분기·검증을 넣지 말 것 — 넣는 순간 테스트 없는 로직이 된다.
+case "$FILE_PATH" in
+  */supabase/functions/*/index.ts)
+    exit 0
+    ;;
+esac
+
 # components/ 는 presentation 레이어(비즈니스 로직 없음) — 유닛 테스트 대상 외, 허용.
 # 로직은 lib/ 에 두고 거기서 TDD를 강제한다.
 case "$FILE_PATH" in
