@@ -25,7 +25,7 @@ create function pg_temp.net(p_member uuid) returns bigint language sql as $$
   select b.net from public.room_balances(pg_temp.r(), false) b where b.member_id = p_member;
 $$;
 -- l이 결제한 1박스 KRW 지출. 대상 인원은 그 시점의 활성 참여자 전원 —
--- save_expense는 '내가 결제 + 대상이 나뿐'일 때만 private으로 판정하므로(20261102000000:124),
+-- save_expense는 '내가 결제 + 대상이 나뿐'일 때만 private으로 판정하므로(20261101172517:124),
 -- 혼자 담으면 나만 보기가 되어 이 자리 정산 대상에서 빠진다. 이 자리 정산은 이 범위를 좁히는 쪽이다.
 create function pg_temp.exp(l text, p_amount numeric, p_sched uuid default null) returns uuid language plpgsql as $$
 declare v_id uuid := gen_random_uuid();
@@ -42,7 +42,7 @@ begin
   return v_id;
 end $$;
 
--- 결제자 혼자만 대상인 지출. save_expense가 '나만 보기'로 판정한다(20261102000000:124).
+-- 결제자 혼자만 대상인 지출. save_expense가 '나만 보기'로 판정한다(20261101172517:124).
 create function pg_temp.solo_exp(l text, p_amount numeric, p_sched uuid) returns uuid language plpgsql as $$
 declare v_id uuid := gen_random_uuid();
 begin
@@ -249,7 +249,7 @@ select throws_ok(format(
   pg_temp.spot(), current_setting('t.e1'), pg_temp.m('a'), pg_temp.m('b'), pg_temp.q('1')),
   'P0001', 'SPOT_LOCKED', '송금을 확인한 사람은 구성에서 뺄 수 없다');
 
--- ───── 나만 보기 지출도 나눌 수 있다 (20261104070000) ─────
+-- ───── 나만 보기 지출도 나눌 수 있다 (20261104070954) ─────
 -- 혼자 계산한 지출은 save_expense가 private으로 잡는다. "내가 낸 걸 이 자리 사람들과 나눈다"가
 -- 정확히 그 상태에서 시작하므로, 대상에서 빼면 이 기능의 주 용도가 막힌다.
 
@@ -275,7 +275,7 @@ select lives_ok(format(
 select is((select visibility from public.expenses where id = current_setting('t.e4')::uuid), 'shared',
   '보내면 공동으로 바뀐다 — 남이 못 보는 지출을 남이 분담하면 안 된다');
 
--- ───── 품목 지정대로 금액이 갈린다 (20261104130000) ─────
+-- ───── 품목 지정대로 금액이 갈린다 (20261104080405) ─────
 -- 결제자가 지출 상세에서 '덮밥은 나랑 박준호만' 식으로 고르면, 그 사람 웹 화면의 금액이
 -- 1/n이 아니라 자기가 먹은 것만으로 바뀌어야 한다.
 

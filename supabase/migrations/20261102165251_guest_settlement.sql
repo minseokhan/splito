@@ -14,7 +14,7 @@ language sql stable security definer set search_path = '' as $$
   );
 $$;
 
--- room_balances: 게스트 net을 대표자에 합산하던 case를 걷어낸다. 나머지는 20261101010000 정의 그대로.
+-- room_balances: 게스트 net을 대표자에 합산하던 case를 걷어낸다. 나머지는 20261101172427 정의 그대로.
 create or replace function public.room_balances(p_room_id uuid, p_confirmed_only boolean default false)
 returns table (member_id uuid, kind text, representative_member_id uuid, joined_at timestamptz,
                left_at timestamptz, paid bigint, owed bigint, net bigint, fx_pending_count int)

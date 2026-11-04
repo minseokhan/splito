@@ -7,7 +7,7 @@ alter table public.expenses
     category in ('food', 'shopping', 'sightseeing', 'lodging', 'transport', 'other'));
 
 -- ───────────────────────── RPC ─────────────────────────
--- 20261101000000_expense_visibility.sql의 save_expense를 베이스로 category 저장만 더한다.
+-- 20261101141059_expense_visibility.sql의 save_expense를 베이스로 category 저장만 더한다.
 -- 모르는 값은 거부하지 않고 'other'로 접는다 — check 제약 위반으로 저장 전체가 날아가면 안 된다.
 create or replace function public.save_expense(p_payload jsonb, p_expected_version int default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
