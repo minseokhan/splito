@@ -23,7 +23,7 @@ export type Result =
   | { ok: false; code: string; status: number; room_id?: string };
 
 type AllocReq = { room_id: string; kind: 'alloc'; total_krw: number; spent: Amounts };
-type PlansReq = { room_id: string; kind: 'plans'; per: number; n: number; spent: Amounts };
+type PlansReq = { room_id: string; kind: 'plans'; per: number; n: number; spent: Amounts; alloc: Amounts };
 type Req = AllocReq | PlansReq;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -34,13 +34,30 @@ const STATUS: Record<string, number> = { FORBIDDEN: 403, AI_QUOTA_EXCEEDED: 429,
 // 여행지 평균을 대신하는 기본 비율(명세 §4 예시 38/8/30/20/4).
 const DEFAULT_RATIO: Record<BudgetCategory, number> = { food: 38, transport: 8, shopping: 30, sightseeing: 20, other: 4 };
 
-// 룰 기반 조정안(명세 §5). 지킬 카테고리에 가중치를 더 준다.
-const PLAN_RULES: { id: string; title: string; desc: string; keep?: BudgetCategory }[] = [
-  { id: 'keep_shopping', title: '쇼핑 지키기', desc: '쇼핑은 그대로 두고 나머지를 조금씩 줄여요', keep: 'shopping' },
-  { id: 'keep_food', title: '식비 지키기', desc: '식비는 그대로 두고 나머지를 조금씩 줄여요', keep: 'food' },
-  { id: 'even', title: '골고루 줄이기', desc: '모든 카테고리를 비슷한 비율로 줄여요' },
-];
+const LABEL: Record<BudgetCategory, string> = {
+  food: '식비', transport: '교통', shopping: '쇼핑', sightseeing: '관광', other: '기타',
+};
+const KEEP_DESC: Record<BudgetCategory, string> = {
+  food: '식비는 그대로 두고 나머지를 조금씩 줄여요',
+  transport: '교통은 그대로 두고 나머지를 조금씩 줄여요',
+  shopping: '쇼핑은 그대로 두고 나머지를 조금씩 줄여요',
+  sightseeing: '관광은 그대로 두고 나머지를 조금씩 줄여요',
+  other: '기타는 그대로 두고 나머지를 조금씩 줄여요',
+};
+const EVEN_RULE = { id: 'even', title: '골고루 줄이기', desc: '모든 카테고리를 비슷한 비율로 줄여요' };
 const KEEP_BOOST = 1.6;
+
+type PlanRule = { id: string; title: string; desc: string; keep?: BudgetCategory };
+
+/** 룰 기반 조정안(명세 §5). 지킬 카테고리는 배분이 큰 순 2개 — 0원으로 둔 칸을 '지키는' 안은 뜻이 없어 만들지 않는다. */
+export function planRules(weights: number[]): PlanRule[] {
+  const keeps = BUDGET_CATEGORIES.map((c, i) => ({ c, w: weights[i] }))
+    .filter((x) => x.w > 0)
+    .sort((a, b) => b.w - a.w)
+    .slice(0, MAX_PLANS - 1)
+    .map(({ c }) => ({ id: `keep_${c}`, title: `${LABEL[c]} 지키기`, desc: KEEP_DESC[c], keep: c }));
+  return [...keeps, EVEN_RULE];
+}
 
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
 
@@ -65,7 +82,7 @@ function validate(b: unknown): Req | null {
   }
   if (r.kind === 'plans') {
     if (!isInt(r.per) || r.per <= 0 || !isInt(r.n) || r.n < 1) return null;
-    return { room_id: r.room_id, kind: 'plans', per: r.per, n: r.n, spent };
+    return { room_id: r.room_id, kind: 'plans', per: r.per, n: r.n, spent, alloc: readAmounts(r.alloc) };
   }
   return null;
 }
@@ -105,9 +122,29 @@ export function fallbackAlloc(totalKrw: number, spent: Amounts): Record<BudgetCa
   return toRecord(normalizeTo(totalKrw, ratiosFrom(spent)));
 }
 
-export function fallbackPlans(per: number, spent: Amounts): CoachPlan[] {
-  const base = ratiosFrom(spent);
-  return PLAN_RULES.map(({ id, title, desc, keep }) => {
+/**
+ * 조정안의 기준 배분. 사용자가 세운 예산 배분(alloc)이 있으면 그것이 정답이다 —
+ * 0원으로 둔 칸은 0원으로 남고, 넣어 둔 칸끼리의 비율도 그대로 간다.
+ * 배분이 없을 때만 쓴 비율과 기본 비율을 반반 섞는다(쓴 금액만 쓰면 안 쓴 칸이 전부 0이 된다).
+ */
+export function planWeights(spent: Amounts, alloc: Amounts): number[] {
+  const a = BUDGET_CATEGORIES.map((c) => alloc[c] ?? 0);
+  if (a.some((x) => x > 0)) return a;
+  const w = BUDGET_CATEGORIES.map((c) => spent[c] ?? 0);
+  const s = w.reduce((x, y) => x + y, 0);
+  const base = BUDGET_CATEGORIES.map((c) => DEFAULT_RATIO[c]);
+  return s > 0 ? w.map((x, i) => (x / s) * 50 + base[i] / 2) : base;
+}
+
+/** 사용자가 0으로 둔 카테고리를 막는 마스크. 배분이 없으면 null(제약 없음). */
+function allowedMask(alloc: Amounts): boolean[] | null {
+  const a = BUDGET_CATEGORIES.map((c) => alloc[c] ?? 0);
+  return a.some((x) => x > 0) ? a.map((x) => x > 0) : null;
+}
+
+export function fallbackPlans(per: number, spent: Amounts, alloc: Amounts): CoachPlan[] {
+  const base = planWeights(spent, alloc);
+  return planRules(base).map(({ id, title, desc, keep }) => {
     const w = BUDGET_CATEGORIES.map((c, i) => base[i] * (c === keep ? KEEP_BOOST : 1));
     return { id, title, desc, perDay: toRecord(normalizeTo(per, w)) };
   });
@@ -128,14 +165,19 @@ export function parseAllocReply(text: string, totalKrw: number): Record<BudgetCa
   return w ? toRecord(normalizeTo(totalKrw, w)) : null;
 }
 
-export function parsePlansReply(text: string, per: number): CoachPlan[] | null {
+export function parsePlansReply(text: string, per: number, mask: boolean[] | null = null): CoachPlan[] | null {
   const raw = safeJson(text) as { plans?: unknown } | null;
   if (!Array.isArray(raw?.plans)) return null;
   const plans: CoachPlan[] = [];
   for (const p of raw.plans as Record<string, unknown>[]) {
     if (!p || typeof p.id !== 'string' || typeof p.title !== 'string') continue;
-    const w = readRatios(p.ratios);
+    let w = readRatios(p.ratios);
     if (!w) continue;
+    // 사용자가 0으로 둔 카테고리는 모델이 비율을 줘도 0으로 막는다.
+    if (mask) {
+      w = w.map((x, i) => (mask[i] ? x : 0));
+      if (!w.some((x) => x > 0)) continue;
+    }
     plans.push({
       id: p.id,
       title: p.title,
@@ -182,10 +224,9 @@ const PLANS_SCHEMA = {
   additionalProperties: false,
   required: ['plans'],
   properties: {
+    // 길이 제약(minItems·maxItems)은 API가 받지 않는다 — 개수는 프롬프트로 알리고 parsePlansReply가 검증한다.
     plans: {
       type: 'array',
-      minItems: 2,
-      maxItems: MAX_PLANS,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -203,11 +244,20 @@ const PLANS_SCHEMA = {
 
 function buildParams(model: string, req: Req): Anthropic.MessageCreateParamsNonStreaming {
   const spent = JSON.stringify(req.spent);
-  const text = req.kind === 'alloc'
-    ? `전체 예산 ${req.total_krw}원을 카테고리별로 나눠라. 지금까지 지출(원): ${spent}. 지출이 비어 있으면 일반적인 해외여행 평균으로 나눠라.`
-    : `남은 ${req.n}일 동안 하루 ${req.per}원 안에서 쓰도록 조정안을 ${MAX_PLANS}개 만들어라. ` +
-      `각각 '쇼핑 지키기'(id: keep_shopping), '식비 지키기'(id: keep_food), '골고루 줄이기'(id: even)다. ` +
+  let text: string;
+  if (req.kind === 'alloc') {
+    text = `전체 예산 ${req.total_krw}원을 카테고리별로 나눠라. 지금까지 지출(원): ${spent}. 지출이 비어 있으면 일반적인 해외여행 평균으로 나눠라.`;
+  } else {
+    const rules = planRules(planWeights(req.spent, req.alloc));
+    const names = rules.map((r) => `'${r.title}'(id: ${r.id})`).join(', ');
+    const hasAlloc = BUDGET_CATEGORIES.some((c) => (req.alloc[c] ?? 0) > 0);
+    text = `남은 ${req.n}일 동안 하루 ${req.per}원 안에서 쓰도록 조정안을 ${rules.length}개 만들어라. 각각 ${names}다. ` +
+      (hasAlloc
+        ? `사용자가 세운 카테고리별 예산(원): ${JSON.stringify(req.alloc)}. ` +
+          `이 배분에 없거나 0인 카테고리는 비율도 반드시 0으로 두고, 나머지는 이 배분의 비율에서 크게 벗어나지 마라. `
+        : '') +
       `지금까지 지출(원): ${spent}.`;
+  }
   return {
     model,
     max_tokens: 1024,
@@ -223,7 +273,9 @@ async function callWithRetry(deps: Deps, req: Req, signal: AbortSignal) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await deps.callClaude(params, signal);
     if (res.stop_reason === 'refusal') return null;
-    const parsed = req.kind === 'alloc' ? parseAllocReply(res.text, req.total_krw) : parsePlansReply(res.text, req.per);
+    const parsed = req.kind === 'alloc'
+      ? parseAllocReply(res.text, req.total_krw)
+      : parsePlansReply(res.text, req.per, allowedMask(req.alloc));
     if (parsed) return parsed;
   }
   return null;
@@ -252,6 +304,6 @@ export async function coachBudget(deps: Deps, body: unknown): Promise<Result> {
     const alloc = (ai as Record<BudgetCategory, number> | null) ?? fallbackAlloc(req.total_krw, req.spent);
     return { ok: true, data: { alloc, source: ai ? 'ai' : 'fallback' } };
   }
-  const plans = (ai as CoachPlan[] | null) ?? fallbackPlans(req.per, req.spent);
+  const plans = (ai as CoachPlan[] | null) ?? fallbackPlans(req.per, req.spent, req.alloc);
   return { ok: true, data: { plans, source: ai ? 'ai' : 'fallback' } };
 }

@@ -1,5 +1,14 @@
 import { assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { BUDGET_CATEGORIES, type ClaudeResult, coachBudget, type Deps, normalizeTo, ratiosFrom } from './coach.ts';
+import {
+  BUDGET_CATEGORIES,
+  type ClaudeResult,
+  coachBudget,
+  type CoachPlan,
+  type Deps,
+  fallbackPlans,
+  normalizeTo,
+  ratiosFrom,
+} from './coach.ts';
 
 const ROOM = '11111111-1111-4111-8111-111111111111';
 const SPENT = { food: 182_400, transport: 38_400, shopping: 144_000, sightseeing: 96_000, other: 19_200 };
@@ -170,4 +179,79 @@ Deno.test('금액은 전부 정수다', async () => {
   const data = res.data as { alloc: Record<string, number> };
   for (const v of Object.values(data.alloc)) assertEquals(Number.isInteger(v), true);
   assertEquals(sum(data.alloc), 333_333);
+});
+
+Deno.test('fallbackPlans: 배분이 없으면 쓴 비율로 만들되 0원 카테고리를 남기지 않는다', () => {
+  // 식비·기타에만 쓴 상태. 쓴 금액만 가중치로 쓰면 나머지가 0원이 되어 안끼리 구분되지 않는다.
+  const plans = fallbackPlans(5_700, { food: 1_660, other: 12_538 }, {});
+  const by = (id: string) => plans.find((p) => p.id === id)!;
+  assertEquals(plans.map((p) => p.id), ['keep_other', 'keep_food', 'even']);
+  for (const p of plans) {
+    assertEquals(sum(p.perDay), 5_700);
+    assertEquals(
+      BUDGET_CATEGORIES.every((c) => p.perDay[c] > 0),
+      true,
+      `${p.id}에 0원 카테고리가 있다`,
+    );
+  }
+  assertEquals(by('keep_other').perDay.other > by('even').perDay.other, true);
+  assertEquals(by('keep_food').perDay.food > by('even').perDay.food, true);
+  assertNotEquals(by('keep_other').perDay, by('even').perDay);
+});
+
+// 사용자가 세운 예산 배분(alloc)이 있으면 그것이 조정안의 기준이다.
+const ALLOC = { food: 100_000, transport: 20_000 };
+
+Deno.test('plans: 예산 배분에서 0원인 카테고리는 모든 안에서 0원이다', async () => {
+  const { deps } = fake([reply({ plans: [] }), reply({ plans: [] })]);
+  const res = await coachBudget(deps, { room_id: ROOM, kind: 'plans', per: 6_000, n: 10, spent: SPENT, alloc: ALLOC });
+  if (!res.ok) throw new Error(res.code);
+  const { plans } = res.data as { plans: CoachPlan[] };
+  for (const p of plans) {
+    assertEquals(sum(p.perDay), 6_000);
+    assertEquals(p.perDay.shopping, 0, `${p.id} 쇼핑`);
+    assertEquals(p.perDay.sightseeing, 0, `${p.id} 관광`);
+    assertEquals(p.perDay.other, 0, `${p.id} 기타`);
+  }
+  // 골고루 줄이기는 배분 비율(5:1)을 그대로 따른다
+  const even = plans.find((p) => p.id === 'even')!;
+  assertEquals(even.perDay.food, 5_000);
+  assertEquals(even.perDay.transport, 1_000);
+});
+
+Deno.test('plans: 0원으로 둔 카테고리를 지키는 안은 만들지 않는다', async () => {
+  const { deps } = fake([reply({ plans: [] }), reply({ plans: [] })]);
+  const res = await coachBudget(deps, { room_id: ROOM, kind: 'plans', per: 6_000, n: 10, spent: SPENT, alloc: ALLOC });
+  if (!res.ok) throw new Error(res.code);
+  const ids = (res.data as { plans: CoachPlan[] }).plans.map((p) => p.id);
+  assertEquals(ids, ['keep_food', 'keep_transport', 'even']);
+});
+
+Deno.test('plans: 모델이 0원 카테고리에 비율을 줘도 서버가 0으로 막는다', async () => {
+  const { deps } = fake([
+    reply({
+      plans: [
+        { id: 'keep_food', title: '식비 지키기', desc: 'ㄱ', ratios: { food: 50, transport: 10, shopping: 20, sightseeing: 15, other: 5 } },
+        { id: 'even', title: '골고루 줄이기', desc: 'ㄴ', ratios: { food: 40, transport: 20, shopping: 20, sightseeing: 10, other: 10 } },
+      ],
+    }),
+  ]);
+  const res = await coachBudget(deps, { room_id: ROOM, kind: 'plans', per: 6_000, n: 10, spent: SPENT, alloc: ALLOC });
+  if (!res.ok) throw new Error(res.code);
+  const data = res.data as { plans: CoachPlan[]; source: string };
+  assertEquals(data.source, 'ai');
+  for (const p of data.plans) {
+    assertEquals(sum(p.perDay), 6_000);
+    assertEquals(p.perDay.shopping, 0, `${p.id} 쇼핑`);
+    assertEquals(p.perDay.sightseeing, 0, `${p.id} 관광`);
+    assertEquals(p.perDay.other, 0, `${p.id} 기타`);
+  }
+});
+
+Deno.test('plans 요청 스키마에 API가 받지 않는 배열 길이 제약을 넣지 않는다', async () => {
+  const { deps, calls } = fake([reply({ plans: [] }), reply({ plans: [] })]);
+  await coachBudget(deps, { room_id: ROOM, kind: 'plans', per: 5_700, n: 15, spent: SPENT });
+  const schema = JSON.stringify((calls[0] as { output_config: { format: { schema: unknown } } }).output_config.format.schema);
+  assertEquals(schema.includes('minItems'), false);
+  assertEquals(schema.includes('maxItems'), false);
 });

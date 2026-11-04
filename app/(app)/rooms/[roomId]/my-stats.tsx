@@ -123,6 +123,8 @@ export default function MyStats() {
         per: stats.per,
         n: stats.n,
         spent,
+        // 사용자가 세운 카테고리별 예산이 조정안의 기준이다(0으로 둔 칸은 조정안에서도 0).
+        alloc: budget?.alloc ?? {},
       });
       setPlans(next ?? []);
     } catch {
