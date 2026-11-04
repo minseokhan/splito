@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(49);
+select plan(60);
 
 -- ───── fixture ─────
 -- 방 R: a(민지) · b(지훈) · c(서연). 일정 '도톤보리 자유 석식'에 b가 결제한 81,000원 지출을 붙인다.
@@ -121,13 +121,30 @@ select is((select guest_name from public.room_members where id = pg_temp.q('1'))
   'QR 참여자는 이름을 가진 게스트가 된다');
 select is((select representative_member_id from public.room_members where id = pg_temp.q('1')), pg_temp.m('b'),
   'QR 참여자의 대표자는 결제자다 — 결제자가 대신 송금을 확인할 수 있어야 한다');
+-- 그 한 자리의 사람이지 동행이 아니다. 화면이 '사람 고르는 목록'에서 뺄 수 있게 표시를 남긴다.
+select is((select spot_only from public.room_members where id = pg_temp.q('1')), true,
+  'QR 참여자에는 spot_only 표시가 붙는다');
+select is((select count(*)::int from public.room_members
+           where room_id = pg_temp.r() and not spot_only and left_at is null), 3,
+  '동행 목록에는 a·b·c 셋만 남는다');
 select is(public.spot_join(pg_temp.tok(), '') ->> 'error', 'INVALID_INPUT', '이름이 비면 못 들어온다');
 select is(public.spot_join('없는토큰', '아무개') ->> 'error', 'SPOT_GONE', '없는 토큰은 거절한다');
+
+-- QR 참여자는 동행 수에 들어가면 안 된다. 들어가면 'c.n >= 2' 관문을 통과해
+-- 아직 시작도 안 한 여행이 'settled'(마무리된 여행)로 내려간다.
+select pg_temp.as_user('a');
+select is((select member_count from public.my_rooms() where room_id = pg_temp.r()), 3,
+  'QR 참여자 2명은 동행 수에 세지 않는다(a·b·c만)');
 
 -- ───── 공개 화면: 계좌는 참여한 사람에게만 ─────
 
 select is(public.spot_public_view(pg_temp.tok()) -> 'account', 'null'::jsonb,
   '참여 전에는 결제자 계좌를 주지 않는다');
+-- 참여 전에도 '내가 들어가면 얼마'를 보여줘야 한다(시안 join 단계). 그때 인원은 나를 더한 수다.
+select is((public.spot_public_view(pg_temp.tok()) ->> 'joined')::boolean, false,
+  '참여 전에는 joined가 false다');
+select isnt(public.spot_public_view(pg_temp.tok()) ->> 'my_share', null,
+  '참여 전에도 내 몫을 미리 보여준다');
 select is(public.spot_public_view(pg_temp.tok(), pg_temp.q('1')) #>> '{account,number}', '1000-1234-5678',
   '참여한 사람에게만 계좌 원문을 준다');
 select isnt((select account_revealed_at from public.spot_participants
@@ -152,7 +169,22 @@ select is((select count(*)::int from public.expense_scope where expense_id = cur
   '고른 지출의 대상 인원이 고른 사람 4명으로 바뀐다');
 select is((select action from public.expense_history where expense_id = current_setting('t.e1')::uuid
            order by at desc limit 1), 'scope_add', '장부 변경이 이력에 남는다');
-select is(public._spot_share(pg_temp.spot()), 20250::bigint, '1인 금액은 81,000 / 4 = 20,250원');
+-- 품목 지정까지 박아 둔다. 앱 수정 화면은 대상 인원을 지정에서 역산하므로(effScope),
+-- 비워 두면 다음 수정 때 방 전체로 되돌아가 금액이 조용히 바뀐다.
+select is((select count(*)::int from public.item_assignees a
+           join public.expense_items i on i.id = a.item_id
+           where i.expense_id = current_setting('t.e1')::uuid), 4,
+  '고른 사람 4명이 품목마다 지정된다(박스 1개 × 4명)');
+select set_eq(
+  format('select a.member_id from public.item_assignees a join public.expense_items i on i.id = a.item_id
+          where i.expense_id = %L', current_setting('t.e1')),
+  format('select member_id from public.expense_scope where expense_id = %L', current_setting('t.e1')),
+  '품목 지정과 대상 인원이 같다 — 수정해도 구성이 유지된다');
+-- 지정이 따로 없으면 참여자 전원이 나눈다. 인자 없이 부르면 '아직 참여 전' 미리보기다.
+select is(public._spot_share(pg_temp.spot(), pg_temp.m('a')), 20250::bigint,
+  '참여자 몫은 81,000 / 4 = 20,250원');
+select is(public._spot_share(pg_temp.spot()), 16200::bigint,
+  '참여 전 미리보기는 나를 더한 5명 기준 16,200원');
 
 -- ───── 받기 전: 받을 돈이므로 장부에 남아 있다 ─────
 -- 명세는 "QR 참여자 몫은 여행 정산에 넣지 않는다"고 했지만, 받기 전까지는 실제로 받을 돈이다.
@@ -242,6 +274,24 @@ select lives_ok(format(
   '나만 보기 지출도 보낼 수 있다');
 select is((select visibility from public.expenses where id = current_setting('t.e4')::uuid), 'shared',
   '보내면 공동으로 바뀐다 — 남이 못 보는 지출을 남이 분담하면 안 된다');
+
+-- ───── 품목 지정대로 금액이 갈린다 (20261104130000) ─────
+-- 결제자가 지출 상세에서 '덮밥은 나랑 박준호만' 식으로 고르면, 그 사람 웹 화면의 금액이
+-- 1/n이 아니라 자기가 먹은 것만으로 바뀌어야 한다.
+
+delete from public.item_assignees a using public.expense_items i
+  where a.item_id = i.id and i.expense_id = current_setting('t.e1')::uuid;
+insert into public.item_assignees (item_id, member_id, room_id)
+select i.id, x, pg_temp.r()
+from public.expense_items i cross join (values (pg_temp.m('a')), (pg_temp.q('1'))) v(x)
+where i.expense_id = current_setting('t.e1')::uuid;
+
+select is(public._spot_share(pg_temp.spot(), pg_temp.q('1')), 40500::bigint,
+  '지정된 사람은 그 박스를 둘이 나눈 금액(81,000 / 2)을 진다');
+select is(public._spot_share(pg_temp.spot(), pg_temp.q('0')), 0::bigint,
+  '지정되지 않은 사람은 0원이다 — 1/n로 걷히지 않는다');
+select is(public._spot_share(pg_temp.spot()), 16200::bigint,
+  '아직 참여 전인 사람에게는 나를 더한 인원(5명) 기준 미리보기를 준다');
 
 select * from finish();
 rollback;

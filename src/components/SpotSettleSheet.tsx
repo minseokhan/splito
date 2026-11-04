@@ -35,6 +35,8 @@ type Row = {
   isMe: boolean;
   tag: string;
   confirmed: boolean;
+  /** 서버가 품목 지정대로 계산한 그 사람의 몫. 보낸 뒤에는 이 값이 정답이다. */
+  share: number;
 };
 
 // 호출부는 <SpotSettleSheet key={spot.id} .../>로 쓴다 — 정산이 바뀌면 고른 것도 새로 시작한다.
@@ -63,14 +65,27 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
     const byId = new Map(spot.participants.map((p) => [p.memberId, p]));
     // 아바타 색은 합류 순서로 고정한다 — 멤버 화면·여행 상세와 같은 규칙.
     const colorIndex = new Map(members.map((m, i) => [m.id, i]));
-    const shown = sent ? members.filter((m) => chosen.includes(m.id)) : members.filter((m) => !m.leftAt);
+    // 다른 자리의 QR 참여자는 이 시트에 뜨면 안 된다 — 이 정산의 참여자일 때만 보여준다.
+    const here = (m: RoomMember) => !m.spotOnly || byId.has(m.id);
+    const shown = sent
+      ? members.filter((m) => chosen.includes(m.id))
+      : members.filter((m) => !m.leftAt && here(m));
     return shown.map((m) => {
       const p = byId.get(m.id);
       const isQr = !!p?.isQr;
       const isPayer = m.id === payerMemberId;
       const isMe = m.id === myMemberId;
       const base = isMe ? '나' : isQr ? 'QR 참여' : m.kind === 'guest' ? '게스트' : '동행';
-      return { member: m, colorIndex: colorIndex.get(m.id) ?? 0, isQr, isPayer, isMe, confirmed: !!p?.confirmed, tag: isPayer ? `${base} · 결제` : base };
+      return {
+        member: m,
+        colorIndex: colorIndex.get(m.id) ?? 0,
+        isQr,
+        isPayer,
+        isMe,
+        confirmed: !!p?.confirmed,
+        share: p?.share ?? 0,
+        tag: isPayer ? `${base} · 결제` : base,
+      };
     });
   }, [spot, members, chosen, sent, payerMemberId, myMemberId]);
 
@@ -201,7 +216,9 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
               first={i === 0}
               sent={sent}
               on={chosen.includes(r.member.id)}
-              share={r.isPayer ? totals.payerShare : totals.share}
+              // 작성 중에는 고르는 대로 즉시 바뀌어야 하니 화면이 계산하고,
+              // 보낸 뒤에는 품목 지정이 반영된 서버 값을 쓴다.
+              share={sent ? r.share : r.isPayer ? totals.payerShare : totals.share}
               payerIsMe={payerIsMe}
               onToggle={() => toggleMember(r.member.id)}
               onConfirm={(confirmed) => onConfirm({ memberId: r.member.id, confirmed })}

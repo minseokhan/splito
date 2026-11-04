@@ -33,7 +33,8 @@ export default function Prepay() {
   const [sheet, setSheet] = useState<'invite' | 'guest' | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const active = members.filter((m) => !m.leftAt);
+  // QR로 들어온 사람은 동행이 아니다 — 고르는 목록에서 뺀다(장부에는 그대로 있다).
+  const active = members.filter((m) => !m.leftAt && !m.spotOnly);
   const me = active.find((m) => m.userId === myUserId);
   const others = active.filter((m) => m.id !== me?.id);
   const goRoom = () => router.replace({ pathname: '/rooms/[roomId]', params: { roomId } });

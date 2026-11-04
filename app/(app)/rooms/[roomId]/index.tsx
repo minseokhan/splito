@@ -217,7 +217,8 @@ export default function RoomHome() {
   const userName = new Map(members.flatMap((m) => (m.userId ? [[m.userId, m.name] as const] : [])));
   // 아바타 색은 합류 순서(탈퇴 포함)로 고정한다 — 멤버 화면과 같은 규칙.
   const colorIndex = new Map(members.map((m, i) => [m.id, i]));
-  const active = members.filter((m) => !m.leftAt);
+  // QR로 들어온 사람은 동행이 아니다 — 고르는 목록에서 뺀다(장부에는 그대로 있다).
+  const active = members.filter((m) => !m.leftAt && !m.spotOnly);
   const people = active.map((m) => ({
     id: m.id,
     name: m.name,
