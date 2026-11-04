@@ -175,7 +175,14 @@ export default function ReviewExpense() {
     active: !m.leftAt,
     userId: m.userId,
   }));
-  const active = people.filter((p) => p.active);
+  // QR로 들어온 사람은 동행이 아니라 그 한 자리의 사람이다 — 새 지출에서는 고를 수 없다.
+  // 다만 **이미 이 지출에 들어 있으면** 고를 수 있어야 한다. 못 고르면 effScope가 그 사람을
+  // 대상 인원에서 떨어뜨려(지정 없는 박스는 '활동 참여자 전원'으로 채워진다) 금액이 조용히 바뀐다.
+  const inThisExpense = new Set(draft.items.flatMap((it) => it.assigneeMemberIds));
+  const spotOnly = new Set(
+    members.filter((m) => m.spotOnly && !inThisExpense.has(m.id)).map((m) => m.id),
+  );
+  const active = people.filter((p) => p.active && !spotOnly.has(p.id));
   const activeIds = active.map((p) => p.id);
   const multi = active.length > 1;
 

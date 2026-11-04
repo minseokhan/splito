@@ -423,14 +423,14 @@ isOneToOne: false
                   ]
                 },"room_members": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"guest_name": string | null,"id": string,"joined_at": string,"kind": string,"left_at": string | null,"removed_by": string | null,"representative_member_id": string | null,"room_id": string,"user_id": string | null
+                    "created_at": string,"created_by": string | null,"guest_name": string | null,"id": string,"joined_at": string,"kind": string,"left_at": string | null,"removed_by": string | null,"representative_member_id": string | null,"room_id": string,"spot_only": boolean,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"guest_name"?: string | null,"id"?: string,"joined_at"?: string,"kind": string,"left_at"?: string | null,"removed_by"?: string | null,"representative_member_id"?: string | null,"room_id": string,"user_id"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"guest_name"?: string | null,"id"?: string,"joined_at"?: string,"kind": string,"left_at"?: string | null,"removed_by"?: string | null,"representative_member_id"?: string | null,"room_id": string,"spot_only"?: boolean,"user_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"guest_name"?: string | null,"id"?: string,"joined_at"?: string,"kind"?: string,"left_at"?: string | null,"removed_by"?: string | null,"representative_member_id"?: string | null,"room_id"?: string,"user_id"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"guest_name"?: string | null,"id"?: string,"joined_at"?: string,"kind"?: string,"left_at"?: string | null,"removed_by"?: string | null,"representative_member_id"?: string | null,"room_id"?: string,"spot_only"?: boolean,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -782,6 +782,7 @@ isOneToOne: false
 "removed_by": string | null,
 "representative_member_id": string | null,
 "room_id": string,
+"spot_only": boolean,
 "user_id": string | null
             }
                           SetofOptions: {
@@ -850,6 +851,8 @@ isOneToOne: false
                            },
 "_spot_share":
 { Args: { "p_spot_id": string }; Returns: number
+                           } |
+{ Args: { "p_extra"?: number,"p_spot_id": string }; Returns: number
                            },
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
