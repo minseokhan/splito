@@ -106,6 +106,22 @@
     people.appendChild(stack);
     people.appendChild(document.createTextNode((d.people || 0) + '명'));
     $('share').textContent = d.my_share == null ? '—' : won(d.my_share);
+
+    // 품목이 2개 이상일 때만 보여준다. 1개면 '내 몫'과 같은 말이라 줄만 늘어난다.
+    var items = d.items || [];
+    var list = $('items');
+    list.textContent = '';
+    if (items.length > 1) {
+      items.forEach(function (it) {
+        var li = document.createElement('li');
+        if (!it.mine) li.className = 'off';
+        var name = el('span', it.name || '품목');
+        if (it.mine && joined) name.appendChild(el('span', '내가 먹음', 'tagmine'));
+        li.appendChild(name);
+        li.appendChild(el('span', won(it.krw)));
+        list.appendChild(li);
+      });
+    }
     $('shareNote').textContent = joined ? '' : '참여하면 내 몫이에요';
 
     // 서버가 joined로 판정한다 — 기기에 남은 id가 낡았을 수 있다(정산이 다시 만들어진 경우).

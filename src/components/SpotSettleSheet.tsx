@@ -35,6 +35,8 @@ type Row = {
   isMe: boolean;
   tag: string;
   confirmed: boolean;
+  /** 서버가 품목 지정대로 계산한 그 사람의 몫. 보낸 뒤에는 이 값이 정답이다. */
+  share: number;
 };
 
 // 호출부는 <SpotSettleSheet key={spot.id} .../>로 쓴다 — 정산이 바뀌면 고른 것도 새로 시작한다.
@@ -74,7 +76,16 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
       const isPayer = m.id === payerMemberId;
       const isMe = m.id === myMemberId;
       const base = isMe ? '나' : isQr ? 'QR 참여' : m.kind === 'guest' ? '게스트' : '동행';
-      return { member: m, colorIndex: colorIndex.get(m.id) ?? 0, isQr, isPayer, isMe, confirmed: !!p?.confirmed, tag: isPayer ? `${base} · 결제` : base };
+      return {
+        member: m,
+        colorIndex: colorIndex.get(m.id) ?? 0,
+        isQr,
+        isPayer,
+        isMe,
+        confirmed: !!p?.confirmed,
+        share: p?.share ?? 0,
+        tag: isPayer ? `${base} · 결제` : base,
+      };
     });
   }, [spot, members, chosen, sent, payerMemberId, myMemberId]);
 
@@ -205,7 +216,9 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
               first={i === 0}
               sent={sent}
               on={chosen.includes(r.member.id)}
-              share={r.isPayer ? totals.payerShare : totals.share}
+              // 작성 중에는 고르는 대로 즉시 바뀌어야 하니 화면이 계산하고,
+              // 보낸 뒤에는 품목 지정이 반영된 서버 값을 쓴다.
+              share={sent ? r.share : r.isPayer ? totals.payerShare : totals.share}
               payerIsMe={payerIsMe}
               onToggle={() => toggleMember(r.member.id)}
               onConfirm={(confirmed) => onConfirm({ memberId: r.member.id, confirmed })}

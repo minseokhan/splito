@@ -56,8 +56,11 @@ export type SpotSettle = {
   participants: SpotParticipantRow[];
 };
 
-/** QR 참여자가 '송금했어요'를 누른 시각만 더한다. 나머지는 lib/spotSettle과 같은 모양. */
-export type SpotParticipantRow = SpotParticipant & { reportedAt: string | null };
+/**
+ * 보낸 뒤에는 서버가 계산한 share가 정답이다 — 품목 지정이 바뀌면 사람마다 금액이 달라지므로
+ * 화면이 1/n로 다시 계산하면 안 된다(작성 중에는 화면이 즉시 미리보기를 만든다).
+ */
+export type SpotParticipantRow = SpotParticipant & { reportedAt: string | null; share: number };
 
 // 복합 FK 임베드는 생성 타입이 추론하지 못해 행 타입을 직접 적는다.
 export type ExpenseDetail = Tables<'expenses'> & {
@@ -156,6 +159,7 @@ function toSpotSettle(raw: unknown): SpotSettle {
       memberId: p.member_id,
       isQr: !!p.is_qr,
       reportedAt: p.reported_at ?? null,
+      share: num(p.share),
       confirmed: !!p.confirmed,
     })),
   };

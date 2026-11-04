@@ -1,6 +1,9 @@
 /* 이 자리 정산 공개 화면. 토큰은 docs/UI_GUIDE.md, 수치는 프로토타입 실측. */
 /* hidden 속성은 UA 스타일이라 .pay{display:flex} 같은 작성자 규칙에 진다. 전역으로 못박는다. */
 [hidden] { display: none !important; }
+/* 이 페이지는 /style.css를 쓰지 않는다 — box-sizing을 여기서 깐다.
+   없으면 width:100%인 입력칸에 좌우 패딩·테두리가 더해져 카드보다 넓어진다. */
+*, *::before, *::after { box-sizing: border-box; }
 body.spot {
   background: #F6F8FA;
   color: #0E1B3D;
@@ -41,6 +44,15 @@ body.spot {
 .panel dd { margin: 0; font-weight: 600; }
 .panel dd .krw { color: #A0A4AE; font-weight: 500; margin-left: 4px; }
 .panel hr { border: 0; border-top: 1px solid #F0F3F7; margin: 14px 0; }
+
+/* 품목별 내 몫. 결제자가 지출 상세에서 지정을 바꾸면 새로고침에 바로 반영된다. */
+.items { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.items:empty { display: none; }
+.items li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.items li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.items li.off { color: #A0A4AE; }
+.items li.off span:last-child { text-decoration: line-through; }
+.items .tagmine { color: #0B7D6C; font-size: 11px; font-weight: 600; margin-left: 6px; }
 .mine { display: flex; justify-content: space-between; align-items: baseline; }
 .mine span { font-size: 15px; font-weight: 600; }
 .mine strong { font-size: 24px; font-weight: 600; }
