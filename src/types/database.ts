@@ -549,6 +549,102 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"spot_expenses": {
+                  Row: {
+                    "expense_id": string,"room_id": string,"spot_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "expense_id": string,"room_id": string,"spot_id": string
+                  }
+                  Update: {
+                    "expense_id"?: string,"room_id"?: string,"spot_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "spot_expenses_expense_id_room_id_fkey"
+      columns: ["expense_id","room_id"]
+isOneToOne: false
+      referencedRelation: "expenses"
+      referencedColumns: ["id","room_id"]
+    },{
+      foreignKeyName: "spot_expenses_spot_id_fkey"
+      columns: ["spot_id"]
+isOneToOne: false
+      referencedRelation: "spot_settles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"spot_participants": {
+                  Row: {
+                    "account_revealed_at": string | null,"is_qr": boolean,"joined_at": string,"member_id": string,"reported_at": string | null,"room_id": string,"spot_id": string,"transfer_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_revealed_at"?: string | null,"is_qr"?: boolean,"joined_at"?: string,"member_id": string,"reported_at"?: string | null,"room_id": string,"spot_id": string,"transfer_id"?: string | null
+                  }
+                  Update: {
+                    "account_revealed_at"?: string | null,"is_qr"?: boolean,"joined_at"?: string,"member_id"?: string,"reported_at"?: string | null,"room_id"?: string,"spot_id"?: string,"transfer_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "spot_participants_member_id_room_id_fkey"
+      columns: ["member_id","room_id"]
+isOneToOne: false
+      referencedRelation: "room_members"
+      referencedColumns: ["id","room_id"]
+    },{
+      foreignKeyName: "spot_participants_spot_id_fkey"
+      columns: ["spot_id"]
+isOneToOne: false
+      referencedRelation: "spot_settles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "spot_participants_transfer_id_fkey"
+      columns: ["transfer_id"]
+isOneToOne: false
+      referencedRelation: "transfers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"spot_settles": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"payer_member_id": string,"room_id": string,"schedule_id": string,"sent_at": string | null,"token": string,"_spot_payload": Json | null
+                  }
+                  ComputedFields: "_spot_payload"
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id"?: string,"payer_member_id": string,"room_id": string,"schedule_id": string,"sent_at"?: string | null,"token": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"payer_member_id"?: string,"room_id"?: string,"schedule_id"?: string,"sent_at"?: string | null,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "spot_settles_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "spot_settles_payer_member_id_room_id_fkey"
+      columns: ["payer_member_id","room_id"]
+isOneToOne: false
+      referencedRelation: "room_members"
+      referencedColumns: ["id","room_id"]
+    },{
+      foreignKeyName: "spot_settles_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "spot_settles_schedule_id_room_id_fkey"
+      columns: ["schedule_id","room_id"]
+isOneToOne: false
+      referencedRelation: "schedule_items"
+      referencedColumns: ["id","room_id"]
+    }
+                  ]
                 },"transfers": {
                   Row: {
                     "amount_krw": number,"confirmed_at": string | null,"created_at": string,"from_member_id": string,"id": string,"recorded_by": string | null,"room_id": string,"to_member_id": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
@@ -746,6 +842,15 @@ isOneToOne: false
 "_room_user_ids":
 { Args: { "p_except": string,"p_room_id": string }; Returns: (string)[]
                            },
+"_spot_payload":
+{ Args: { "p_spot": Omit<Database["public"]['Tables']["spot_settles"]['Row'], Database["public"]['Tables']["spot_settles"]['ComputedFields']> }; Returns: Json
+                           },
+"_spot_qr_limit":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_spot_share":
+{ Args: { "p_spot_id": string }; Returns: number
+                           },
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
                            },
@@ -763,6 +868,9 @@ isOneToOne: false
                            },
 "cancel_transfer":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"confirm_spot_transfer":
+{ Args: { "p_confirmed": boolean,"p_member_id": string,"p_spot_id": string }; Returns: undefined
                            },
 "confirm_transfer":
 { Args: { "p_id": string }; Returns: undefined
@@ -829,6 +937,9 @@ isOneToOne: false
 "new_invite_token":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"open_spot_settle":
+{ Args: { "p_schedule_id": string }; Returns: Json
+                           },
 "preview_invite":
 { Args: { "p_token": string }; Returns: Json
                            },
@@ -855,6 +966,9 @@ isOneToOne: false
               "fx_pending_count": number,"joined_at": string,"kind": string,"left_at": string,"member_id": string,"net": number,"owed": number,"paid": number,"representative_member_id": string
             }[]
                            },
+"room_spot_settles":
+{ Args: { "p_room_id": string }; Returns: Json[]
+                           },
 "rotate_invite":
 { Args: { "p_room_id": string }; Returns: string
                            },
@@ -866,6 +980,9 @@ isOneToOne: false
                            },
 "save_trip_budget":
 { Args: { "p_alloc": Json,"p_alloc_mode": string,"p_room_id": string,"p_total_krw": number }; Returns: undefined
+                           },
+"send_spot_settle":
+{ Args: { "p_expense_ids": (string)[],"p_member_ids": (string)[],"p_spot_id": string }; Returns: Json
                            },
 "set_expense_meta":
 { Args: { "p_expense_id": string,"p_flags"?: (string)[],"p_schedule_id"?: string }; Returns: undefined
@@ -881,6 +998,15 @@ isOneToOne: false
                            },
 "set_schedule_hidden":
 { Args: { "p_hidden": boolean,"p_schedule_id": string }; Returns: undefined
+                           },
+"spot_join":
+{ Args: { "p_name": string,"p_token": string }; Returns: Json
+                           },
+"spot_public_view":
+{ Args: { "p_member_id"?: string,"p_token": string }; Returns: Json
+                           },
+"spot_report":
+{ Args: { "p_member_id": string,"p_token": string }; Returns: Json
                            },
 "unlink_booking":
 { Args: { "p_room_id": string }; Returns: undefined

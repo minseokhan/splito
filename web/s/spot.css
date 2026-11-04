@@ -1,0 +1,88 @@
+/* 이 자리 정산 공개 화면. 토큰은 docs/UI_GUIDE.md, 수치는 프로토타입 실측. */
+body.spot {
+  background: #F6F8FA;
+  color: #0E1B3D;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.spot main { max-width: 480px; padding: 8px 20px 40px; }
+
+.bar { display: flex; justify-content: center; padding: 10px 0 8px; }
+.lock {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 14px;
+  border-radius: 999px; background: #E9EDF2; color: #535764; font-size: 13px;
+}
+.lock::before { content: "🔒"; font-size: 11px; }
+
+.brand { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.brand span { font-size: 15px; font-weight: 600; color: #1D3C8F; }
+
+.state { color: #6B7080; font-size: 14px; }
+.state.error { color: #C4320A; }
+
+.head { margin-bottom: 16px; }
+.spot h1 { font-size: 24px; font-weight: 600; line-height: 1.4; margin: 0 0 6px; color: #0E1B3D; white-space: pre-line; }
+.spot .sub { color: #535764; font-size: 15px; margin: 0; }
+
+.panel { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; }
+.row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.tile {
+  width: 40px; height: 40px; border-radius: 999px; background: #E8EEF8; color: #1D3C8F;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.who { display: flex; flex-direction: column; min-width: 0; }
+.who strong { font-size: 15px; font-weight: 600; }
+.who .sub { font-size: 12px; color: #6B7080; }
+
+.panel dl { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.panel dl > div { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.panel dt { color: #6B7080; }
+.panel dd { margin: 0; font-weight: 600; }
+.panel dd .krw { color: #A0A4AE; font-weight: 500; margin-left: 4px; }
+.panel hr { border: 0; border-top: 1px solid #F0F3F7; margin: 14px 0; }
+.mine { display: flex; justify-content: space-between; align-items: baseline; }
+.mine span { font-size: 15px; font-weight: 600; }
+.mine strong { font-size: 24px; font-weight: 600; }
+
+.avatars { display: inline-flex; vertical-align: middle; margin-right: 6px; }
+.avatars i {
+  width: 26px; height: 26px; border-radius: 999px; background: #E8EEF8; color: #1D3C8F;
+  font-size: 11px; font-weight: 600; font-style: normal;
+  display: flex; align-items: center; justify-content: center; border: 2px solid #fff;
+}
+.avatars i + i { margin-left: -6px; }
+
+.label { display: block; font-size: 13px; font-weight: 600; color: #535764; margin-bottom: 8px; }
+#name {
+  width: 100%; height: 54px; border-radius: 14px; border: 1.5px solid #E4E7EC; padding: 0 16px;
+  font: 600 17px inherit; color: #0E1B3D; background: #fff; outline: none; margin-bottom: 8px;
+}
+#name:focus { border-color: #1D3C8F; box-shadow: 0 0 0 4px rgba(29, 60, 143, .16); }
+
+.pay { display: flex; align-items: center; gap: 12px; padding: 16px 18px; }
+.pay > div { flex: 1; min-width: 0; }
+.pay .sub { font-size: 12px; color: #6B7080; }
+.pay strong { font-size: 16px; font-weight: 600; display: block; }
+.ghost {
+  height: 34px; padding: 0 12px; border: 0; border-radius: 10px; background: #F0F3F7;
+  font: 600 13px inherit; color: #0E1B3D; flex-shrink: 0;
+}
+.app { display: flex; flex-direction: column; gap: 4px; }
+
+.check {
+  width: 52px; height: 52px; border-radius: 999px; background: #E3F8F2; color: #0B7D6C;
+  display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 10px;
+}
+
+.spot .btn {
+  display: block; width: 100%; height: 56px; border: 0; border-radius: 16px;
+  background: #0E1B3D; color: #fff; font: 600 17px inherit;
+}
+.spot .btn:disabled { background: #E4E7EC; color: #A0A4AE; }
+.spot .btn[hidden] { display: none; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+  background: rgba(14, 27, 61, .92); color: #fff; font-size: 14px;
+  padding: 10px 16px; border-radius: 10px; margin: 0; max-width: calc(100% - 40px);
+}
+.toast[hidden] { display: none; }

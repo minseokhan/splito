@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>이 자리 정산 · 스플리토</title>
+  <link rel="stylesheet" href="/s/spot.css">
+  <script src="/s/spot.js" defer></script>
+</head>
+<body class="spot">
+  <div class="bar"><span class="lock" id="addr"></span></div>
+
+  <main id="main" aria-busy="true">
+    <div class="brand">
+      <img src="/s/splito-mark.svg" alt="" width="26" height="26">
+      <span>Splito</span>
+    </div>
+
+    <p class="state" id="state">불러오는 중…</p>
+
+    <!-- 아래는 전부 불러온 뒤에 보인다 -->
+    <div id="body" hidden>
+      <div class="head">
+        <h1 id="title"></h1>
+        <p class="sub" id="lead"></p>
+      </div>
+
+      <section class="panel">
+        <div class="row-top">
+          <span class="tile" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M6 3v8a2 2 0 0 0 4 0V3M8 11v10M18 3c-1.5 2-2 4-2 6s.5 3 2 3v9"></path>
+            </svg>
+          </span>
+          <span class="who">
+            <strong id="merchant"></strong>
+            <span class="sub" id="when"></span>
+          </span>
+        </div>
+        <dl>
+          <div><dt>전체 금액</dt><dd id="total"></dd></div>
+          <div><dt>함께한 사람</dt><dd id="people"></dd></div>
+        </dl>
+        <hr>
+        <div class="mine"><span>내 몫</span><strong id="share"></strong></div>
+      </section>
+
+      <!-- 참여 -->
+      <section id="joinBox" hidden>
+        <label class="label" for="name">이름</label>
+        <input id="name" type="text" maxlength="12" autocomplete="name" enterkeyhint="done"
+               placeholder="함께한 사람들이 알아볼 이름">
+        <p class="sub">이 자리 정산에만 참여해요. 여행 장부는 보이지 않아요.</p>
+      </section>
+
+      <!-- 송금 안내 -->
+      <section id="payBox" class="panel pay" hidden>
+        <div>
+          <p class="sub" id="accountFor"></p>
+          <strong id="account"></strong>
+        </div>
+        <button type="button" id="copy" class="ghost">복사</button>
+      </section>
+
+      <!-- 완료 -->
+      <section id="doneBox" class="panel app" hidden>
+        <strong>여행 경비, 스플리토로 나눠 보세요</strong>
+        <p class="sub">영수증 한 장이면 품목까지 나눠서 정산돼요.</p>
+      </section>
+
+      <button type="button" id="cta" class="btn"></button>
+    </div>
+  </main>
+
+  <p class="toast" id="toast" role="status" hidden></p>
+</body>
+</html>

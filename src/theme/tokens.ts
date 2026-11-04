@@ -13,7 +13,8 @@ export const colors = {
   danger: { DEFAULT: '#D92D20', soft: '#FDA29B', text: '#C4320A' },
   success: { DEFAULT: '#0B7D6C', bg: '#E3F8F2', badge: '#DDF8F1', icon: '#7CF0D8' },
   // accent·bar는 내 통계 예산 카드 전용(오늘 남은 금액 숫자 / 진행 바).
-  warning: { DEFAULT: '#A35A00', bg: '#FFF4D6', badge: '#FFF1CC', banner: '#FFF8E1', line: '#FFD873', deep: '#5A3A00', accent: '#C98A00', bar: '#F5B400' },
+  // spot·spot-text는 '이 자리 정산' 상태 줄 전용. 핸드오프 토큰에 없고 프로토타입 실측값이다.
+  warning: { DEFAULT: '#A35A00', bg: '#FFF4D6', badge: '#FFF1CC', banner: '#FFF8E1', line: '#FFD873', deep: '#5A3A00', accent: '#C98A00', bar: '#F5B400', spot: '#FFF6D9', 'spot-text': '#7A4B00' },
   // 외화 금액은 현지 통화를 크게 local, 원화를 작게 ink-300으로 쓴다.
   local: '#1D3C8F',
   tagline: '#4E6378',

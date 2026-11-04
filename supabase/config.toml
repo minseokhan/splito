@@ -396,6 +396,10 @@ deno_version = 2
 [functions.push]
 verify_jwt = false
 
+# QR을 찍은 사람은 계정이 없다. 접근 권한은 토큰 하나로만 판정한다(handler.ts).
+[functions.spot]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

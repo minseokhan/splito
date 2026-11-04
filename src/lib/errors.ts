@@ -31,6 +31,13 @@ const MESSAGES = {
   ACCOUNT_HAS_BALANCE: { message: '정산 중인 여행이 있어요', action: '방 목록' },
   ROOM_DELETED: { message: '삭제된 여행이에요', action: '목록으로 이동' },
   ROOM_NOT_SETTLED: { message: '정산을 마친 뒤 여행을 지울 수 있어요', action: '정산 화면' },
+  // 이 자리 정산
+  NO_EXPENSE: { message: '이 일정에 나눌 지출이 없어요', action: '지출 먼저 올리기' },
+  SPOT_TOO_FEW: { message: '함께한 사람을 골라 주세요', action: '2명 이상 선택' },
+  SPOT_MIXED_PAYER: { message: '결제한 사람이 달라 따로 정산해요', action: '한 사람 결제분만 선택' },
+  SPOT_LOCKED: { message: '송금을 확인한 사람은 뺄 수 없어요', action: '확인 취소 후 수정' },
+  SPOT_FULL: { message: '참여 인원이 가득 찼어요' },
+  SPOT_GONE: { message: '이 정산은 끝났어요' },
   AUTH_EXPIRED: { message: '다시 로그인해 주세요', action: '작성 중 내용 유지 → 로그인 → 원래 화면' },
   LOGIN_CANCELLED: { message: '로그인이 취소됐어요', action: '다시 시도' },
   STT_UNAVAILABLE: { message: '음성 인식을 쓸 수 없어요', action: '직접 입력' },
