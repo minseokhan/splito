@@ -58,13 +58,23 @@ describe('ItemBox 쪼개기·삭제', () => {
     expect(onSplit).toHaveBeenCalled();
   });
 
-  it('삭제 X는 박스를 한 번 눌러야 뜬다', async () => {
+  it('1개짜리 품목에는 쪼개기를 띄우지 않는다', async () => {
+    await render(<ItemBox {...base} quantity={1} people={people} onSplit={jest.fn()} />);
+
+    expect(screen.queryByRole('button', { name: '쪼개기' })).toBeNull();
+  });
+
+  it('삭제 X는 onRemove가 있으면 처음부터 보인다', async () => {
     const onRemove = jest.fn();
     await render(<ItemBox {...base} people={people} onRemove={onRemove} />);
 
-    expect(screen.queryByRole('button', { name: '이 품목 삭제' })).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: '타코야키 박스' }));
     await fireEvent.press(screen.getByRole('button', { name: '이 품목 삭제' }));
     expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('onRemove가 없으면 삭제 X도 없다', async () => {
+    await render(<ItemBox {...base} people={people} />);
+
+    expect(screen.queryByRole('button', { name: '이 품목 삭제' })).toBeNull();
   });
 });

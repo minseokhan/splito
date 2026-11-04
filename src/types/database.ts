@@ -722,6 +722,9 @@ isOneToOne: false
 "_member_user_id":
 { Args: { "p_member_id": string }; Returns: string
                            },
+"_my_room_spent":
+{ Args: { "p_room_id": string }; Returns: number
+                           },
 "_payout_key":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -776,6 +779,9 @@ isOneToOne: false
 "delete_push_token":
 { Args: { "p_token": string }; Returns: undefined
                            },
+"delete_room":
+{ Args: { "p_room_id": string }; Returns: undefined
+                           },
 "delete_schedule_item":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -817,7 +823,7 @@ isOneToOne: false
                            },
 "my_rooms":
 { Args: Record<PropertyKey, never>; Returns: {
-              "base_currency": string,"end_date": string,"has_booking": boolean,"member_count": number,"my_net": number,"name": string,"room_id": string,"start_date": string,"status": string,"total_krw": number
+              "base_currency": string,"end_date": string,"has_booking": boolean,"member_count": number,"my_net": number,"my_spent": number,"name": string,"room_id": string,"start_date": string,"status": string,"total_krw": number
             }[]
                            },
 "new_invite_token":

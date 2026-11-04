@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { DateSheet } from '@/components/DateSheet';
-import { ItemBox } from '@/components/ItemBox';
+import { EDITABLE_UNDERLINE, ItemBox } from '@/components/ItemBox';
 import { Icon } from '@/components/Icon';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { NavBar } from '@/components/NavBar';
@@ -50,7 +50,7 @@ import {
   type ExpenseDraft,
 } from '@/lib/expenseForm';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
-import { needsSettlement } from '@/lib/roomList';
+import { isActiveTrip } from '@/lib/roomList';
 import { dayIndexOfDate } from '@/lib/schedule';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
@@ -111,7 +111,7 @@ export default function ReviewExpense() {
   // 올릴 곳 바꾸기: 홈에서 바로 올리면 어느 여행인지 고를 수 있어야 한다. 정산 끝난 여행은 뺀다.
   const { data: myRooms } = useMyRooms();
   // 홈 카드와 같은 집합(정산 중인 여행)만 고를 수 있다. 지금 방은 기준에 안 맞아도 목록에 남긴다.
-  const pickableRooms = (myRooms ?? []).filter((r) => needsSettlement(r) || r.roomId === roomId);
+  const pickableRooms = (myRooms ?? []).filter((r) => isActiveTrip(r, kstToday(new Date())) || r.roomId === roomId);
   const [roomOpen, setRoomOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   // 박스는 펼친 채로 시작한다. 체크를 누른 박스만 접는다.
@@ -363,6 +363,7 @@ export default function ReviewExpense() {
                 placeholder="가맹점"
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="가맹점"
+                style={EDITABLE_UNDERLINE}
                 className="flex-shrink p-0 font-semibold text-[17px] text-ink"
               />
               {draft.needsReview && (

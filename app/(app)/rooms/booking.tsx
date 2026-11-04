@@ -164,7 +164,7 @@ export default function BookingLookup() {
               <Text className="text-[13px] text-ink-400">보기 ›</Text>
             </Pressable>
           </Pressable>
-          <Text className="pl-[34px] text-xs text-ink-400">
+          <Text className="pl-[34px] text-[13px] leading-[19px] text-ink-400">
             예약 조회를 위해 예약번호와 예약자 이름을 하나투어에 제공해요
           </Text>
         </View>

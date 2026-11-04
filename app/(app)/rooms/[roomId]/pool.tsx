@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Coins, NavArrowDown, NavArrowUp, Wallet } from 'iconoir-react-native';
+import { Coins, Settings, Wallet } from 'iconoir-react-native';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -11,6 +11,7 @@ import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { Icon } from '@/components/Icon';
 import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
+import { BottomSheet } from '@/components/BottomSheet';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useFeed } from '@/hooks/useFeed';
@@ -55,12 +56,16 @@ function PoolBalance({
   spent,
   paid,
   sameAmount,
+  settingsOpen,
+  onToggleSettings,
 }: {
   remaining: number;
   collected: number;
   spent: number;
   paid: number[];
   sameAmount: boolean;
+  settingsOpen: boolean;
+  onToggleSettings: () => void;
 }) {
   const pct = collected > 0 ? Math.max(0, Math.min(100, Math.round((remaining / collected) * 100))) : 0;
   // 시안의 '동행 모두 같은 금액'은 실제로 금액이 같을 때만 사실이다.
@@ -72,8 +77,18 @@ function PoolBalance({
           <Icon as={Wallet} size={18} color={colors.success.DEFAULT} />
           <Text className="font-semibold text-sm text-success">공금 잔액</Text>
         </View>
-        <Text className="text-xs text-success">{caption}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: settingsOpen }}
+          onPress={onToggleSettings}
+          hitSlop={6}
+          className="h-[30px] flex-row items-center gap-1 rounded-full bg-white px-2.5 active:opacity-70"
+        >
+          <Icon as={Settings} size={14} color={colors.success.DEFAULT} />
+          <Text className="font-semibold text-[13px] text-success">공금 설정</Text>
+        </Pressable>
       </View>
+      <Text className="-mt-1.5 text-xs text-success">{caption}</Text>
       <Text
         style={{ fontVariant: ['tabular-nums'], color: remaining < 0 ? undefined : MINT_DEEP }}
         className={`font-semibold text-[26px] ${remaining < 0 ? 'text-danger' : ''}`}
@@ -205,7 +220,6 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
   const spent = collected - remaining;
   const paid = deposits.map((d) => d.amountKrw).filter((a) => a > 0);
   const sameAmount = paid.length > 1 && paid.every((a) => a === paid[0]);
-  const showForm = !enabled || settingsOpen;
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const colorIndex = new Map(members.map((m, i) => [m.id, i]));
 
@@ -216,6 +230,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
       if (enabled) {
         await upsert.mutateAsync({ roomId, rows: active.map((m) => ({ memberId: m.id, amountKrw: toKrw(amounts[m.id] ?? '') })) });
       }
+      setSettingsOpen(false);
     } catch (e) {
       showError(e);
     }
@@ -233,37 +248,8 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
   const turnOff = () =>
     setPool.mutate({ roomId, enabled: false, ownerMemberId: null, cardLast4: [] }, { onError: showError });
 
-  return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
-      <NavBar title="공금 지갑" align="center" />
-      <ScrollView
-        contentContainerClassName="gap-[22px] px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: showForm ? 140 : 40 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {enabled && (
-          <PoolBalance remaining={remaining} collected={collected} spent={spent} paid={paid} sameAmount={sameAmount} />
-        )}
-
-        {enabled && (paid.length > 0 || poolSpends.length > 0) && (
-          <PoolHistory spends={poolSpends} collected={collected} paid={paid} sameAmount={sameAmount} />
-        )}
-
-        {enabled && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: settingsOpen }}
-            onPress={() => setSettingsOpen((v) => !v)}
-            className="flex-row items-center justify-between rounded-card bg-white px-5 py-4"
-            style={CARD_SHADOW}
-          >
-            <Text className="font-semibold text-base text-ink">공금 설정</Text>
-            <Icon as={settingsOpen ? NavArrowUp : NavArrowDown} size={20} color={colors.ink[400]} />
-          </Pressable>
-        )}
-
-        {showForm && (
-          <>
+  const form = (
+    <>
         <View className="gap-2.5">
           <Text className="px-1 font-semibold text-base text-ink">통장 주인</Text>
           <View className="flex-row flex-wrap gap-2">
@@ -273,7 +259,9 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                 accessibilityRole="radio"
                 accessibilityState={{ selected: chosenOwner === u.id }}
                 onPress={() => setOwner(u.id)}
-                className={`h-11 items-center justify-center rounded-chip px-4 ${chosenOwner === u.id ? 'bg-primary' : 'bg-white'}`}
+                className={`h-11 items-center justify-center rounded-chip border-[1.5px] px-4 ${
+                  chosenOwner === u.id ? 'border-primary bg-primary' : 'border-line bg-white'
+                }`}
               >
                 <Text className={`font-semibold text-base ${chosenOwner === u.id ? 'text-primary-on' : 'text-ink'}`}>
                   {u.userId === myId ? `${u.name}(나)` : u.name}
@@ -341,7 +329,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                     placeholder="0"
                     placeholderTextColor={colors.ink[300]}
                     style={{ fontVariant: ['tabular-nums'] }}
-                    className="h-11 w-36 rounded-chip bg-app px-3 text-right font-semibold text-base text-ink focus:bg-sky-50"
+                    className="h-11 w-[104px] rounded-chip bg-app px-2.5 text-right font-semibold text-[16px] text-ink focus:bg-sky-50"
                   />
                 </View>
               ))}
@@ -349,15 +337,55 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
           </View>
         )}
 
-        {enabled && <PrimaryButton title="공금 끄기" variant="danger" disabled={busy} onPress={turnOff} />}
-          </>
+        {enabled && <PrimaryButton title="공금 끄기" variant="danger" size="md" disabled={busy} onPress={turnOff} />}
+    </>
+  );
+
+  return (
+    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+      <NavBar title="공금 지갑" align="center" />
+      <ScrollView
+        contentContainerClassName="gap-[22px] px-5 pt-2"
+        contentContainerStyle={{ paddingBottom: enabled ? 40 : 140 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {enabled && (
+          <PoolBalance
+            remaining={remaining}
+            collected={collected}
+            spent={spent}
+            paid={paid}
+            sameAmount={sameAmount}
+            settingsOpen={settingsOpen}
+            onToggleSettings={() => setSettingsOpen((v) => !v)}
+          />
         )}
+
+        {enabled && (paid.length > 0 || poolSpends.length > 0) && (
+          <PoolHistory spends={poolSpends} collected={collected} paid={paid} sameAmount={sameAmount} />
+        )}
+
+        {/* 공금이 꺼져 있을 때는 이 화면 자체가 '공금 켜기' 설정 화면이다 */}
+        {!enabled && form}
       </ScrollView>
-      {showForm && (
+      {!enabled && (
         <BottomBar bg={colors.app} fade>
-          <PrimaryButton title={enabled ? '저장' : '공금 켜기'} disabled={busy || !chosenOwner} onPress={onSave} />
+          <PrimaryButton title="공금 켜기" disabled={busy || !chosenOwner} onPress={onSave} />
         </BottomBar>
       )}
+
+      {/* 켜진 뒤 설정 변경은 시안 16대로 아래에서 올라오는 시트로 한다 */}
+      <BottomSheet visible={enabled && settingsOpen} onClose={() => setSettingsOpen(false)} title="공금 설정">
+        <ScrollView
+          style={{ maxHeight: 420 }}
+          contentContainerClassName="gap-[22px] pb-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {form}
+        </ScrollView>
+        <PrimaryButton title="저장" variant="dark" disabled={busy || !chosenOwner} onPress={onSave} />
+      </BottomSheet>
     </SafeAreaView>
   );
 }

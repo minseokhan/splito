@@ -30,6 +30,7 @@ const MESSAGES = {
   POOL_OWNER: LEAVE_BLOCKED,
   ACCOUNT_HAS_BALANCE: { message: '정산 중인 여행이 있어요', action: '방 목록' },
   ROOM_DELETED: { message: '삭제된 여행이에요', action: '목록으로 이동' },
+  ROOM_NOT_SETTLED: { message: '정산을 마친 뒤 여행을 지울 수 있어요', action: '정산 화면' },
   AUTH_EXPIRED: { message: '다시 로그인해 주세요', action: '작성 중 내용 유지 → 로그인 → 원래 화면' },
   LOGIN_CANCELLED: { message: '로그인이 취소됐어요', action: '다시 시도' },
   STT_UNAVAILABLE: { message: '음성 인식을 쓸 수 없어요', action: '직접 입력' },

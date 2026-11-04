@@ -37,7 +37,7 @@ const FOCUS_RING = { boxShadow: '0 0 0 4px rgba(94,196,255,.18)' };
 const prettyDate = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${Number(v.slice(5, 7))}월 ${Number(v.slice(8, 10))}일` : v);
 
 type Props = {
-  heading: string;
+  heading?: string; // 없으면 제목 줄을 그리지 않는다(여행 방 설정은 NavBar 제목만 쓴다)
   submitLabel: string;
   defaultValues: RoomFormValues;
   onSubmit: (v: RoomFormValues) => Promise<void>;
@@ -77,7 +77,7 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
   return (
     <>
       <ScrollView contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: 140, gap: 28 }} keyboardShouldPersistTaps="handled">
-        <Text className="font-semibold text-2xl text-ink">{heading}</Text>
+        {!!heading && <Text className="font-semibold text-2xl text-ink">{heading}</Text>}
 
         <View className="gap-2">
           <Text className="font-semibold text-[13px] text-ink-500">여행 이름</Text>

@@ -34,6 +34,14 @@ export function useUpdateRoom(id: RoomId) {
   });
 }
 
+export function useDeleteRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteRoom,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+  });
+}
+
 export function useJoinRoom() {
   const qc = useQueryClient();
   return useMutation({

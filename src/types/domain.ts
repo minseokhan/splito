@@ -62,6 +62,8 @@ export type MyRoom = {
   status: RoomStatus;
   memberCount: number;
   myNet: Krw;
+  /** 이 여행에서 내 몫으로 잡힌 금액 합계(my_expense_shares와 같은 규칙). 순잔액과 다른 값이다. */
+  mySpent: Krw;
   totalKrw: Krw;
   /** 패키지 예약이 붙은 방(홈 카드 '패키지' 배지). */
   hasBooking: boolean;

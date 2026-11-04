@@ -6,7 +6,7 @@ import type { MyRoom } from '@/types/domain';
 
 import { FlightIcon } from './FlightIcon';
 import { Icon } from './Icon';
-import { formatKrw, netSign } from './Money';
+import { formatKrw } from './Money';
 import { StatusChip } from './StatusChip';
 
 // 'YYYY-MM-DD' → 'M.D'
@@ -23,9 +23,8 @@ type Props = { room: MyRoom; featured?: boolean; onPress: () => void; onPressAmo
 export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
   const period = roomPeriod(room);
   const flag = currencyFlag(room.baseCurrency);
-  const net = room.myNet;
-  const label = net < 0 ? '내가 보낼 돈' : net > 0 ? '내가 받을 돈' : '정산할 돈';
-  const amountCls = net < 0 ? 'text-danger' : net > 0 ? 'text-primary-text' : 'text-ink-alt';
+  // 카드가 보여주는 건 순잔액이 아니라 '내 몫' 합계다(서버 my_rooms.my_spent).
+  const spent = room.mySpent;
   return (
     <Pressable
       accessibilityRole="button"
@@ -62,14 +61,13 @@ export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label} ${formatKrw(Math.abs(net))}`}
+        accessibilityLabel={`내 지출 금액 ${formatKrw(spent)}`}
         onPress={onPressAmount}
         className="flex-row items-center justify-between rounded-[18px] bg-white p-3.5"
       >
-        <Text className="text-[13px] text-ink-500">{label}</Text>
-        <Text style={{ fontVariant: ['tabular-nums'] }} className={`font-semibold text-[18px] ${amountCls}`}>
-          {net > 0 ? netSign(net) : ''}
-          {formatKrw(Math.abs(net))}
+        <Text className="text-[13px] text-ink-500">내 지출 금액</Text>
+        <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[18px] text-ink-alt">
+          {formatKrw(spent)}
         </Text>
       </Pressable>
     </Pressable>

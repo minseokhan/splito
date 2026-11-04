@@ -132,6 +132,10 @@ export const api = {
     );
   },
 
+  async deleteRoom(roomId: RoomId): Promise<void> {
+    unwrap(await supabase.rpc('delete_room', { p_room_id: roomId }));
+  },
+
   async previewInvite(token: string): Promise<InvitePreview> {
     const r = unwrap(await supabase.rpc('preview_invite', { p_token: token })) as {
       room_id: string;
@@ -164,6 +168,7 @@ export const api = {
       status: r.status as RoomStatus,
       memberCount: r.member_count,
       myNet: r.my_net,
+      mySpent: r.my_spent,
       totalKrw: r.total_krw,
       hasBooking: r.has_booking,
     }));

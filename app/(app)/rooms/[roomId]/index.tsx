@@ -49,6 +49,7 @@ import { useRoomEvents } from '@/hooks/useRoomEvents';
 import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
 import { eventText, mergeActivity } from '@/lib/activity';
 import { CATEGORIES, categoryLabel, type CategoryCode } from '@/lib/category';
+import { currencyFlag } from '@/lib/flag';
 import { formatForeign } from '@/lib/money';
 import { buildScheduleDays } from '@/lib/schedule';
 import { buildTripDays, filterByCategory, filterSections, tripDayText } from '@/lib/tripDays';
@@ -202,6 +203,7 @@ export default function RoomHome() {
   // 순잔액 부호: 음수면 내가 보낼 돈(홈 카드와 같은 규칙).
   const net = room.myNet;
   const netLabel = net < 0 ? '내가 보낼 돈' : net > 0 ? '내가 받을 돈' : '정산할 돈';
+  const flag = currencyFlag(room.baseCurrency);
   // 메뉴는 누른 요소 아래로 8pt 띄운다. 오른쪽 정렬은 화면 폭에서 되짚는다.
   const rightOf = (x: number, w: number) => Math.max(16, Dimensions.get('window').width - (x + w));
 
@@ -219,7 +221,8 @@ export default function RoomHome() {
       </Pressable>
       <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
         <View className="h-10 w-10 items-center justify-center rounded-chip border-[1.5px] border-line bg-white">
-          <FlightIcon size={22} />
+          {/* 홈 카드와 같은 규칙: 기본 통화로 나라가 특정되면 국기, 아니면 비행기 */}
+          {flag ? <Text className="text-[22px]">{flag}</Text> : <FlightIcon size={22} />}
         </View>
         <Text className="min-w-0 flex-1 font-semibold text-[17px] text-ink" numberOfLines={1}>
           {room.name}
@@ -228,7 +231,7 @@ export default function RoomHome() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="여행 방 설정"
-        onPress={() => router.push({ pathname: '/rooms/[roomId]/settings', params: { roomId } })}
+        onPress={() => go('/rooms/[roomId]/edit')}
         hitSlop={4}
         className="p-2"
       >
@@ -268,11 +271,11 @@ export default function RoomHome() {
       </View>
       <View>
         <Text className="text-sm text-ink-400">총 지출</Text>
-        <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[30px] leading-[39px] text-ink">
+        <Text style={{ fontVariant: ['tabular-nums'], letterSpacing: -1 }} className="font-semibold text-[30px] leading-[39px] text-ink">
           {formatKrw(room.totalKrw)}
         </Text>
       </View>
-      <View className="flex-row items-center gap-3 rounded-button bg-sky-100 px-3.5 py-3">
+      <View className="-mt-1.5 flex-row items-center gap-3 rounded-button bg-sky-100 px-3.5 py-3.5">
         <Icon as={Coins} size={22} color={colors.primary.text} />
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] text-primary-text">{netLabel}</Text>
@@ -284,7 +287,7 @@ export default function RoomHome() {
           accessibilityRole="button"
           onPress={() => (together ? go('/rooms/[roomId]/settle') : setInviteOpen(true))}
           // 시안 실측 라운드 10 — 토큰에 없다.
-          className="h-9 justify-center rounded-[10px] bg-ink px-3.5 active:opacity-80"
+          className="h-10 justify-center rounded-[10px] bg-ink px-4 active:opacity-80"
         >
           <Text className="font-semibold text-sm text-primary-on">정산 보기</Text>
         </Pressable>
@@ -314,7 +317,7 @@ export default function RoomHome() {
     >
       {summary}
       {(offline || !together || hasDraft || pending.length > 0) && (
-        <View className="gap-2 px-5 pb-4">
+        <View className="-mt-2.5 gap-2 px-5 pb-3.5">
           {offline && (
             <View className="rounded-input border border-warning-line bg-warning-banner px-4 py-3">
               <Text className="text-[13px] text-warning-deep">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
@@ -338,7 +341,15 @@ export default function RoomHome() {
         </View>
       )}
       <View className="h-px bg-card-line" />
-      <View className="min-h-[28px] flex-row items-center justify-between gap-3 px-5 pb-2 pt-3.5">
+    </View>
+  );
+
+  // 지출 내역 | 카테고리 줄은 목록과 함께 스크롤된다(고정 머리는 요약까지).
+  const listTop = (
+      <View
+        className="min-h-[28px] flex-row items-center justify-between gap-3 px-5 pb-2 pt-3.5"
+        style={{ backgroundColor: showSchedule ? colors.app : '#FFFFFF' }}
+      >
         {/* 일정표 토글은 패키지 연동 방에만 둔다. 아닌 방은 지출 내역뿐이다 */}
         {linked ? (
           <View className="flex-row items-center gap-2.5">
@@ -347,8 +358,12 @@ export default function RoomHome() {
             <ViewTab label="지출 내역" icon={Coins} on={!showSchedule} onPress={() => setView('exp')} />
           </View>
         ) : (
-          <View />
+          <View className="flex-row items-center gap-1">
+            <Icon as={Coins} size={15} color={colors.ink.DEFAULT} />
+            <Text className="font-semibold text-sm text-ink">지출 내역</Text>
+          </View>
         )}
+        {!showSchedule && (
         <Pressable
           ref={catRef}
           accessibilityRole="button"
@@ -360,8 +375,8 @@ export default function RoomHome() {
           <Text className="font-semibold text-sm text-ink">{category ? categoryLabel(category) : '카테고리'}</Text>
           <Icon as={catAt ? NavArrowUp : NavArrowDown} size={16} color={colors.ink.DEFAULT} />
         </Pressable>
+        )}
       </View>
-    </View>
   );
 
   return (
@@ -371,7 +386,10 @@ export default function RoomHome() {
       <FlatList
         data={showSchedule ? [] : visibleSections}
         keyExtractor={(s) => s.key}
+        style={{ backgroundColor: showSchedule ? colors.app : '#FFFFFF' }}
         contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
+        ListHeaderComponent={listTop}
+        ItemSeparatorComponent={() => <View className="h-4" />}
         scrollEventThrottle={16}
         onScroll={(e) => {
           const next = e.nativeEvent.contentOffset.y > 0;
@@ -541,15 +559,15 @@ type ActionProps = {
   onPress: () => void;
 };
 
-// 액션 3칸 한 칸: 높이 40, 라운드 12, 테두리 1.5, 아이콘 18 + 14/600.
+// 액션 3칸 한 칸: 높이 42, 라운드 12, 테두리 1.5, 아이콘 19 + 14/600.
 function Action({ label, icon, iconColor, onPress }: ActionProps) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="h-10 flex-1 flex-row items-center justify-center gap-1.5 rounded-chip border-[1.5px] border-line active:opacity-70"
+      className="h-[42px] flex-1 flex-row items-center justify-center gap-1.5 rounded-chip border-[1.5px] border-line active:opacity-70"
     >
-      <Icon as={icon} size={18} color={iconColor} />
+      <Icon as={icon} size={19} color={iconColor} />
       <Text className="font-semibold text-sm text-ink">{label}</Text>
     </Pressable>
   );
@@ -581,7 +599,7 @@ function Banner({ text, onPress, warning, disabled }: BannerProps) {
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      className={`min-h-[52px] flex-row items-center gap-2 rounded-button px-4 py-3 ${
+      className={`min-h-[44px] flex-row items-center gap-2 rounded-button px-4 py-2.5 ${
         warning ? 'border border-warning-line bg-warning-banner' : 'border-[1.5px] border-line bg-white'
       }`}
     >
