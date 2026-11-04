@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(44);
+select plan(49);
 
 -- ───── fixture ─────
 -- 방 R: a(민지) · b(지훈) · c(서연). 일정 '도톤보리 자유 석식'에 b가 결제한 81,000원 지출을 붙인다.
@@ -39,6 +39,21 @@ begin
     'items', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'position', 0,
       'name_original', '품목', 'amount_original', p_amount))));
   if p_sched is not null then perform public.set_expense_meta(v_id, p_sched); end if;
+  return v_id;
+end $$;
+
+-- 결제자 혼자만 대상인 지출. save_expense가 '나만 보기'로 판정한다(20261102000000:124).
+create function pg_temp.solo_exp(l text, p_amount numeric, p_sched uuid) returns uuid language plpgsql as $$
+declare v_id uuid := gen_random_uuid();
+begin
+  perform pg_temp.as_user(l);
+  perform public.save_expense(jsonb_build_object(
+    'id', v_id, 'room_id', pg_temp.r(), 'payer_kind', 'member', 'payer_member_id', pg_temp.m(l),
+    'source', 'manual', 'merchant', '혼자 계산', 'paid_local_date', '2025-10-20', 'currency', 'KRW',
+    'scope_member_ids', jsonb_build_array(pg_temp.m(l)),
+    'items', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'position', 0,
+      'name_original', '품목', 'amount_original', p_amount))));
+  perform public.set_expense_meta(v_id, p_sched);
   return v_id;
 end $$;
 
@@ -201,6 +216,32 @@ select throws_ok(format(
   'select public.send_spot_settle(%L, array[%L]::uuid[], array[%L,%L,%L]::uuid[])',
   pg_temp.spot(), current_setting('t.e1'), pg_temp.m('a'), pg_temp.m('b'), pg_temp.q('1')),
   'P0001', 'SPOT_LOCKED', '송금을 확인한 사람은 구성에서 뺄 수 없다');
+
+-- ───── 나만 보기 지출도 나눌 수 있다 (20261104070000) ─────
+-- 혼자 계산한 지출은 save_expense가 private으로 잡는다. "내가 낸 걸 이 자리 사람들과 나눈다"가
+-- 정확히 그 상태에서 시작하므로, 대상에서 빼면 이 기능의 주 용도가 막힌다.
+
+select set_config('t.e4', pg_temp.solo_exp('b', 40000, current_setting('t.s2')::uuid)::text, true);
+select is((select visibility from public.expenses where id = current_setting('t.e4')::uuid), 'private',
+  '혼자 담은 지출은 나만 보기가 된다');
+
+select pg_temp.as_user('b');
+select set_config('t.spot2', (public.open_spot_settle(current_setting('t.s2')::uuid) ->> 'id'), true);
+select is((select count(*)::int from public.spot_expenses where spot_id = current_setting('t.spot2')::uuid), 1,
+  '나만 보기 지출이 붙은 일정도 열리고 그 지출이 선택된다');
+
+-- 남의 나만 보기 지출은 여전히 보이지 않는다.
+select pg_temp.as_user('c');
+select is(jsonb_array_length(public.open_spot_settle(current_setting('t.s2')::uuid) -> 'expenses'), 0,
+  '남의 나만 보기 지출은 시트에 뜨지 않는다');
+
+select pg_temp.as_user('b');
+select lives_ok(format(
+  'select public.send_spot_settle(%L, array[%L]::uuid[], array[%L,%L]::uuid[])',
+  current_setting('t.spot2'), current_setting('t.e4'), pg_temp.m('b'), pg_temp.m('c')),
+  '나만 보기 지출도 보낼 수 있다');
+select is((select visibility from public.expenses where id = current_setting('t.e4')::uuid), 'shared',
+  '보내면 공동으로 바뀐다 — 남이 못 보는 지출을 남이 분담하면 안 된다');
 
 select * from finish();
 rollback;

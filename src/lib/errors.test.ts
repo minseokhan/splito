@@ -25,6 +25,13 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
     ['ACCOUNT_HAS_BALANCE', '정산 중인 여행이 있어요', '방 목록'],
     ['ROOM_DELETED', '삭제된 여행이에요', '목록으로 이동'],
     ['ROOM_NOT_SETTLED', '정산을 마친 뒤 여행을 지울 수 있어요', '정산 화면'],
+    ['NO_EXPENSE', '이 일정에 나눌 지출이 없어요', '지출 먼저 올리기'],
+    ['SPOT_TOO_FEW', '함께한 사람을 골라 주세요', '2명 이상 선택'],
+    ['SPOT_MIXED_PAYER', '결제한 사람이 달라 따로 정산해요', '한 사람 결제분만 선택'],
+    ['SPOT_LOCKED', '송금을 확인한 사람은 뺄 수 없어요', '확인 취소 후 수정'],
+    // 아래 둘은 QR 공개 웹(web/s)이 Edge Function 응답으로 받는 코드다.
+    ['SPOT_FULL', '참여 인원이 가득 찼어요', undefined],
+    ['SPOT_GONE', '이 정산은 끝났어요', undefined],
     ['AUTH_EXPIRED', '다시 로그인해 주세요', '작성 중 내용 유지 → 로그인 → 원래 화면'],
     ['LOGIN_CANCELLED', '로그인이 취소됐어요', '다시 시도'],
     ['STT_UNAVAILABLE', '음성 인식을 쓸 수 없어요', '직접 입력'],
@@ -49,7 +56,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
   });
 
   it('표의 코드를 빠짐없이 다룬다', () => {
-    expect(ERROR_CODES).toHaveLength(38);
+    expect(ERROR_CODES).toHaveLength(44);
   });
 });
 
