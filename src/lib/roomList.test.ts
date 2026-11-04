@@ -8,10 +8,17 @@ const room = (over: Partial<MyRoom>): MyRoom => ({
 });
 const past = { startDate: '2026-09-13', endDate: '2026-09-13' };
 
-describe('isActiveTrip — 정산할 게 남았거나 아직 안 끝난 여행', () => {
-  it('정산 완료는 잔액·기간과 무관하게 제외', () => {
-    expect(isActiveTrip(room({ status: 'settled', myNet: -1000 }), TODAY)).toBe(false);
-    expect(isActiveTrip(room({ status: 'settled', endDate: '2099-01-01' }), TODAY)).toBe(false);
+describe('isActiveTrip — 아직 안 끝났거나 정산할 게 남은 여행', () => {
+  // 시작도 안 한 여행은 주고받을 돈이 없어 'settled'로 잡힌다. 날짜가 먼저다.
+  it('아직 안 끝난 여행은 정산 상태와 무관하게 남긴다', () => {
+    expect(isActiveTrip(room({ status: 'settled', endDate: '2099-01-01' }), TODAY)).toBe(true);
+    expect(isActiveTrip(room({ status: 'settled', startDate: '2026-11-11', endDate: '2026-11-13' }), TODAY)).toBe(true);
+    expect(isActiveTrip(room({ status: 'settled', endDate: TODAY }), TODAY)).toBe(true);
+  });
+
+  it('끝난 여행은 정산이 끝났으면 제외', () => {
+    expect(isActiveTrip(room({ status: 'settled', myNet: -1000, ...past }), TODAY)).toBe(false);
+    expect(isActiveTrip(room({ status: 'settled', ...past }), TODAY)).toBe(false);
   });
 
   it('받을 돈도 줄 돈도 대상 — 기간이 지났어도 남는다', () => {

@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(59);
+select plan(60);
 
 -- ───── fixture ─────
 -- 방 R: a(민지) · b(지훈) · c(서연). 일정 '도톤보리 자유 석식'에 b가 결제한 81,000원 지출을 붙인다.
@@ -129,6 +129,12 @@ select is((select count(*)::int from public.room_members
   '동행 목록에는 a·b·c 셋만 남는다');
 select is(public.spot_join(pg_temp.tok(), '') ->> 'error', 'INVALID_INPUT', '이름이 비면 못 들어온다');
 select is(public.spot_join('없는토큰', '아무개') ->> 'error', 'SPOT_GONE', '없는 토큰은 거절한다');
+
+-- QR 참여자는 동행 수에 들어가면 안 된다. 들어가면 'c.n >= 2' 관문을 통과해
+-- 아직 시작도 안 한 여행이 'settled'(마무리된 여행)로 내려간다.
+select pg_temp.as_user('a');
+select is((select member_count from public.my_rooms() where room_id = pg_temp.r()), 3,
+  'QR 참여자 2명은 동행 수에 세지 않는다(a·b·c만)');
 
 -- ───── 공개 화면: 계좌는 참여한 사람에게만 ─────
 
