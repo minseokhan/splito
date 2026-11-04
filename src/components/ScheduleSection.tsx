@@ -151,11 +151,12 @@ export function ScheduleSection({
                   />
                 )}
 
-                <View className="flex-row items-center justify-between gap-1.5 border-t border-muted pt-2">
+                {/* 버튼은 항상 오른쪽. justify-between은 자식이 하나만 남으면 왼쪽으로 가므로 쓰지 않는다 */}
+                <View className="flex-row items-center justify-end gap-1.5 border-t border-muted pt-2">
                   {/* 지출이 있으면 합계 문구를 쓰지 않는다 — 줄마다 금액이 이미 보인다(시안) */}
-                  <Text className={`min-w-0 flex-1 text-xs text-ink-300 ${c.expenses.length ? 'hidden' : ''}`}>
-                    연결된 지출 없음
-                  </Text>
+                  {c.expenses.length === 0 && (
+                    <Text className="min-w-0 flex-1 text-xs text-ink-300">연결된 지출 없음</Text>
+                  )}
                   <View className="flex-row gap-1.5">
                     {/* 지출이 1건 이상이고 아직 안 보냈을 때만 보여준다(명세 §1) */}
                     {c.expenses.length > 0 && !spots.has(c.item.id) && (

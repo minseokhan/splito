@@ -106,8 +106,12 @@
     people.appendChild(stack);
     people.appendChild(document.createTextNode((d.people || 0) + '명'));
     $('share').textContent = d.my_share == null ? '—' : won(d.my_share);
+    $('shareNote').textContent = joined ? '' : '참여하면 내 몫이에요';
 
-    var step = !me ? 'join' : d.reported || d.confirmed ? 'done' : 'pay';
+    // 서버가 joined로 판정한다 — 기기에 남은 id가 낡았을 수 있다(정산이 다시 만들어진 경우).
+    var joined = !!d.joined;
+    if (!joined) me = null;
+    var step = !joined ? 'join' : d.reported || d.confirmed ? 'done' : 'pay';
     $('joinBox').hidden = step !== 'join';
     $('payBox').hidden = step !== 'pay';
     $('doneBox').hidden = step !== 'done';

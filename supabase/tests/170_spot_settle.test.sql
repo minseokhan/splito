@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(49);
+select plan(53);
 
 -- ───── fixture ─────
 -- 방 R: a(민지) · b(지훈) · c(서연). 일정 '도톤보리 자유 석식'에 b가 결제한 81,000원 지출을 붙인다.
@@ -121,6 +121,12 @@ select is((select guest_name from public.room_members where id = pg_temp.q('1'))
   'QR 참여자는 이름을 가진 게스트가 된다');
 select is((select representative_member_id from public.room_members where id = pg_temp.q('1')), pg_temp.m('b'),
   'QR 참여자의 대표자는 결제자다 — 결제자가 대신 송금을 확인할 수 있어야 한다');
+-- 그 한 자리의 사람이지 동행이 아니다. 화면이 '사람 고르는 목록'에서 뺄 수 있게 표시를 남긴다.
+select is((select spot_only from public.room_members where id = pg_temp.q('1')), true,
+  'QR 참여자에는 spot_only 표시가 붙는다');
+select is((select count(*)::int from public.room_members
+           where room_id = pg_temp.r() and not spot_only and left_at is null), 3,
+  '동행 목록에는 a·b·c 셋만 남는다');
 select is(public.spot_join(pg_temp.tok(), '') ->> 'error', 'INVALID_INPUT', '이름이 비면 못 들어온다');
 select is(public.spot_join('없는토큰', '아무개') ->> 'error', 'SPOT_GONE', '없는 토큰은 거절한다');
 
@@ -128,6 +134,11 @@ select is(public.spot_join('없는토큰', '아무개') ->> 'error', 'SPOT_GONE'
 
 select is(public.spot_public_view(pg_temp.tok()) -> 'account', 'null'::jsonb,
   '참여 전에는 결제자 계좌를 주지 않는다');
+-- 참여 전에도 '내가 들어가면 얼마'를 보여줘야 한다(시안 join 단계). 그때 인원은 나를 더한 수다.
+select is((public.spot_public_view(pg_temp.tok()) ->> 'joined')::boolean, false,
+  '참여 전에는 joined가 false다');
+select isnt(public.spot_public_view(pg_temp.tok()) ->> 'my_share', null,
+  '참여 전에도 내 몫을 미리 보여준다');
 select is(public.spot_public_view(pg_temp.tok(), pg_temp.q('1')) #>> '{account,number}', '1000-1234-5678',
   '참여한 사람에게만 계좌 원문을 준다');
 select isnt((select account_revealed_at from public.spot_participants

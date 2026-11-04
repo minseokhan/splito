@@ -175,7 +175,9 @@ export default function ReviewExpense() {
     active: !m.leftAt,
     userId: m.userId,
   }));
-  const active = people.filter((p) => p.active);
+  // QR로 들어온 사람은 동행이 아니라 그 한 자리의 사람이다 — 품목 지정·대상 인원에서 뺀다.
+  const spotOnly = new Set(members.filter((m) => m.spotOnly).map((m) => m.id));
+  const active = people.filter((p) => p.active && !spotOnly.has(p.id));
   const activeIds = active.map((p) => p.id);
   const multi = active.length > 1;
 

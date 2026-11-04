@@ -22,7 +22,8 @@ type Props = {
 export function GuestForm({ roomId, guest, onClose }: Props) {
   const myId = useAuth().session?.user.id;
   const { data: members = [] } = useRoomMembers(roomId);
-  const active = members.filter((m) => !m.leftAt);
+  // QR로 들어온 사람은 동행이 아니다 — 고르는 목록에서 뺀다(장부에는 그대로 있다).
+  const active = members.filter((m) => !m.leftAt && !m.spotOnly);
   const users = active.filter((m) => m.kind === 'user'); // 대표자 후보
   const me = users.find((m) => m.userId === myId);
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));

@@ -104,4 +104,10 @@ export type RoomMember = {
   representativeMemberId: MemberId | null;
   joinedAt: string;
   leftAt: string | null;
+  /**
+   * 이 자리 정산(QR)으로만 들어온 사람. 장부에는 들어가지만 동행이 아니다 —
+   * 사람 고르는 목록(참여자 팝오버·품목 지정·대표자 후보)에서 빼야 한다.
+   * 전체 목록에서 빼면 안 된다: 받을 돈이 남은 동안은 정산 화면에 보여야 한다.
+   */
+  spotOnly: boolean;
 };

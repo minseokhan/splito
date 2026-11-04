@@ -63,7 +63,11 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
     const byId = new Map(spot.participants.map((p) => [p.memberId, p]));
     // 아바타 색은 합류 순서로 고정한다 — 멤버 화면·여행 상세와 같은 규칙.
     const colorIndex = new Map(members.map((m, i) => [m.id, i]));
-    const shown = sent ? members.filter((m) => chosen.includes(m.id)) : members.filter((m) => !m.leftAt);
+    // 다른 자리의 QR 참여자는 이 시트에 뜨면 안 된다 — 이 정산의 참여자일 때만 보여준다.
+    const here = (m: RoomMember) => !m.spotOnly || byId.has(m.id);
+    const shown = sent
+      ? members.filter((m) => chosen.includes(m.id))
+      : members.filter((m) => !m.leftAt && here(m));
     return shown.map((m) => {
       const p = byId.get(m.id);
       const isQr = !!p?.isQr;

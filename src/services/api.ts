@@ -294,6 +294,7 @@ export const api = {
         representativeMemberId: m.representative_member_id,
         joinedAt: m.joined_at,
         leftAt: m.left_at,
+        spotOnly: m.spot_only,
       };
     });
   },
