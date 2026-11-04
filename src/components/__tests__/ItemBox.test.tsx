@@ -48,3 +48,33 @@ describe('ItemBox 먹은 사람 펼침', () => {
     expect(screen.getByRole('button', { name: '사람 선택 닫기' })).toBeOnTheScreen();
   });
 });
+
+describe('ItemBox 쪼개기·삭제', () => {
+  it('쪼개기는 가위 아이콘을 붙여도 이름으로 찾을 수 있다', async () => {
+    const onSplit = jest.fn();
+    await render(<ItemBox {...base} people={people} onSplit={onSplit} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: '쪼개기' }));
+    expect(onSplit).toHaveBeenCalled();
+  });
+
+  it('1개짜리 품목에는 쪼개기를 띄우지 않는다', async () => {
+    await render(<ItemBox {...base} quantity={1} people={people} onSplit={jest.fn()} />);
+
+    expect(screen.queryByRole('button', { name: '쪼개기' })).toBeNull();
+  });
+
+  it('삭제 X는 onRemove가 있으면 처음부터 보인다', async () => {
+    const onRemove = jest.fn();
+    await render(<ItemBox {...base} people={people} onRemove={onRemove} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: '이 품목 삭제' }));
+    expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('onRemove가 없으면 삭제 X도 없다', async () => {
+    await render(<ItemBox {...base} people={people} />);
+
+    expect(screen.queryByRole('button', { name: '이 품목 삭제' })).toBeNull();
+  });
+});

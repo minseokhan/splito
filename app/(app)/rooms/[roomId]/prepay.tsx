@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, InfoCircle, Suitcase } from 'iconoir-react-native';
+import { Check, Suitcase } from 'iconoir-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,12 +23,6 @@ import { colors } from '@/theme/tokens';
 import type { MemberId } from '@/types/domain';
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
-
-const TAGS = [
-  { label: '여행 전', warn: false },
-  { label: '자동 등록', warn: false },
-  { label: '예산 제외', warn: true },
-];
 
 export default function Prepay() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -86,7 +80,7 @@ export default function Prepay() {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
-      <NavBar title="선결제 등록" />
+      <NavBar title="패키지 여행 등록" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 140, gap: 18 }}>
         <View className="gap-1.5">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-success-badge">
@@ -110,17 +104,6 @@ export default function Prepay() {
             <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[17px] text-ink">
               {formatKrw(booking.paid_amount)}
             </Text>
-          </View>
-          <View className="flex-row flex-wrap gap-1.5">
-            {TAGS.map((t) => (
-              <View key={t.label} className={`rounded-badge px-2 py-0.5 ${t.warn ? 'bg-warning-badge' : 'bg-muted'}`}>
-                <Text className={`font-semibold text-xs ${t.warn ? 'text-warning' : 'text-ink-500'}`}>{t.label}</Text>
-              </View>
-            ))}
-          </View>
-          <View className="flex-row items-center gap-1.5">
-            <Icon as={InfoCircle} size={14} color={colors.ink[400]} />
-            <Text className="flex-1 text-xs text-ink-400">항공·숙박이 포함된 금액이라 예산에는 들어가지 않아요</Text>
           </View>
         </View>
 

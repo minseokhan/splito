@@ -12,6 +12,8 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="join/[token]" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      {/* 홈 ↔ 통계는 탭 전환이라 옆으로 미는 전환을 쓰지 않는다(들어올 때·나갈 때 모두 stats의 설정을 따른다). */}
+      <Stack.Screen name="stats" options={{ animation: 'none' }} />
     </Stack>
   );
 }

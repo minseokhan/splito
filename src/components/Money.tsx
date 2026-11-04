@@ -6,7 +6,7 @@ const fmt = new Intl.NumberFormat('ko-KR');
 
 type Props = { net: Krw; size?: 'base' | 'large'; label?: boolean };
 
-// 순잔액: 받을 돈 + #0874BB, 줄 돈 − #D92D20. 색만으로 구분하지 않고 부호와 라벨을 함께 쓴다.
+// 순잔액: 받을 돈 + primary-text(#1D3C8F), 줄 돈 − danger(#D92D20). 색만으로 구분하지 않고 부호와 라벨을 함께 쓴다.
 export function Money({ net, size = 'base', label = true }: Props) {
   const abs = `${fmt.format(Math.abs(net))}원`;
   const text = net > 0 ? '받을 돈' : net < 0 ? '줄 돈' : '정산할 돈 없음';

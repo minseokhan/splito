@@ -62,7 +62,37 @@ export type MyRoom = {
   status: RoomStatus;
   memberCount: number;
   myNet: Krw;
+  /** 이 여행에서 내 몫으로 잡힌 금액 합계(my_expense_shares와 같은 규칙). 순잔액과 다른 값이다. */
+  mySpent: Krw;
   totalKrw: Krw;
+  /** 패키지 예약이 붙은 방(홈 카드 '패키지' 배지). */
+  hasBooking: boolean;
+};
+
+// ─── 내 통계 (my-stats-spec) ───
+// 금액은 전부 '내 몫' 기준이다. 서버(my_expense_shares)가 지출 1건당 분담액을 내려준다.
+export type MyShare = {
+  expenseId: ExpenseId;
+  paidLocalDate: string;
+  category: CategoryCode | null;
+  merchant: string | null;
+  payerKind: 'member' | 'pool';
+  payerMemberId: MemberId | null;
+  visibility: 'shared' | 'private';
+  currency: string;
+  amountOriginal: number;
+  krwAmount: Krw | null;
+  myShare: Krw;
+};
+
+/** 적용한 예산 조정안. perDay는 카테고리별 하루 금액(원). */
+export type BudgetPlan = { id: string; title: string; desc?: string; perDay: Partial<Record<CategoryCode, Krw>> };
+
+export type TripBudget = {
+  totalKrw: Krw;
+  allocMode: 'manual' | 'ai' | 'none';
+  alloc: Partial<Record<CategoryCode, Krw>>;
+  appliedPlan: BudgetPlan | null;
 };
 
 export type RoomMember = {

@@ -24,6 +24,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
     ['POOL_OWNER', '정산을 마친 뒤 나갈 수 있어요', '정산 화면'],
     ['ACCOUNT_HAS_BALANCE', '정산 중인 여행이 있어요', '방 목록'],
     ['ROOM_DELETED', '삭제된 여행이에요', '목록으로 이동'],
+    ['ROOM_NOT_SETTLED', '정산을 마친 뒤 여행을 지울 수 있어요', '정산 화면'],
     ['AUTH_EXPIRED', '다시 로그인해 주세요', '작성 중 내용 유지 → 로그인 → 원래 화면'],
     ['LOGIN_CANCELLED', '로그인이 취소됐어요', '다시 시도'],
     ['STT_UNAVAILABLE', '음성 인식을 쓸 수 없어요', '직접 입력'],
@@ -48,7 +49,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
   });
 
   it('표의 코드를 빠짐없이 다룬다', () => {
-    expect(ERROR_CODES).toHaveLength(37);
+    expect(ERROR_CODES).toHaveLength(38);
   });
 });
 

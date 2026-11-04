@@ -12,14 +12,14 @@ const config: ExpoConfig = {
   scheme: "splito",
   userInterfaceStyle: "light",
   ios: {
-    icon: "./assets/expo.icon",
+    // 루트 icon.png(새 브랜드 마크)를 쓴다. Icon Composer 번들(assets/expo.icon)은 Expo 기본 심볼이라 지웠다.
     bundleIdentifier: APP_ID,
     associatedDomains: [`applinks:${LINK_DOMAIN}`],
   },
   android: {
     package: APP_ID,
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      backgroundColor: "#FFFFFF",
       foregroundImage: "./assets/images/android-icon-foreground.png",
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -70,7 +70,7 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#208AEF",
+        backgroundColor: "#FFFFFF",
         image: "./assets/images/splash-icon.png",
         imageWidth: 76,
       },

@@ -7,7 +7,7 @@ import { colors } from '@/theme/tokens';
 
 import { Icon } from './Icon';
 
-// 하늘색 위 글자는 흰색이 아니라 on-primary(#0B2B45). 비활성은 투명도 대신 회색 배경.
+// 네이비 primary 위 글자는 primary-on(흰색). 밝은 틴트(sky) 위 글자는 primary-text. 비활성은 투명도 대신 회색 배경.
 const VARIANT = {
   primary: { box: 'bg-primary active:bg-primary-press', text: 'text-primary-on', icon: colors.primary.on },
   dark: { box: 'bg-ink active:bg-black', text: 'text-white', icon: '#FFFFFF' },

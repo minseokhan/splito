@@ -15,12 +15,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRecentExpenses } from '@/hooks/useRecentExpenses';
 import { useMyRooms } from '@/hooks/useRooms';
 import { formatForeign } from '@/lib/money';
-import { needsSettlement } from '@/lib/roomList';
+import { kstToday } from '@/lib/expenseForm';
+import { isActiveTrip } from '@/lib/roomList';
 import { colors } from '@/theme/tokens';
 import type { MyRoom } from '@/types/domain';
 
 const SOURCE_ICON = { receipt: Camera, card_image: Camera, card_text: MessageText, voice: Microphone, manual: EditPencil } as const;
-const CARD_STEP = 286 + 12; // 카드 폭(RoomCard w-[286px]) + gap
+const CARD_STEP = 260 + 12; // 카드 폭(RoomCard w-[260px]) + gap
 
 const goRoom = (roomId: string) => router.push({ pathname: '/rooms/[roomId]', params: { roomId } });
 const goCreate = () => router.push('/rooms/start');
@@ -42,7 +43,7 @@ const MeGlyph = () => (
 function Header() {
   return (
     <View className="flex-row items-center justify-between">
-      <Wordmark size={24} />
+      <Wordmark size={27} />
       <View className="flex-row items-center gap-1.5">
         <Pressable
           accessibilityRole="button"
@@ -66,22 +67,17 @@ export default function Home() {
   const { data: rooms, isLoading, error, refetch, isRefetching } = useMyRooms();
   const [showRest, setShowRest] = useState(false);
   const active = (rooms ?? []).filter((r) => r.status !== 'settled');
-  // 카드로 띄우는 건 '정산이 필요한 여행'이다 — 기준은 needsSettlement 하나뿐(review의 '정산할 곳'과 같은 집합).
-  const needsSettle = (rooms ?? []).filter(needsSettlement);
+  // 카드로 띄우는 건 '아직 끝나지 않은 여행'이다 — 기준은 isActiveTrip 하나뿐(review의 '정산할 곳'과 같은 집합).
+  const today = kstToday(new Date());
+  const live = (rooms ?? []).filter((r) => isActiveTrip(r, today));
   // 나머지는 전부 아래 접기로 내린다. 여집합으로 잡아야 어느 쪽에도 안 드는 방이 생기지 않는다.
-  const rest = (rooms ?? []).filter((r) => !needsSettle.includes(r));
-  const featured = needsSettle.find((r) => r.status === 'settling') ?? needsSettle[0];
+  const rest = (rooms ?? []).filter((r) => !live.includes(r));
+  const featured = live.find((r) => r.status === 'settling') ?? live[0];
   const recent = useRecentExpenses(active);
 
   const refresh = () => Promise.all([refetch(), recent.refetch()]);
   const goAmount = (r: MyRoom) =>
     r.memberCount >= 2 ? router.push({ pathname: '/rooms/[roomId]/settle', params: { roomId: r.roomId } }) : goRoom(r.roomId);
-  // 홈에서 올리면 어느 여행인지 고른 적이 없다 — 가장 최근에 올린 곳을 기본값으로 두고, review에서 바꾼다.
-  const lastRoomId = recent.data[0]?.roomId;
-  const target = active.find((r) => r.roomId === lastRoomId) ?? featured ?? active[0];
-  const addExpense = () =>
-    target ? router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId: target.roomId } }) : goCreate();
-
   if (rooms?.length === 0) {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -107,7 +103,7 @@ export default function Home() {
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <ScrollView
-        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 140, gap: 22 }}
+        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 22 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refresh} />}
       >
         <Header />
@@ -117,7 +113,7 @@ export default function Home() {
             <View className="gap-1">
               <Text className="text-base text-ink-500">{profile?.nickname ? `${profile.nickname}님, 안녕하세요` : '안녕하세요'}</Text>
               <Text className="font-semibold text-2xl text-ink">
-                {needsSettle.length ? `정산 중인 여행이\n${needsSettle.length}개 있어요` : '정산 중인 여행이\n없어요'}
+                {live.length ? `진행 중인 여행이\n${live.length}개 있어요` : '진행 중인 여행이\n없어요'}
               </Text>
             </View>
 
@@ -129,7 +125,7 @@ export default function Home() {
               style={{ marginHorizontal: -20 }}
               contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
             >
-              {needsSettle.map((r) => (
+              {live.map((r) => (
                 <RoomCard
                   key={r.roomId}
                   room={r}
@@ -193,7 +189,7 @@ export default function Home() {
                   onPress={() => setShowRest((v) => !v)}
                   className="flex-row items-center justify-between rounded-button bg-app px-4 py-3.5"
                 >
-                  <Text className="text-sm text-ink-500">정산할 게 없는 여행 {rest.length}개</Text>
+                  <Text className="text-sm text-ink-500">마무리된 여행 {rest.length}개</Text>
                   <Icon as={showRest ? NavArrowDown : NavArrowRight} size={18} color={colors.ink[300]} />
                 </Pressable>
                 {showRest &&
@@ -220,9 +216,6 @@ export default function Home() {
           </>
         )}
       </ScrollView>
-      <BottomBar fade>
-        <PrimaryButton title="지출 올리기" variant="dark" icon={Camera} onPress={addExpense} />
-      </BottomBar>
     </SafeAreaView>
   );
 }

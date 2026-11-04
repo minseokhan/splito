@@ -14,7 +14,6 @@ export type ScheduleRow = SchedulableExpense & {
   main: string; // 큰 금액. 외화 결제면 현지 통화로 쓴다
   mainLocal: boolean; // 현지 통화면 파란색(local)
   sub: string | null; // 작은 보조 — 원화 환산 또는 '선결제' 같은 문구
-  tags: string[];
 };
 
 type Props = {
@@ -28,9 +27,9 @@ type Props = {
 };
 
 function Tag({ label }: { label: string }) {
-  const warn = label === '예산 제외';
+  const warn = label === '선택관광';
   return (
-    <View className={`rounded-[6px] px-1.5 ${warn ? 'bg-warning-badge' : 'bg-[#E9EDF2]'}`}>
+    <View className={`rounded-[6px] px-1.5 ${warn ? 'bg-warning-badge' : 'bg-muted'}`}>
       <Text className={`font-semibold text-[11px] ${warn ? 'text-warning' : 'text-ink-500'}`}>{label}</Text>
     </View>
   );
@@ -75,15 +74,8 @@ export function ScheduleSection({
     <View className="gap-3 px-5 pt-1.5">
       {days.map((d) => (
         <View key={d.key} className="gap-2.5">
-          {/* 일반 여행 상세의 날짜 섹션과 같은 줄 구성: 왼쪽 날짜, 오른쪽 그날 합계 */}
-          <View className="flex-row justify-between py-1.5">
-            <Text className="font-semibold text-[15px] text-ink-700">{d.header}</Text>
-            {d.hasExpense && (
-              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[15px] text-ink-500">
-                {formatKrw(d.daySum)}
-              </Text>
-            )}
-          </View>
+          {/* 시안 08: 날짜 줄은 제목만 둔다. 합계는 '그 외 지출' 박스 머리에서만 쓴다 */}
+          <Text className="py-1.5 font-semibold text-[13px] text-ink-500">{d.header}</Text>
 
           {d.cards.map((c) => (
             <View key={c.item.id} className="flex-row gap-2.5">
@@ -172,22 +164,25 @@ export function ScheduleSection({
           )}
 
           {d.extra.length > 0 && (
-            <View className="rounded-2xl bg-app px-3.5 py-2.5">
-              <Text className="pb-0.5 font-semibold text-[13px] text-ink-500">{d.extraLabel}</Text>
+            <View className="rounded-button border border-card-line bg-white px-3.5 py-2.5">
+              {/* '여행 전'은 바로 위 날짜 줄이 이미 같은 말이라 머리줄을 쓰지 않는다(판정표 26a) */}
+              {d.dayIndex > 0 && (
+                <View className="flex-row justify-between pb-0.5">
+                  <Text className="font-semibold text-[13px] text-ink-500">{d.extraLabel}</Text>
+                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[13px] text-ink-500">
+                    {formatKrw(d.extra.reduce((s, e) => s + (e.krwAmount ?? 0), 0))}
+                  </Text>
+                </View>
+              )}
               {d.extra.map((e, i) => (
                 <Fragment key={e.id}>
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => onOpenExpense(e.id)}
-                    className={`flex-row items-center justify-between gap-2.5 py-2 ${i > 0 ? 'border-t border-muted' : ''}`}
+                    className={`flex-row items-center justify-between gap-2.5 py-2 ${i > 0 ? 'border-t border-line-row' : ''}`}
                   >
                     <View className="min-w-0 flex-1">
-                      <View className="flex-row flex-wrap items-center gap-1.5">
-                        <Text className="font-semibold text-[15px] text-ink">{e.title}</Text>
-                        {e.tags.map((t) => (
-                          <Tag key={t} label={t} />
-                        ))}
-                      </View>
+                      <Text className="font-semibold text-[15px] text-ink">{e.title}</Text>
                       <Text className="text-xs text-ink-400">{e.who}</Text>
                     </View>
                     <View className="shrink-0 items-end">

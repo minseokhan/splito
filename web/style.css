@@ -4,20 +4,20 @@ body {
   margin: 0;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   background: #FFFFFF;
-  color: #33475B;
+  color: #353A47;
   font-size: 15px;
   line-height: 1.5;
 }
 main { max-width: 640px; margin: 0 auto; padding: 24px 20px; }
-h1 { color: #0B2540; font-size: 22px; font-weight: 700; margin: 0 0 8px; }
-h2 { color: #0B2540; font-size: 17px; font-weight: 600; margin: 24px 0 8px; }
-a { color: #0874BB; }
-.sub { color: #5E7185; font-size: 13px; }
-.draft { background: #FFF4D6; color: #8A5A00; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 6px; }
-.card { background: #F5FBFF; border: 1px solid #E3EAF0; border-radius: 12px; padding: 16px; margin-top: 24px; }
+h1 { color: #0E1B3D; font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+h2 { color: #0E1B3D; font-size: 17px; font-weight: 600; margin: 24px 0 8px; }
+a { color: #1D3C8F; }
+.sub { color: #6B7080; font-size: 13px; }
+.draft { background: #FFF4D6; color: #A35A00; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 6px; }
+.card { background: #F3F6FB; border: 1px solid #E4E7EC; border-radius: 12px; padding: 16px; margin-top: 24px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { border: 1px solid #E3EAF0; padding: 8px; text-align: left; vertical-align: top; }
-th { background: #F5FBFF; color: #0B2540; }
-.btn { display: block; width: 100%; height: 56px; margin-top: 16px; border: 0; border-radius: 12px; background: #5EC4FF; color: #0B2540; font-size: 15px; font-weight: 700; }
-.btn:active { background: #1FA3F0; }
+th, td { border: 1px solid #E4E7EC; padding: 8px; text-align: left; vertical-align: top; }
+th { background: #F3F6FB; color: #0E1B3D; }
+.btn { display: block; width: 100%; height: 56px; margin-top: 16px; border: 0; border-radius: 12px; background: #1D3C8F; color: #FFFFFF; font-size: 15px; font-weight: 600; }
+.btn:active { background: #16306F; }
 .btn[hidden] { display: none; }

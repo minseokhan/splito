@@ -14,6 +14,7 @@ import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
 import { useAuth } from '@/hooks/useAuth';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useAddComment, useComments, useDeleteComment } from '@/hooks/useComments';
 import { useDeleteExpense, useExpense, useExpenseHistory } from '@/hooks/useExpense';
 import { useReconfirmPendingFx } from '@/hooks/useFeed';
@@ -39,6 +40,7 @@ export default function ExpenseDetailScreen() {
   const { roomId, expenseId } = useLocalSearchParams<{ roomId: string; expenseId: string }>();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
   const { data: e, error: loadError } = useExpense(expenseId);
   const { data: history } = useExpenseHistory(expenseId);
   const { data: members = [] } = useRoomMembers(roomId);
@@ -293,7 +295,8 @@ export default function ExpenseDetailScreen() {
 
         <View
           className="gap-2 bg-white px-5 pt-3"
-          style={{ paddingBottom: Math.max(insets.bottom + 12, 24), boxShadow: '0 -8px 20px -12px rgba(19,25,39,.15)' }}
+          // 키보드가 올라오면 홈 인디케이터 여백이 그대로 남아 입력칸과 키보드 사이가 뜬다 — 그때만 줄인다.
+          style={{ paddingBottom: keyboard > 0 ? 10 : Math.max(insets.bottom + 12, 24), boxShadow: '0 -8px 20px -12px rgba(19,25,39,.15)' }}
         >
           {commentError && <Text className="text-[13px] text-danger-text">{commentError}</Text>}
           <View className="flex-row items-center gap-2">

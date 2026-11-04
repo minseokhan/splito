@@ -164,7 +164,7 @@ export default function BookingLookup() {
               <Text className="text-[13px] text-ink-400">보기 ›</Text>
             </Pressable>
           </Pressable>
-          <Text className="pl-[34px] text-xs text-ink-400">
+          <Text className="pl-[34px] text-[13px] leading-[19px] text-ink-400">
             예약 조회를 위해 예약번호와 예약자 이름을 하나투어에 제공해요
           </Text>
         </View>
@@ -318,7 +318,7 @@ function ResultBox({ tone, icon, title, body, action }: BoxProps) {
           <Pressable
             accessibilityRole="button"
             onPress={action.onPress}
-            className={`mt-2.5 h-9 flex-row items-center gap-0.5 self-end rounded-chip border-[1.5px] bg-white pl-3.5 pr-2.5 active:opacity-70 ${t.btn}`}
+            className={`mt-2.5 h-9 flex-row items-center gap-0.5 self-start rounded-chip border-[1.5px] bg-white pl-3.5 pr-2.5 active:opacity-70 ${t.btn}`}
           >
             <Text className={`font-semibold text-[13px] ${t.btnText}`}>{action.label}</Text>
             <Icon as={NavArrowRight} size={14} color={t.btnIcon} />
