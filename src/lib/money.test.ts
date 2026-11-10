@@ -8,6 +8,7 @@ import {
   roundHalfAwayFromZero,
   splitEvenly,
   toKrwPreview,
+  formatManwon,
 } from './money';
 
 describe('roundHalfAwayFromZero', () => {
@@ -174,5 +175,29 @@ describe('unitName', () => {
   });
   test('USD가 아닌 달러는 나라 이름까지 쓴다', () => {
     expect(unitName('AUD', '호주 달러')).toBe('호주 달러');
+  });
+});
+
+describe('formatManwon', () => {
+  test('만 단위로 줄이고 소수 첫째 자리까지 쓴다', () => {
+    expect(formatManwon(45_000)).toBe('4.5만');
+    expect(formatManwon(35_000)).toBe('3.5만');
+    expect(formatManwon(8_000)).toBe('0.8만');
+    expect(formatManwon(3_330)).toBe('0.3만');
+  });
+  test('딱 떨어지면 소수점을 쓰지 않는다', () => {
+    expect(formatManwon(10_000)).toBe('1만');
+    expect(formatManwon(20_000)).toBe('2만');
+  });
+  test('0원은 0으로 쓴다 — 0.0만은 뜻이 흐리다', () => {
+    expect(formatManwon(0)).toBe('0');
+  });
+  test('천원도 안 되는 금액은 만 단위로 접으면 0이 되므로 원 단위로 쓴다', () => {
+    expect(formatManwon(300)).toBe('300원');
+    expect(formatManwon(666)).toBe('0.1만');
+  });
+  test('반올림은 천원 자리에서 한다', () => {
+    expect(formatManwon(44_900)).toBe('4.5만');
+    expect(formatManwon(44_400)).toBe('4.4만');
   });
 });

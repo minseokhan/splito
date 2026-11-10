@@ -16,7 +16,7 @@ alter table public.room_members
 comment on column public.room_members.spot_only is
   '이 자리 정산(QR)으로만 들어온 사람. 장부에는 들어가지만 동행 목록·사람 고르기에는 안 뜬다.';
 
--- spot_join이 만드는 게스트에 표시를 남긴다. 나머지는 20261104070000 정의 그대로.
+-- spot_join이 만드는 게스트에 표시를 남긴다. 나머지는 20261104070954 정의 그대로.
 create or replace function public.spot_join(p_token text, p_name text) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare

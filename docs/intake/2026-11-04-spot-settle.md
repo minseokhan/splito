@@ -34,7 +34,7 @@
 
 | 시안 요소 | 스키마 근거 | 판정 |
 |---|---|---|
-| 일정 ↔ 지출 연결 | `expenses.schedule_id` (`20261103020000_package_booking.sql:56`) | 있음 |
+| 일정 ↔ 지출 연결 | `expenses.schedule_id` (`20261103072519_package_booking.sql:56`) | 있음 |
 | 결제자·원화·현지통화 | `expenses.payer_member_id/krw_amount/currency` (`20261029000000_schema.sql:76-84`) | 있음 |
 | 동행 몫 → 여행 정산 | `expense_scope` + `room_balances` (`20261029030000`) | 있음 |
 | 받는 계좌 | `payout_accounts.account_enc` + Vault (`20261030010000`) | 있음 |
@@ -52,7 +52,7 @@
 | 5 | QR 참여 웹 3단계(join/pay/done) | 코드에 없음 | `web/`에 `/i`만 | 신규 |
 | 6 | 1인 금액 `round(sum/n, 10원)` | **규칙 충돌** | `my_stats.sql:117` `floor(box.krw/n)` + 자투리 결제자. CLAUDE.md CRITICAL "나눗셈은 floor" | **기존 엔진 규칙 채택** — 안 그러면 시트 숫자와 여행 정산 숫자가 갈라진다 |
 | 7 | "QR 화면은 Next.js로" | 재설계 | `web/` = Vercel 정적 + `vercel.json` 리라이트 + CSP | 기존 정적 `web/` 재사용 |
-| 8 | QR 참여자를 별도 장부로 | 재설계 | `room_members` 게스트 규칙 + `20261103000000` 게스트 분리 정산 | **기존 게스트·송금 메커니즘 재사용**(아래) |
+| 8 | QR 참여자를 별도 장부로 | 재설계 | `room_members` 게스트 규칙 + `20261102165251` 게스트 분리 정산 | **기존 게스트·송금 메커니즘 재사용**(아래) |
 | 9 | 지출 줄 카테고리 아이콘 타일 22×22 | 코드에 없음(**드리프트**) | 프로토타입 `503`행 | 신규 — 사용자 목록에 없던 항목 |
 | 10 | `연결된 지출 ○○원` 문구 제거 | 미반영(**드리프트**) | 프로토타입 `1456`행 `sumText: ex.length ? '' : '연결된 지출 없음'` | 수정 |
 | 11 | 토큰 만료 정책 | 확인 필요 → 기본값 | README §6 | 방 삭제까지 유효 |
@@ -65,7 +65,7 @@
 
 > **정정(구현 중 발견).** 처음에는 `room_balances`(`20261029030000`)의 "게스트 net을 대표자에게
 > 합산" 규칙을 근거로 "QR 참여자 몫이 자동으로 여행 정산에서 빠진다"고 적었다. 그 규칙은
-> `20261103000000_guest_settlement.sql`이 **`create or replace`로 걷어냈다** — 게스트는 이제
+> `20261102165251_guest_settlement.sql`이 **`create or replace`로 걷어냈다** — 게스트는 이제
 > 자기 순잔액을 갖는 1급 정산 당사자다. `grep "create function public.room_balances"`가
 > 재정의를 못 잡아 낡은 판본을 읽었다. 아래가 실제로 구현한 설계다.
 
@@ -73,7 +73,7 @@ QR 참여자 = `room_members(kind='guest', representative_member_id = 결제자)
 
 | 단계 | 장부 |
 |---|---|
-| QR 참여 | 게스트 행 생성. 대표자가 결제자인 이유는 **대표자가 그 게스트를 대신해 송금을 기록·확인할 수 있기 때문**(`_acts_for`, `20261103000000`) |
+| QR 참여 | 게스트 행 생성. 대표자가 결제자인 이유는 **대표자가 그 게스트를 대신해 송금을 기록·확인할 수 있기 때문**(`_acts_for`, `20261102165251`) |
 | 보내기 | 고른 지출의 `expense_scope`를 고른 사람으로 교체 → 1인 20,250원 |
 | 받기 전 | QR 참여자 net = −20,250, 결제자 net = +60,750. **받을 돈이므로 장부에 남긴다** |
 | [받았어요] | `record_transfer(QR → 결제자, 20,250)`. 받는 쪽이 기록한 것이라 즉시 확정되고 QR net = 0, 결제자 net = +20,250 |
@@ -103,6 +103,6 @@ QR 참여자 = `room_members(kind='guest', representative_member_id = 결제자)
 
 | 발견 | 근거 | 처리 |
 |---|---|---|
-| `save_expense`는 '내가 결제 + 대상이 나뿐'일 때만 `private` 판정 | `20261102000000_expense_category.sql:124` | 이 자리 정산은 대상을 **넓히기만** 하므로 private을 만들 수 없다. 반대로 private 지출은 시트 대상에서 **제외**한다(남에게 안 보이는 지출을 남이 분담하게 할 수 없다) |
+| `save_expense`는 '내가 결제 + 대상이 나뿐'일 때만 `private` 판정 | `20261101172517_expense_category.sql:124` | 이 자리 정산은 대상을 **넓히기만** 하므로 private을 만들 수 없다. 반대로 private 지출은 시트 대상에서 **제외**한다(남에게 안 보이는 지출을 남이 분담하게 할 수 없다) |
 | 공금(`payer_kind='pool'`) 결제 | — | 이 자리 정산 대상에서 제외. 시안에 없고 결제자 개인 계좌로 받는 흐름과 맞지 않는다 |
-| `reject_transfer` vs `cancel_transfer` | `20261103000000` | 확정된 송금을 되돌리는 건 받는 쪽의 `reject_transfer`뿐 |
+| `reject_transfer` vs `cancel_transfer` | `20261102165251` | 확정된 송금을 되돌리는 건 받는 쪽의 `reject_transfer`뿐 |

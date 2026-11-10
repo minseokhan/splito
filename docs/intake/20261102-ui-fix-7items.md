@@ -1,7 +1,7 @@
 # intake-diff — UI 수정 7건 (2026-11-02)
 
 - **산출물 유형:** 기능 변경 목록 + 실기 스크린샷 11장 (채팅)
-- **1차 소스:** 현재 코드(`origin/dev` = 5652ffe), `supabase/migrations/20261101010000_balances_visibility.sql`(방 status 파생), 스크린샷(현재 동작 증거)
+- **1차 소스:** 현재 코드(`origin/dev` = 5652ffe), `supabase/migrations/20261101172427_balances_visibility.sql`(방 status 파생), 스크린샷(현재 동작 증거)
 - **주의:** 스크린샷은 *시안*이 아니라 *현재 상태*다. 따라서 "값 diff"가 아니라 "현재 동작 → 목표 동작" 대조로 돌렸다.
 
 ## 판정표

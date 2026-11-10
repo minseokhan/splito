@@ -16,7 +16,7 @@ import { ReceiptThumb } from '@/components/ReceiptThumb';
 import { useAuth } from '@/hooks/useAuth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useAddComment, useComments, useDeleteComment } from '@/hooks/useComments';
-import { useDeleteExpense, useExpense, useExpenseHistory } from '@/hooks/useExpense';
+import { useDeleteExpense, useExpense, useExpenseHistory, useSetItemAssignees } from '@/hooks/useExpense';
 import { useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useRoomMembers } from '@/hooks/useRooms';
 import { commentSchema } from '@/lib/activity';
@@ -56,6 +56,10 @@ export default function ExpenseDetailScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openItems, setOpenItems] = useState<string[]>([]); // 먹은 사람을 펼쳐 본 품목
+  // 품목별 '누가 먹었는지' 편집. null이면 손대지 않은 상태 — 저장 버튼도 안 띄운다.
+  const [pick, setPick] = useState<Record<string, string[]> | null>(null);
+  const [pickError, setPickError] = useState<string | null>(null);
+  const saveAssignees = useSetItemAssignees(roomId, expenseId);
 
   const paths = e?.expense_photos.map((p) => p.storage_path) ?? [];
   const { data: photoUrls } = useQuery({
@@ -223,7 +227,8 @@ export default function ExpenseDetailScreen() {
           </View>
 
           {e.expense_items.map((it) => {
-            const assigned = new Set(it.item_assignees.map((a) => a.member_id));
+            // 편집 중이면 화면 상태가, 아니면 저장된 지정이 정답이다.
+            const assigned = new Set(pick?.[it.id] ?? it.item_assignees.map((a) => a.member_id));
             const n = assigned.size;
             const per =
               it.krw_amount !== null
@@ -244,6 +249,23 @@ export default function ExpenseDetailScreen() {
                 expanded={openItems.includes(it.id)}
                 onExpand={() => setOpenItems((s) => [...s, it.id])}
                 onCollapse={() => setOpenItems((s) => s.filter((x) => x !== it.id))}
+                onToggle={
+                  scopePeople.length > 1
+                    ? (memberId) =>
+                        setPick((prev) => {
+                          const base =
+                            prev ??
+                            Object.fromEntries(
+                              e.expense_items.map((x) => [x.id, x.item_assignees.map((a) => a.member_id)]),
+                            );
+                          const cur = base[it.id] ?? [];
+                          return {
+                            ...base,
+                            [it.id]: cur.includes(memberId) ? cur.filter((x) => x !== memberId) : [...cur, memberId],
+                          };
+                        })
+                    : undefined
+                }
               />
             );
           })}
@@ -298,6 +320,35 @@ export default function ExpenseDetailScreen() {
           // 키보드가 올라오면 홈 인디케이터 여백이 그대로 남아 입력칸과 키보드 사이가 뜬다 — 그때만 줄인다.
           style={{ paddingBottom: keyboard > 0 ? 10 : Math.max(insets.bottom + 12, 24), boxShadow: '0 -8px 20px -12px rgba(19,25,39,.15)' }}
         >
+          {/* 품목에서 사람을 고치면 그때만 저장 줄이 뜬다. 금액은 안 바뀌고 '누가 먹었는지'만 바뀐다 */}
+          {pick && (
+            <View className="gap-2 pb-1">
+              {pickError && <Text className="text-[13px] text-danger-text">{pickError}</Text>}
+              <View className="flex-row gap-2">
+                <PrimaryButton
+                  title="되돌리기"
+                  variant="muted"
+                  onPress={() => {
+                    setPick(null);
+                    setPickError(null);
+                  }}
+                />
+                <PrimaryButton
+                  title="저장하기"
+                  variant="dark"
+                  grow
+                  loading={saveAssignees.isPending}
+                  onPress={() => {
+                    setPickError(null);
+                    saveAssignees.mutate(pick, {
+                      onSuccess: () => setPick(null),
+                      onError: (err) => setPickError(asUserError(err).message),
+                    });
+                  }}
+                />
+              </View>
+            </View>
+          )}
           {commentError && <Text className="text-[13px] text-danger-text">{commentError}</Text>}
           <View className="flex-row items-center gap-2">
             <TextInput

@@ -850,9 +850,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "_spot_share":
-{ Args: { "p_spot_id": string }; Returns: number
-                           } |
-{ Args: { "p_extra"?: number,"p_spot_id": string }; Returns: number
+{ Args: { "p_member_id"?: string,"p_spot_id": string }; Returns: number
                            },
 "add_guest":
 { Args: { "p_name": string,"p_representative_member_id"?: string,"p_room_id": string }; Returns: string
@@ -989,6 +987,9 @@ isOneToOne: false
                            },
 "set_expense_meta":
 { Args: { "p_expense_id": string,"p_flags"?: (string)[],"p_schedule_id"?: string }; Returns: undefined
+                           },
+"set_item_assignees":
+{ Args: { "p_assign": Json,"p_expense_id": string }; Returns: undefined
                            },
 "set_payout_account":
 { Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined

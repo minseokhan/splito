@@ -65,6 +65,19 @@ export function formatKrw(krw: number): string {
   return `${krw < 0 ? '-' : ''}${withCommas(Math.abs(krw))}원`;
 }
 
+/**
+ * 좁은 칸에 쓰는 짧은 금액. 만 단위로 접고 소수 첫째 자리까지만 쓴다(45,000 → 4.5만).
+ * 반올림은 천원 자리에서 하므로 44,900은 4.5만이다. 딱 떨어지면 소수점을 떼고(10,000 → 1만),
+ * 만 단위로 접으면 0이 되어 버리는 금액은 원 단위로 그대로 쓴다(300 → 300원).
+ */
+export function formatManwon(krw: number): string {
+  if (krw === 0) return '0';
+  const sign = krw < 0 ? '-' : '';
+  const abs = Math.abs(krw);
+  const man = Math.round(abs / 1000) / 10; // 0.1만 단위
+  return man === 0 ? `${sign}${withCommas(abs)}원` : `${sign}${man}만`;
+}
+
 const ZERO_DECIMAL = new Set(['KRW', 'JPY', 'VND', 'IDR']);
 
 export function formatForeign(amount: number, currency: string): string {
