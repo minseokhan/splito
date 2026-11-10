@@ -85,3 +85,15 @@ export async function updateMarketing(optIn: boolean): Promise<void> {
     .eq('id', await myId());
   if (error) throw error;
 }
+
+// dev 전용: Supabase 이메일 로그인으로 테스트 계정에 들어간다(상대방 화면 확인용).
+// 계정은 splito-dev에만 있고 호출부는 __DEV__로 막혀 있어, 릴리스 빌드에는 진입점이 없다.
+export const TEST_USERS = [
+  { email: 'mock-jihoon@splito.invalid', nickname: '지훈' },
+  { email: 'mock-seoyeon@splito.invalid', nickname: '서연' },
+] as const;
+
+export async function signInAsTestUser(email: string): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password: 'splito-dev-1234' });
+  if (error) throw error;
+}
