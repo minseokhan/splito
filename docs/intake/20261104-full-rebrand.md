@@ -79,7 +79,7 @@
 | 27b | 패키지 결제 박스의 배지 + "항공·숙박이 포함된 금액이라…" 삭제 | **미반영** | `prepay.tsx:29-30,123` | 삭제 |
 | 28a | 품목 박스 X 버튼 위치(박스 우상단 바깥) · 쪼개기 아이콘 추가 | **다름** | `ItemBox.tsx:203` 쪼개기 텍스트만 | 수정 |
 | 28b | 홈 카드 배경 워터마크 로고 제거 | **미반영** | `RoomCard.tsx:35` `SplitoSymbol opacity=.175` | 삭제 |
-| 28c | 홈 카드 `패키지` 배지 | **데이터 없음** | `my_rooms()`가 예약 여부를 안 내려줌 (`20261101010000_balances_visibility.sql:85`) | **마이그레이션 필요** |
+| 28c | 홈 카드 `패키지` 배지 | **데이터 없음** | `my_rooms()`가 예약 여부를 안 내려줌 (`20261101172427_balances_visibility.sql:85`) | **마이그레이션 필요** |
 | 28d | 홈 카드 비행기 아이콘 → 국가 이모지 | **데이터 없음** | `rooms`에 국가·이모지 컬럼 없음 (`20261029000000_schema.sql:35-48`) | **사용자 결정 필요** |
 | 28e | 홈 카드 제목에서 "N일" 제거 | **미반영** | `RoomCard.tsx` | 문자열 |
 | 28f | 홈 카드 박스 안 텍스트 구성 변경(`정산 중 · JPY` 배지 / 날짜·인원 / 내가 보낼 돈) | **다름** | `RoomCard.tsx` | 재구성 |
@@ -90,7 +90,7 @@
 
 | UI | 필요한 필드 | 스키마 확인 | 판정 |
 |---|---|---|---|
-| 카테고리 드롭다운(26f) | `expenses.category` | `20261102000000_expense_category.sql` 존재, `CATEGORIES` 6종 | **있음** |
+| 카테고리 드롭다운(26f) | `expenses.category` | `20261101172517_expense_category.sql` 존재, `CATEGORIES` 6종 | **있음** |
 | 홈 `패키지` 배지(28c) | 방별 예약 존재 여부 | `trip_bookings` 테이블은 있으나 `my_rooms()` 미노출 | **RPC 수정 필요(마이그레이션 1건)** |
 | 홈 국가 이모지(28d) | 국가 코드 | 없음. `rooms.base_currency`만 있음 | **결정 필요** |
 | 내 통계 전부(29) | `trip_budget` 테이블, 일자별·카테고리별·참여자별 집계, 적용 조정안 | 전부 없음 | **승격** |
@@ -148,7 +148,7 @@ grep -rn "선결제 등록\|항공·숙박이 포함된" app src | wc -l        
 | 새 마크 | `assets/logo/svg/splito-mark{,-tile}.svg`, `splito-landing-{icon,symbol}.svg`, `src/components/Logo.tsx`(`SplitoMark`) |
 | 랜딩 애니메이션 | `src/components/AnimatedMark.tsx` (+`AnimatedMark.test.ts` — 핸드오프 @keyframes와 대조) |
 | 마크 일치 테스트 | `src/components/__tests__/Logo.test.ts` |
-| 마이그레이션 | `supabase/migrations/20261104000000_my_stats.sql` + `supabase/tests/140_my_stats.test.sql` (461건 전부 통과) |
+| 마이그레이션 | `supabase/migrations/20261103161213_my_stats.sql` + `supabase/tests/140_my_stats.test.sql` (461건 전부 통과) |
 | 데이터 레이어 | `src/services/api.ts`, `src/types/domain.ts`, `src/hooks/useBudget.ts`, `src/types/database.ts`(재생성) |
 | 앱 아이콘 | `assets/images/*.png` 6종 재생성(새 마크), `app.config.ts`의 `ios.icon`(Expo 기본 Icon Composer 번들) 제거 |
 | 문서 | `docs/UI_GUIDE.md`, `CLAUDE.md` 색 규칙, `docs/design/`(프로토타입·토큰·캡처 18장·명세 교체) |

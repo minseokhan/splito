@@ -132,7 +132,7 @@ end;
 $$;
 
 -- ───────────────────────── 홈 카드 패키지 배지 ─────────────────────────
--- 20261101010000_balances_visibility.sql 의 정의에 has_booking 한 칸만 더한다.
+-- 20261101172427_balances_visibility.sql 의 정의에 has_booking 한 칸만 더한다.
 drop function public.my_rooms();
 create function public.my_rooms()
 returns table (room_id uuid, name text, base_currency text, start_date date, end_date date,

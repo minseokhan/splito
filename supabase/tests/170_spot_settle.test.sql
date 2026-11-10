@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(60);
+select plan(74);
 
 -- ───── fixture ─────
 -- 방 R: a(민지) · b(지훈) · c(서연). 일정 '도톤보리 자유 석식'에 b가 결제한 81,000원 지출을 붙인다.
@@ -25,7 +25,7 @@ create function pg_temp.net(p_member uuid) returns bigint language sql as $$
   select b.net from public.room_balances(pg_temp.r(), false) b where b.member_id = p_member;
 $$;
 -- l이 결제한 1박스 KRW 지출. 대상 인원은 그 시점의 활성 참여자 전원 —
--- save_expense는 '내가 결제 + 대상이 나뿐'일 때만 private으로 판정하므로(20261102000000:124),
+-- save_expense는 '내가 결제 + 대상이 나뿐'일 때만 private으로 판정하므로(20261101172517:124),
 -- 혼자 담으면 나만 보기가 되어 이 자리 정산 대상에서 빠진다. 이 자리 정산은 이 범위를 좁히는 쪽이다.
 create function pg_temp.exp(l text, p_amount numeric, p_sched uuid default null) returns uuid language plpgsql as $$
 declare v_id uuid := gen_random_uuid();
@@ -42,7 +42,7 @@ begin
   return v_id;
 end $$;
 
--- 결제자 혼자만 대상인 지출. save_expense가 '나만 보기'로 판정한다(20261102000000:124).
+-- 결제자 혼자만 대상인 지출. save_expense가 '나만 보기'로 판정한다(20261101172517:124).
 create function pg_temp.solo_exp(l text, p_amount numeric, p_sched uuid) returns uuid language plpgsql as $$
 declare v_id uuid := gen_random_uuid();
 begin
@@ -140,11 +140,18 @@ select is((select member_count from public.my_rooms() where room_id = pg_temp.r(
 
 select is(public.spot_public_view(pg_temp.tok()) -> 'account', 'null'::jsonb,
   '참여 전에는 결제자 계좌를 주지 않는다');
--- 참여 전에도 '내가 들어가면 얼마'를 보여줘야 한다(시안 join 단계). 그때 인원은 나를 더한 수다.
+-- 참여 전에는 가게와 전체 금액만 보여준다(20261104100320). 아직 아무도 고르지 않은
+-- 1/n 숫자를 확정된 청구서처럼 읽게 하지 않는다 — 금액은 참여한 뒤에 나온다.
 select is((public.spot_public_view(pg_temp.tok()) ->> 'joined')::boolean, false,
   '참여 전에는 joined가 false다');
-select isnt(public.spot_public_view(pg_temp.tok()) ->> 'my_share', null,
-  '참여 전에도 내 몫을 미리 보여준다');
+select is(public.spot_public_view(pg_temp.tok()) ->> 'my_share', null,
+  '참여 전에는 내 몫을 보여주지 않는다');
+select is(public.spot_public_view(pg_temp.tok()) -> 'items', '[]'::jsonb,
+  '참여 전에는 메뉴 내역을 보여주지 않는다');
+select isnt(public.spot_public_view(pg_temp.tok()) ->> 'total_krw', null,
+  '참여 전에도 전체 금액은 보여준다');
+select isnt(public.spot_public_view(pg_temp.tok(), pg_temp.q('1')) ->> 'my_share', null,
+  '참여하면 그때 내 몫이 나온다');
 select is(public.spot_public_view(pg_temp.tok(), pg_temp.q('1')) #>> '{account,number}', '1000-1234-5678',
   '참여한 사람에게만 계좌 원문을 준다');
 select isnt((select account_revealed_at from public.spot_participants
@@ -249,7 +256,7 @@ select throws_ok(format(
   pg_temp.spot(), current_setting('t.e1'), pg_temp.m('a'), pg_temp.m('b'), pg_temp.q('1')),
   'P0001', 'SPOT_LOCKED', '송금을 확인한 사람은 구성에서 뺄 수 없다');
 
--- ───── 나만 보기 지출도 나눌 수 있다 (20261104070000) ─────
+-- ───── 나만 보기 지출도 나눌 수 있다 (20261104070954) ─────
 -- 혼자 계산한 지출은 save_expense가 private으로 잡는다. "내가 낸 걸 이 자리 사람들과 나눈다"가
 -- 정확히 그 상태에서 시작하므로, 대상에서 빼면 이 기능의 주 용도가 막힌다.
 
@@ -275,7 +282,7 @@ select lives_ok(format(
 select is((select visibility from public.expenses where id = current_setting('t.e4')::uuid), 'shared',
   '보내면 공동으로 바뀐다 — 남이 못 보는 지출을 남이 분담하면 안 된다');
 
--- ───── 품목 지정대로 금액이 갈린다 (20261104130000) ─────
+-- ───── 품목 지정대로 금액이 갈린다 (20261104080405) ─────
 -- 결제자가 지출 상세에서 '덮밥은 나랑 박준호만' 식으로 고르면, 그 사람 웹 화면의 금액이
 -- 1/n이 아니라 자기가 먹은 것만으로 바뀌어야 한다.
 
@@ -292,6 +299,80 @@ select is(public._spot_share(pg_temp.spot(), pg_temp.q('0')), 0::bigint,
   '지정되지 않은 사람은 0원이다 — 1/n로 걷히지 않는다');
 select is(public._spot_share(pg_temp.spot()), 16200::bigint,
   '아직 참여 전인 사람에게는 나를 더한 인원(5명) 기준 미리보기를 준다');
+
+-- ───── QR 참여자는 '그 지출'에만 들어간다 (20261104100320) ─────
+-- 사용자 확인 사항: 박초희 같은 QR 참여자를 여행 멤버로 올리면 안 된다.
+-- 그 한 자리의 지출에만 들어가고, 동행 목록·다른 지출에는 나타나지 않아야 한다.
+
+-- 같은 방의 다른 지출(이 정산과 무관). QR 참여자가 여기 섞이면 안 된다.
+select set_config('t.other', pg_temp.exp('a', 30000)::text, true);
+
+-- 새 일정 + 지출로 '아직 보내지 않은' 정산을 하나 더 만든다.
+select pg_temp.as_user('a');
+select set_config('t.s3', public.save_schedule_item(jsonb_build_object(
+  'room_id', pg_temp.r(), 'day_index', 2, 'start_time', '19:00', 'title', '둘째날 석식'))::text, true);
+select set_config('t.e5', pg_temp.exp('b', 50000, current_setting('t.s3')::uuid)::text, true);
+select set_config('t.spot3', (public.open_spot_settle(current_setting('t.s3')::uuid) ->> 'id'), true);
+select set_config('t.tok3',
+  (select token from public.spot_settles where id = current_setting('t.spot3')::uuid), true);
+
+select is((select sent_at from public.spot_settles where id = current_setting('t.spot3')::uuid), null,
+  '아직 [보내기]를 누르지 않은 상태다');
+select set_config('t.qx', (public.spot_join(current_setting('t.tok3'), '박초희') ->> 'member_id'), true);
+
+-- 1) 보내기 전에도 그 지출의 대상 인원이 된다 → 지출 상세 '함께한 사람'에 뜬다
+select ok(exists (select 1 from public.expense_scope
+                  where expense_id = current_setting('t.e5')::uuid
+                    and member_id = current_setting('t.qx')::uuid),
+  '보내기 전에 참여해도 그 지출의 대상 인원이 된다');
+
+-- 2) 여행 멤버로는 올라가지 않는다
+select is((select spot_only from public.room_members where id = current_setting('t.qx')::uuid), true,
+  'QR 참여자는 spot_only 로 표시된다 — 동행 목록에서 걸러진다');
+select is((select count(*)::int from public.room_members
+           where room_id = pg_temp.r() and left_at is null and not spot_only and kind = 'guest'), 0,
+  '여행의 일반 게스트 수는 늘지 않는다');
+
+-- 3) 같은 방의 다른 지출에는 끼지 않는다
+select is((select count(*)::int from public.expense_scope
+           where expense_id = current_setting('t.other')::uuid
+             and member_id = current_setting('t.qx')::uuid), 0,
+  '같은 방의 다른 지출에는 들어가지 않는다');
+select is((select count(*)::int from public.expense_scope
+           where expense_id = current_setting('t.e1')::uuid
+             and member_id = current_setting('t.qx')::uuid), 0,
+  '다른 일정의 정산에도 들어가지 않는다');
+
+-- ───── 지출 상세에서 품목 지정만 저장한다 (set_item_assignees) ─────
+
+select pg_temp.as_user('b');
+select lives_ok(format(
+  $q$select public.set_item_assignees(%L, jsonb_build_object(
+       (select i.id::text from public.expense_items i where i.expense_id = %L limit 1),
+       jsonb_build_array(%L::text)))$q$,
+  current_setting('t.e5'), current_setting('t.e5'), current_setting('t.qx')),
+  '결제자가 품목마다 누가 먹었는지 저장할 수 있다');
+
+select is((select count(*)::int from public.item_assignees a
+           join public.expense_items i on i.id = a.item_id
+           where i.expense_id = current_setting('t.e5')::uuid), 1,
+  '고른 사람만 그 품목에 지정된다');
+
+-- 지정 결과가 그대로 QR 웹 금액이 된다 — 혼자 먹었으니 박스 전액
+select is(public._spot_share(current_setting('t.spot3')::uuid, current_setting('t.qx')::uuid),
+  50000::bigint, '지정대로 계산된다 — 혼자 지정되면 그 박스 전액을 진다');
+
+select pg_temp.as_user('d');
+select throws_ok(format('select public.set_item_assignees(%L, %L)', current_setting('t.e5'), '{}'),
+  'P0001', 'FORBIDDEN', '방 밖 사람은 품목 지정을 바꿀 수 없다');
+
+select pg_temp.as_user('b');
+select throws_ok(format(
+  $q$select public.set_item_assignees(%L, jsonb_build_object(
+       (select i.id::text from public.expense_items i where i.expense_id = %L limit 1),
+       jsonb_build_array(%L::text)))$q$,
+  current_setting('t.e5'), current_setting('t.e5'), pg_temp.q('0')),
+  'P0001', 'MEMBER_LEFT', '이 지출의 대상이 아닌 사람(다른 정산의 QR 참여자)은 품목에 넣을 수 없다');
 
 select * from finish();
 rollback;

@@ -810,6 +810,12 @@ export const api = {
     );
   },
 
+  // 지출 상세에서 '누가 뭘 먹었는지'만 바꾼다. 금액·환율·대상 인원은 그대로 둔다.
+  // 값이 빈 배열인 품목은 지정을 지운다(= 대상 인원 전원 1/N).
+  async setItemAssignees(expenseId: ExpenseId, assign: Record<string, MemberId[]>): Promise<void> {
+    unwrap(await supabase.rpc('set_item_assignees', { p_expense_id: expenseId, p_assign: assign }));
+  },
+
   async roomSpotSettles(roomId: RoomId): Promise<SpotSettle[]> {
     const rows = unwrap(await supabase.rpc('room_spot_settles', { p_room_id: roomId }));
     return (rows as unknown[]).map(toSpotSettle);

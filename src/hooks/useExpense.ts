@@ -36,6 +36,20 @@ export function useUpdateExpense() {
   });
 }
 
+// 품목별 '누가 먹었는지'만 저장한다. 금액을 건드리지 않으므로 save_expense를 거치지 않는다.
+// QR 참여자 몫도 이 지정에서 나오므로 방 잔액까지 같이 무효화한다.
+export function useSetItemAssignees(roomId: RoomId, expenseId: ExpenseId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (assign: Record<string, MemberId[]>) => api.setItemAssignees(expenseId, assign),
+    onSuccess: () => {
+      for (const queryKey of [['expense', expenseId], ['room', roomId], ['rooms']]) {
+        qc.invalidateQueries({ queryKey });
+      }
+    },
+  });
+}
+
 // 정산 전 확인 단계(명세 4): 내 '나만 보기' 지출. feed 아래 키를 쓰지 않아 Realtime 무효화에 흔들리지 않는다.
 export function useMyPrivateExpenses(roomId: RoomId) {
   return useQuery({ queryKey: ['room', roomId, 'privateExpenses'], queryFn: () => api.myPrivateExpenses(roomId) });

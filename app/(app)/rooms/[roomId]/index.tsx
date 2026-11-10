@@ -233,6 +233,8 @@ export default function RoomHome() {
     router.push({ pathname, params: { roomId } });
   // 패키지 연동 방은 일정표가 기본, 아니면 지출 내역만 있다(프로토타입 showSchedule/showFlat).
   const showSchedule = linked && view !== 'exp';
+  // 가입 안내는 직접 만든 방에서만 — 패키지 연동 방은 동행이 예약으로 정해져 있다.
+  const needJoinHint = !together && !linked;
   const selectedDay = days.find((d) => d.key === day) ?? days[0];
   // 순잔액 부호: 음수면 내가 보낼 돈(홈 카드와 같은 규칙).
   const net = room.myNet;
@@ -350,14 +352,14 @@ export default function RoomHome() {
       style={{ zIndex: 1, boxShadow: scrolled ? '0 6px 14px -8px rgba(19,25,39,.22)' : undefined }}
     >
       {summary}
-      {(offline || !together || hasDraft || pending.length > 0) && (
+      {(offline || needJoinHint || hasDraft || pending.length > 0) && (
         <View className="-mt-2.5 gap-2 px-5 pb-3.5">
           {offline && (
             <View className="rounded-input border border-warning-line bg-warning-banner px-4 py-3">
               <Text className="text-[13px] text-warning-deep">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
             </View>
           )}
-          {!together && <Text className="px-1 text-[13px] text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>}
+          {needJoinHint && <Text className="px-1 text-[13px] text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>}
           {hasDraft && (
             <Banner
               text="작성 중인 지출 1건 · 이어서 쓰기"

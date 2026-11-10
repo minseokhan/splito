@@ -10,6 +10,7 @@ import type { BudgetPlan, Krw } from '@/types/domain';
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
 import { formatKrw } from './Money';
+import { formatManwon } from '@/lib/money';
 import { PrimaryButton } from './PrimaryButton';
 
 /** AI 예산 코칭 카드(명세 §5). 문구는 src/lib/budget.ts coachCard가 정한다. */
@@ -99,10 +100,14 @@ export function CoachSheet({ visible, onClose, n, per, plans, loading, onRefresh
                 </View>
                 <View className="flex-row gap-1">
                   {ALLOC_CATEGORIES.map((code) => (
-                    <View key={code} className={`flex-1 items-center rounded-[10px] py-1.5 ${on ? 'bg-sky-100' : 'bg-muted'}`}>
+                    // 높이는 내용에 맡기지 않고 고정한다 — 금액 자릿수가 달라도 타일 5개가 같은 크기로 선다.
+                    <View
+                      key={code}
+                      className={`h-[64px] flex-1 items-center justify-center gap-1 rounded-[10px] ${on ? 'bg-sky-100' : 'bg-muted'}`}
+                    >
                       <Text className="text-[11px] text-ink-400">{categoryLabel(code)}</Text>
-                      <Text className={`font-semibold text-[13px] ${on ? 'text-primary-text' : 'text-ink'}`}>
-                        {formatKrw(plan.perDay[code] ?? 0)}
+                      <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink'}`}>
+                        {formatManwon(plan.perDay[code] ?? 0)}
                       </Text>
                     </View>
                   ))}
