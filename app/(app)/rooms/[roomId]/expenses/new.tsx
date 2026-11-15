@@ -3,7 +3,7 @@ import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-spe
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
+import { Camera, EditPencil, Lock, MediaImage, MessageText, Microphone, NavArrowRight, Sparks } from 'iconoir-react-native';
 import { Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,13 +11,16 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
 import { ParsingState } from '@/components/ParsingState';
+import { PassSheet } from '@/components/PassSheets';
 import { ScheduleChip } from '@/components/ScheduleChip';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
+import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useScheduleItems } from '@/hooks/useBooking';
-import { useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
+import { aiChip, DEMO_AI_USED, FREE_AI_LIMIT, type PassReason } from '@/lib/pass';
 import { autoSelectPayer } from '@/lib/pool';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
@@ -56,6 +59,7 @@ export default function NewExpense() {
   const { session, profile, refreshProfile } = useAuth();
   const { data: room } = useRoom(roomId);
   const { data: members } = useRoomMembers(roomId);
+  const { data: passRec, isSuccess: passLoaded } = useRoomPass(roomId);
 
   const [expenseId] = useState(uuidV4);
   const [phase, setPhase] = useState<Phase>({ kind: 'input' });
@@ -89,7 +93,16 @@ export default function NewExpense() {
   }, [listening]);
   useEffect(() => () => ExpoSpeechRecognitionModule.abort(), []);
 
-  if (!method) return <MethodPicker onSelect={setPicked} scheduleTitle={scheduleTitle} />;
+  if (!method)
+    return (
+      <MethodPicker
+        onSelect={setPicked}
+        scheduleTitle={scheduleTitle}
+        owner={room?.owner_id === session?.user.id}
+        memberCount={members?.filter((m) => !m.leftAt).length ?? 1}
+        pass={passLoaded ? !!passRec : undefined}
+      />
+    );
 
   const me = members?.find((m) => m.userId === session?.user.id && !m.leftAt);
   if (!room || !members || !me || profile === undefined) return null;
@@ -395,7 +408,24 @@ const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typ
 ];
 
 // 시안 10: 지출 올리기 방법 선택(전체 화면).
-function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) => void; scheduleTitle?: string }) {
+const CHIP_TONE = {
+  free: { box: 'bg-muted', fg: colors.ink[500], text: 'text-ink-500', icon: Sparks },
+  out: { box: 'bg-warning-badge', fg: colors.warning.DEFAULT, text: 'text-warning', icon: Lock },
+  pass: { box: 'bg-sky-100', fg: colors.primary.text, text: 'text-primary-text', icon: Sparks },
+} as const;
+
+// pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined(칩을 그리지 않는다).
+type PickerProps = { onSelect: (m: InputMethod) => void; scheduleTitle?: string; owner: boolean; memberCount: number; pass?: boolean };
+
+function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn }: PickerProps) {
+  const toast = useToast();
+  // 무료 AI 인식 한도(방당 5건). ponytail: 건수 데이터가 아직 없어 시안 값(DEMO_AI_USED)을 쓴다.
+  const used = DEMO_AI_USED;
+  const out = !passOn && used >= FREE_AI_LIMIT;
+  const chip = aiChip(used, !!passOn);
+  const tone = CHIP_TONE[chip.tone];
+  const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
+  const select = (m: InputMethod) => (out && m !== 'manual' ? setPass({ reason: 'ai' }) : onSelect(m));
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <NavBar close />
@@ -407,11 +437,22 @@ function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) 
           </Text>
           <Text className="text-[17px] text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
         </View>
+        {passOn !== undefined && (
+          <Pressable
+            accessibilityRole="button"
+            disabled={passOn}
+            onPress={() => setPass({ reason: out ? 'ai' : null })}
+            className={`-mt-2 h-8 flex-row items-center gap-1.5 self-start rounded-full px-3 ${tone.box}`}
+          >
+            <Icon as={tone.icon} size={15} color={tone.fg} />
+            <Text className={`font-semibold text-[13px] ${tone.text}`}>{chip.text}</Text>
+          </Pressable>
+        )}
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="영수증 사진으로 지출 추가"
-          onPress={() => onSelect('photo')}
+          onPress={() => select('photo')}
           className="flex-row items-center gap-4 rounded-card-lg bg-primary p-[22px] active:bg-primary-press"
         >
           <View className="h-14 w-14 items-center justify-center rounded-[18px] bg-white">
@@ -430,7 +471,7 @@ function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) 
               key={m.method}
               accessibilityRole="button"
               accessibilityLabel={m.a11y}
-              onPress={() => onSelect(m.method)}
+              onPress={() => select(m.method)}
               className={`flex-1 items-center justify-center gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
             >
               <Icon as={m.icon} size={24} color={m.iconColor} />
@@ -441,6 +482,21 @@ function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) 
           ))}
         </View>
       </ScrollView>
+      <PassSheet
+        visible={!!pass}
+        reason={pass?.reason}
+        owner={owner}
+        memberCount={memberCount}
+        onClose={() => setPass(null)}
+        onPay={() => {
+          setPass(null);
+          toast('결제는 곧 열려요');
+        }}
+        onRequest={() => {
+          setPass(null);
+          toast('방장에게 결제 요청을 보냈어요');
+        }}
+      />
     </SafeAreaView>
   );
 }

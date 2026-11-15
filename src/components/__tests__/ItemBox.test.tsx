@@ -27,6 +27,16 @@ describe('ItemBox 먹은 사람 펼침', () => {
     expect(onExpand).toHaveBeenCalled();
   });
 
+  it('접혀 있어도 고른 사람이 모두 겹친 원으로 보인다', async () => {
+    const three = [...people, { id: 'm3', name: '지훈', colorIndex: 2, guest: false, on: false }];
+    await render(<ItemBox {...base} people={three} expanded={false} onExpand={jest.fn()} />);
+
+    expect(screen.getByText('서')).toBeOnTheScreen();
+    expect(screen.getByText('한')).toBeOnTheScreen();
+    expect(screen.getByText('지')).toBeOnTheScreen();
+    expect(screen.queryByText('+2')).toBeNull();
+  });
+
   it('읽기 전용에서 펼치면 지정이 없어도 전원이 먹은 모양으로 보인다', async () => {
     await render(<ItemBox {...base} people={people} expanded />);
 

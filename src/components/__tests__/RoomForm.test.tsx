@@ -26,6 +26,19 @@ describe('RoomForm', () => {
     expect(screen.getByText('10월 25일')).toBeTruthy();
   });
 
+  it('기본 통화는 칩 대신 선택 칸 하나로 보이고, 목록에서 고르면 바뀐다', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await setup(onSubmit);
+    expect(screen.queryByText('USD')).toBeNull(); // 펼치기 전엔 다른 통화가 안 보인다
+    expect(screen.getByText('🇯🇵')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('기본 통화 고르기'));
+    expect(screen.getByText('🇺🇸')).toBeTruthy();
+    expect(screen.getByText('🇪🇺')).toBeTruthy(); // 유로는 나라 대신 EU 깃발
+    await fireEvent.press(screen.getByLabelText('미국 달러'));
+    await fireEvent.press(screen.getByText('저장'));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ baseCurrency: 'USD' })));
+  });
+
   it('이름을 고쳐 저장하면 앞뒤 공백을 떼고 넘긴다', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     await setup(onSubmit);

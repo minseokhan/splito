@@ -35,7 +35,9 @@ const config: ExpoConfig = {
     ],
   },
   web: {
-    output: "static",
+    // "static"이면 dev 서버가 웹 요청마다 서버 렌더를 돌고, supabase 세션 저장소가 window를 만지다 Metro째 죽는다.
+    // 앱은 웹으로 배포하지 않는다(랜딩은 web/ 정적 HTML). SPA로 두면 서버 렌더가 없다.
+    output: "single",
     favicon: "./assets/images/favicon.png",
   },
   plugins: [

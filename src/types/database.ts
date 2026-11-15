@@ -421,6 +421,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"room_passes": {
+                  Row: {
+                    "amount_krw": number,"method": string | null,"paid_by_member_id": string,"purchased_at": string,"room_id": string,"split": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_krw"?: number,"method"?: string | null,"paid_by_member_id": string,"purchased_at"?: string,"room_id": string,"split"?: boolean
+                  }
+                  Update: {
+                    "amount_krw"?: number,"method"?: string | null,"paid_by_member_id"?: string,"purchased_at"?: string,"room_id"?: string,"split"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_passes_paid_by_member_id_fkey"
+      columns: ["paid_by_member_id"]
+isOneToOne: false
+      referencedRelation: "room_members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_passes_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: true
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"room_members": {
                   Row: {
                     "created_at": string,"created_by": string | null,"guest_name": string | null,"id": string,"joined_at": string,"kind": string,"left_at": string | null,"removed_by": string | null,"representative_member_id": string | null,"room_id": string,"spot_only": boolean,"user_id": string | null
@@ -897,6 +923,11 @@ isOneToOne: false
 "expense_history":
 { Args: { "p_expense_id": string }; Returns: Json[]
                            },
+"export_expense_shares":
+{ Args: { "p_room_id": string }; Returns: {
+              "expense_id": string,"member_id": string,"share": number
+            }[]
+                           },
 "get_payout_account":
 { Args: { "p_owner_member_id": string,"p_room_id": string }; Returns: {
               "account_masked": string,"account_number": string,"bank_name": string,"holder_name": string,"registered": boolean
@@ -969,6 +1000,9 @@ isOneToOne: false
                            },
 "room_spot_settles":
 { Args: { "p_room_id": string }; Returns: Json[]
+                           },
+"remove_member":
+{ Args: { "p_member_id": string,"p_room_id": string }; Returns: undefined
                            },
 "rotate_invite":
 { Args: { "p_room_id": string }; Returns: string

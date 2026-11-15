@@ -43,6 +43,7 @@ import {
   removeItem,
   setAssignees,
   splitItem,
+  splitLabel,
   toDupInput,
   toSavePayload,
   updateItem,
@@ -335,12 +336,12 @@ export default function ReviewExpense() {
           }),
         )
       : null;
-  const splitLabel = (i: number) => {
+  const itemSplitLabel = (i: number) => {
     const it = draft.items[i];
     const n = it.assigneeMemberIds.length;
     if (!n) return '전원 1/N';
     const per = preview ? formatKrw(floorDiv(preview.boxKrw[i], n)) : formatForeign(perPersonOriginal(it.amountOriginal, n), draft.currency);
-    return `${n}명 · 1인 ${per}`;
+    return splitLabel(n, active.length, per);
   };
   const toggleAssignee = (itemId: string, memberId: string) =>
     update((d) => {
@@ -565,7 +566,7 @@ export default function ReviewExpense() {
               needsReview={it.needsReview}
               isKrw={isKrw}
               people={multi ? active.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
-              splitLabel={multi ? splitLabel(i) : ''}
+              splitLabel={multi ? itemSplitLabel(i) : ''}
               expanded={!collapsed.includes(it.id)}
               onExpand={() => setCollapsed((c) => c.filter((x) => x !== it.id))}
               onCollapse={() => setCollapsed((c) => [...c, it.id])}

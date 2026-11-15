@@ -32,6 +32,7 @@ module.exports = {
         'card-line': '#ECEEF2',
         // 내 통계 화면 배경 / 오늘 금액 박스 바탕.
         stats: { bg: '#F5F7FB', box: '#F7F8FB', line: '#D2DCEF' },
+        pass: { star: '#F2B705', from: '#2A4FB0', to: '#0E2A6B', sub: '#C9D4F2' },
       },
       borderRadius: {
         badge: '8px',

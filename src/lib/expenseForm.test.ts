@@ -5,6 +5,7 @@ import {
   emptyDraft,
   kstToday,
   perPersonOriginal,
+  splitLabel,
   mergePayload,
   parseAmountInput,
   previewKrw,
@@ -424,5 +425,14 @@ describe('draftFromExpense', () => {
   it('모르는 카테고리는 기타로 접는다', () => {
     expect(draftFromExpense({ ...saved, category: 'nope' as never }).category).toBe('other');
     expect(draftFromExpense({ ...saved, category: null }).category).toBe('other');
+  });
+});
+
+describe('splitLabel', () => {
+  it('일부만 고르면 인원 · 1인 금액', () => {
+    expect(splitLabel(3, 4, '5,007원')).toBe('3명 · 1인 5,007원');
+  });
+  it('고를 수 있는 사람을 모두 고르면 전원을 붙인다', () => {
+    expect(splitLabel(4, 4, '3,755원')).toBe('전원 4명 · 1인 3,755원');
   });
 });

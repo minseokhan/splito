@@ -194,6 +194,10 @@ export const api = {
     unwrap(await supabase.rpc('delete_room', { p_room_id: roomId }));
   },
 
+  async removeMember(input: { roomId: RoomId; memberId: MemberId }): Promise<void> {
+    unwrap(await supabase.rpc('remove_member', { p_room_id: input.roomId, p_member_id: input.memberId }));
+  },
+
   async previewInvite(token: string): Promise<InvitePreview> {
     const r = unwrap(await supabase.rpc('preview_invite', { p_token: token })) as {
       room_id: string;
@@ -305,6 +309,11 @@ export const api = {
 
   async room(roomId: RoomId): Promise<Room> {
     return unwrap(await supabase.from('rooms').select('*').eq('id', roomId).single());
+  },
+
+  // 여행 패스 구매 기록. 없으면 null(무료 이용 중).
+  async roomPass(roomId: RoomId): Promise<Tables<'room_passes'> | null> {
+    return unwrap(await supabase.from('room_passes').select('*').eq('room_id', roomId).maybeSingle());
   },
 
   // 비용 때문에 자동 재시도하지 않는다(ARCHITECTURE §5.2). 사용자가 signal로 취소하면 원래 에러를 그대로 던진다.

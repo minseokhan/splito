@@ -251,6 +251,12 @@ export function kstToday(now: Date): string {
   return new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
 }
 
+// 품목 박스 오른쪽 "3명 · 1인 5,007원". 고를 수 있는 사람을 모두 고르면 "전원 4명 · 1인 3,755원".
+// 아무도 안 고른 경우('전원 1/N')는 화면이 따로 쓴다.
+export function splitLabel(n: number, total: number, per: string): string {
+  return `${n === total ? '전원 ' : ''}${n}명 · 1인 ${per}`;
+}
+
 // 사람 지정 시트의 "1인 ¥1,640"(미리보기). 원화 확정 분담은 서버가 한다.
 export function perPersonOriginal(amountOriginal: number, n: number): number {
   return fromMilli(splitEvenly(toMilli(amountOriginal), n).perPerson);

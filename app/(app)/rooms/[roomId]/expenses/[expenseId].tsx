@@ -21,7 +21,7 @@ import { useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useRoomMembers } from '@/hooks/useRooms';
 import { commentSchema } from '@/lib/activity';
 import { toUserError, type UserError } from '@/lib/errors';
-import { perPersonOriginal } from '@/lib/expenseForm';
+import { perPersonOriginal, splitLabel } from '@/lib/expenseForm';
 import { payerRecorderLabel } from '@/lib/feed';
 import { diffSnapshots, historyStamp } from '@/lib/history';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
@@ -245,7 +245,7 @@ export default function ExpenseDetailScreen() {
                 isKrw={e.currency === 'KRW'}
                 needsReview={it.needs_review}
                 people={scopePeople.length > 1 ? scopePeople.map((p) => ({ ...p, on: assigned.has(p.id) })) : []}
-                splitLabel={scopePeople.length > 1 ? (n ? `${n}명 · 1인 ${per}` : '전원 1/N') : ''}
+                splitLabel={scopePeople.length > 1 ? (n ? splitLabel(n, scopePeople.length, per) : '전원 1/N') : ''}
                 expanded={openItems.includes(it.id)}
                 onExpand={() => setOpenItems((s) => [...s, it.id])}
                 onCollapse={() => setOpenItems((s) => s.filter((x) => x !== it.id))}

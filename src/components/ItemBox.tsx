@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { colors, memberColor } from '@/theme/tokens';
 
-import type { AvatarPerson } from './AvatarStack';
+import { AvatarStack, type AvatarPerson } from './AvatarStack';
 import { Badge } from './Badge';
 import { Icon } from './Icon';
 
@@ -178,21 +178,7 @@ export function ItemBox(p: Props) {
               accessibilityLabel={pick ? '먹은 사람 고르기' : '먹은 사람 보기'}
               className="flex-row items-center gap-1.5 self-start rounded-full bg-app py-0.5 pl-0.5 pr-2.5"
             >
-              {selected.slice(0, 1).map((m) => {
-                const c = memberColor(m.colorIndex);
-                return (
-                  <View
-                    key={m.id}
-                    style={{ backgroundColor: c.tint, borderStyle: m.guest ? 'dashed' : 'solid', boxShadow: '0 1px 3px rgba(19,25,39,.12)' }}
-                    className="h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-white"
-                  >
-                    <Text style={{ color: c.fg }} className="font-semibold text-sm">
-                      {m.name.slice(0, 1)}
-                    </Text>
-                  </View>
-                );
-              })}
-              {selected.length > 1 && <Text className="font-semibold text-[13px] text-ink-500">+{selected.length - 1}</Text>}
+              <AvatarStack people={selected} size={34} ring="#FFFFFF" />
               {!!p.onExpand && <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />}
             </Pressable>
           ))}
