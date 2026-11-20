@@ -95,11 +95,11 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
     <View className="gap-4">
         <View className="flex-row items-baseline justify-between">
           <Text className="font-semibold text-xl text-ink">{editing ? '일정 수정' : '일정 추가'}</Text>
-          {!editing && <Text className="text-[13px] text-ink-400">{days.find((d) => d.dayIndex === dayIndex)?.label ?? ''}</Text>}
+          {!editing && <Text className="text-13 text-ink-400">{days.find((d) => d.dayIndex === dayIndex)?.label ?? ''}</Text>}
         </View>
 
         <View className="gap-1.5">
-          <Text className="font-semibold text-[13px] text-ink-500">일정 이름</Text>
+          <Text className="font-semibold text-13 text-ink-500">일정 이름</Text>
           <TextField
             value={title}
             onChangeText={setTitle}
@@ -112,7 +112,7 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
 
         {editing && (
           <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">날짜</Text>
+            <Text className="font-semibold text-13 text-ink-500">날짜</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
               {days.map((d) => {
                 const on = d.dayIndex === dayIndex;
@@ -123,9 +123,9 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
                     accessibilityState={{ checked: on }}
                     onPress={() => setDayIndex(d.dayIndex)}
                     className={`h-8 justify-center rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-white'}`}
-                    style={{ borderWidth: 1.5, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
+                    style={{ borderWidth: 1, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
                   >
-                    <Text className={`font-semibold text-[13px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>{d.label}</Text>
+                    <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink-500'}`}>{d.label}</Text>
                   </Pressable>
                 );
               })}
@@ -135,7 +135,7 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
 
         {full && (
           <View className="gap-1.5">
-            <Text className="font-semibold text-[13px] text-ink-500">시간 (선택)</Text>
+            <Text className="font-semibold text-13 text-ink-500">시간 (선택)</Text>
             <View className="w-28">
               <TextField
                 value={time}
@@ -147,13 +147,13 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
                 accessibilityLabel="시간"
               />
             </View>
-            {timeInvalid && <Text className="text-[13px] text-danger">시간은 0:00~23:59로 적어주세요.</Text>}
+            {timeInvalid && <Text className="text-13 text-danger">시간은 0:00~23:59로 적어주세요.</Text>}
           </View>
         )}
 
         {full && (
         <View className="gap-2">
-          <Text className="font-semibold text-[13px] text-ink-500">포함 사항</Text>
+          <Text className="font-semibold text-13 text-ink-500">포함 사항</Text>
           <View className="flex-row flex-wrap gap-1.5">
             {INCLUDE_OPTIONS.map((l) => {
               const on = includes.includes(l);
@@ -164,9 +164,9 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
                   accessibilityState={{ checked: on }}
                   onPress={() => setIncludes((v) => (on ? v.filter((x) => x !== l) : [...v, l]))}
                   className={`h-8 justify-center rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-white'}`}
-                  style={{ borderWidth: 1.5, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
+                  style={{ borderWidth: 1, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
                 >
-                  <Text className={`font-semibold text-[13px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>{l}</Text>
+                  <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink-500'}`}>{l}</Text>
                 </Pressable>
               );
             })}
@@ -181,7 +181,7 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
           className="flex-row items-center justify-between rounded-input bg-app px-3.5 py-3"
         >
           <View>
-            <Text className="font-semibold text-[15px] text-ink">선택관광</Text>
+            <Text className="font-semibold text-15 text-ink">선택관광</Text>
             <Text className="text-xs text-ink-400">현지에서 따로 결제하는 일정이에요</Text>
           </View>
           <Toggle on={optional} onPress={() => setOptional((v) => !v)} />
@@ -191,7 +191,7 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
         {full && optional && (
           <View className="flex-row items-center gap-2.5">
             <Text className="flex-1 text-sm text-ink-500">예정 금액</Text>
-            <View className="h-11 w-40 flex-row items-center gap-1 rounded-chip border-[1.5px] border-line px-3">
+            <View className="h-11 w-40 flex-row items-center gap-1 rounded-chip border border-line px-3">
               <TextInput
                 value={est}
                 onChangeText={(t) => setEst(withCommas(Number(t.replace(/[^0-9]/g, '')) || 0))}
@@ -199,9 +199,9 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
                 placeholderTextColor={colors.ink[300]}
                 keyboardType="number-pad"
                 accessibilityLabel="예정 금액"
-                className="min-w-0 flex-1 text-right font-semibold text-[15px] text-ink"
+                className="min-w-0 flex-1 text-right font-semibold text-15 text-ink"
               />
-              <Text className="font-semibold text-[15px] text-ink">원</Text>
+              <Text className="font-semibold text-15 text-ink">원</Text>
             </View>
           </View>
         )}

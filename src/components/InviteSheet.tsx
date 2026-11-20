@@ -62,7 +62,7 @@ export function InviteOptions({ roomId, onAddGuest }: Props) {
       <Pressable
         accessibilityRole="button"
         onPress={addGuest}
-        className="flex-row items-center gap-3 rounded-button border-[1.5px] border-line p-3.5 active:bg-app"
+        className="flex-row items-center gap-3 rounded-button border border-line p-3.5 active:bg-app"
       >
         <Icon as={UserPlus} size={22} color={colors.primary.text} />
         <View className="flex-1 gap-0.5">
@@ -85,7 +85,7 @@ function Tile({ label, icon, bg, fg, text, onPress }: TileProps) {
       className={`flex-1 items-center gap-2 rounded-box px-2 py-4 active:translate-y-px ${bg}`}
     >
       <Icon as={icon} size={24} color={fg} />
-      <Text className={`font-semibold text-[13px] ${text}`}>{label}</Text>
+      <Text className={`font-semibold text-13 ${text}`}>{label}</Text>
     </Pressable>
   );
 }

@@ -139,7 +139,7 @@ export default function Settings() {
             </Text>
             <View className="flex-row items-center gap-1.5">
               <View className={`h-4 w-4 rounded-full ${naver ? 'bg-naver' : 'bg-kakao'}`} />
-              <Text className="text-[13px] text-ink-400">{naver ? '네이버로 로그인' : '카카오로 로그인'}</Text>
+              <Text className="text-13 text-ink-400">{naver ? '네이버로 로그인' : '카카오로 로그인'}</Text>
             </View>
           </View>
           <Pressable accessibilityRole="button" onPress={openEdit} hitSlop={8}>
@@ -175,9 +175,9 @@ export default function Settings() {
           maxLength={12}
           placeholder="1~12자"
           autoFocus
-          right={<Text className="font-medium text-[13px] text-ink-400">{`${nickname.length}/12`}</Text>}
+          right={<Text className="font-medium text-13 text-ink-400">{`${nickname.length}/12`}</Text>}
         />
-        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+        {error && <Text className="text-13 text-danger">{error}</Text>}
         <PrimaryButton title="저장" disabled={!nicknameSchema.safeParse(nickname).success} loading={saving} onPress={saveNickname} />
       </BottomSheet>
     </SafeAreaView>

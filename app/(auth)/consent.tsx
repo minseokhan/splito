@@ -32,7 +32,7 @@ const OVERSEAS = [
 
 function Row({ children, onMore, moreLabel }: { children: ReactNode; onMore?: () => void; moreLabel?: string }) {
   return (
-    <View className="flex-row items-center gap-3 px-3">
+    <View className="flex-row items-center gap-3 px-3 py-[3px]">
       {children}
       {onMore && (
         <Pressable accessibilityRole="button" accessibilityLabel={moreLabel} onPress={onMore} hitSlop={8} className="p-1">
@@ -85,7 +85,7 @@ export default function Consent() {
         </View>
 
         <View className="gap-2">
-          <Text className="font-semibold text-[13px] text-ink-500">닉네임</Text>
+          <Text className="font-semibold text-13 text-ink-500">닉네임</Text>
           <Controller
             control={control}
             name="nickname"
@@ -98,14 +98,14 @@ export default function Consent() {
                 maxLength={12}
                 placeholder="1~12자"
                 invalid={!!fieldState.error && fieldState.isDirty}
-                right={<Text className="font-medium text-[13px] text-ink-400">{`${field.value.length}/12`}</Text>}
+                right={<Text className="font-medium text-13 text-ink-400">{`${field.value.length}/12`}</Text>}
               />
             )}
           />
         </View>
 
-        <View className="rounded-box bg-app p-1.5">
-          <View className="rounded-input bg-white px-3 py-1.5" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.08)' }}>
+        <View className="rounded-input bg-app p-1.5">
+          <View className="rounded-card bg-white px-3 py-[5px]" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.08)' }}>
             <Checkbox label="전체 동의하기" round bold checked={all} onChange={(c) => ALL.forEach((k) => set(k, c))} />
           </View>
           <Row moreLabel="서비스 이용약관 보기" onMore={() => Linking.openURL(`https://${LINK_DOMAIN}/terms`)}>
@@ -120,12 +120,12 @@ export default function Consent() {
           {open && (
             <View className="gap-1 px-3 pb-2 pl-11">
               {OVERSEAS.map((line) => (
-                <Text key={line} className="text-[13px] text-ink-500">
+                <Text key={line} className="text-13 text-ink-500">
                   · {line}
                 </Text>
               ))}
               <Pressable accessibilityRole="link" className="h-9 justify-center" onPress={() => Linking.openURL(`https://${LINK_DOMAIN}/privacy`)}>
-                <Text className="font-semibold text-[13px] text-primary-text">개인정보 처리방침 전문 보기</Text>
+                <Text className="font-semibold text-13 text-primary-text">개인정보 처리방침 전문 보기</Text>
               </Pressable>
             </View>
           )}
@@ -134,12 +134,12 @@ export default function Consent() {
           </Row>
         </View>
 
-        <Text className="text-[13px] text-ink-400">
+        <Text className="text-13 text-ink-400">
           영수증은 기기에서 글자만 읽어 Anthropic(미국)으로 보내요. 글자를 읽지 못하면 사진을 보내요. 받을 계좌는 나중에 등록해도 돼요.
         </Text>
       </ScrollView>
       <BottomBar>
-        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+        {error && <Text className="text-13 text-danger">{error}</Text>}
         <PrimaryButton title="시작하기" disabled={!formState.isValid} loading={formState.isSubmitting} onPress={submit} />
       </BottomBar>
     </SafeAreaView>

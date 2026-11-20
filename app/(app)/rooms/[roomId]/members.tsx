@@ -35,7 +35,7 @@ export default function Members() {
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="멤버" align="center" />
       <ScrollView contentContainerClassName="gap-2.5 px-5 pt-2" contentContainerStyle={{ paddingBottom: 200 }}>
-        <Text className="px-1 font-semibold text-[13px] text-ink-500">참여자 {active.length}명</Text>
+        <Text className="px-1 font-semibold text-13 text-ink-500">참여자 {active.length}명</Text>
         <View className="rounded-card bg-white px-4 py-1" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
           {active.map((m, i) => {
             const guest = m.kind === 'guest';

@@ -51,7 +51,7 @@ export function ItemBox(p: Props) {
 
   return (
     <View
-      className={`gap-3 rounded-card border-[1.5px] bg-white p-4 ${p.needsReview ? 'border-warning-line' : 'border-transparent'}`}
+      className={`gap-3 rounded-card border bg-white p-4 ${p.needsReview ? 'border-warning-line' : 'border-transparent'}`}
     >
       {p.onRemove && (
         <Pressable
@@ -61,7 +61,7 @@ export function ItemBox(p: Props) {
           // 24px 원이라 hitSlop 10으로 터치 영역을 44 이상으로 맞춘다.
           hitSlop={10}
           style={{ boxShadow: '0 2px 6px -2px rgba(23,32,58,.18)' }}
-          className="absolute -right-2 -top-2 z-10 h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-line bg-white"
+          className="absolute -right-2 -top-2 z-10 h-6 w-6 items-center justify-center rounded-full border border-line bg-white"
         >
           <Icon as={Xmark} size={14} color={colors.ink[400]} />
         </Pressable>
@@ -99,15 +99,15 @@ export function ItemBox(p: Props) {
               keyboardType="numbers-and-punctuation"
               accessibilityLabel="품목 금액"
               style={TABULAR}
-              className={`min-w-[56px] p-0 text-right font-semibold text-[18px] leading-[23px] focus:bg-sky-50 ${mainCls}`}
+              className={`min-w-[56px] p-0 text-right font-semibold text-lg leading-[23px] focus:bg-sky-50 ${mainCls}`}
             />
           ) : (
-            <Text style={TABULAR} className={`font-semibold text-[18px] leading-[23px] ${mainCls}`}>
+            <Text style={TABULAR} className={`font-semibold text-lg leading-[23px] ${mainCls}`}>
               {mainLabel}
             </Text>
           )}
           {!p.isKrw && !!p.krwLabel && (
-            <Text style={TABULAR} className="text-[13px] text-ink-300">
+            <Text style={TABULAR} className="text-13 text-ink-300">
               {p.krwLabel}
             </Text>
           )}
@@ -135,7 +135,7 @@ export function ItemBox(p: Props) {
                 </View>
               ))}
             </View>
-            <Text className="min-w-0 flex-1 font-semibold text-[13px] text-ink-700">{p.splitLabel}</Text>
+            <Text className="min-w-0 flex-1 font-semibold text-13 text-ink-700">{p.splitLabel}</Text>
             {p.onMerge ? (
               <Pressable accessibilityRole="button" onPress={p.onMerge} hitSlop={8} className="flex-row items-center gap-[3px] pr-1">
                 <Icon as={GitMerge} size={15} color={colors.primary.text} />
@@ -170,7 +170,7 @@ export function ItemBox(p: Props) {
                       borderColor: on ? c.tint : colors['card-line'],
                       borderStyle: m.guest ? 'dashed' : 'solid',
                     }}
-                    className="h-[34px] flex-row items-center gap-1.5 rounded-full border-[1.5px] pl-[3px] pr-[11px]"
+                    className="h-[34px] flex-row items-center gap-1.5 rounded-full border pl-[3px] pr-[11px]"
                   >
                     <View
                       style={{ backgroundColor: on ? c.fg : colors.muted }}
@@ -180,7 +180,7 @@ export function ItemBox(p: Props) {
                         {m.name.slice(0, 1)}
                       </Text>
                     </View>
-                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-[13px]">
+                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-13">
                       {m.name}
                     </Text>
                   </Pressable>

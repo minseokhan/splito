@@ -9,7 +9,6 @@ import { z } from 'zod';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
-import { SplitoMark } from '@/components/Logo';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { TextField } from '@/components/TextField';
@@ -42,9 +41,9 @@ function Notes() {
       {lines.map((l) => (
         <View key={l.text} className="flex-row items-start gap-2.5">
           <View className="mt-px">
-            <Icon as={l.icon} size={22} color={colors.primary.text} />
+            <Icon as={l.icon} size={20} color={colors.primary.text} />
           </View>
-          <Text className="flex-1 text-[15px] text-ink-700">{l.text}</Text>
+          <Text className="flex-1 text-sm text-ink-700">{l.text}</Text>
         </View>
       ))}
     </View>
@@ -94,9 +93,9 @@ export default function PayoutAccountScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="은행 선택"
                 onPress={() => setBankOpen(true)}
-                className="h-[54px] flex-row items-center justify-between rounded-input border-[1.5px] border-line px-4"
+                className="h-[54px] flex-row items-center justify-between rounded-input border border-line px-4"
               >
-                <Text className={`font-semibold text-[17px] ${bank ? 'text-ink' : 'text-ink-300'}`}>{bank?.name ?? '은행을 골라주세요'}</Text>
+                <Text className={`font-semibold text-17 ${bank ? 'text-ink' : 'text-ink-300'}`}>{bank?.name ?? '은행을 골라주세요'}</Text>
                 <Icon as={NavArrowDown} size={20} color={colors.ink[300]} />
               </Pressable>
             </View>
@@ -129,7 +128,7 @@ export default function PayoutAccountScreen() {
                         placeholder="숫자만 입력해도 돼요"
                         invalid={invalid}
                       />
-                      {invalid && <Text className="text-[13px] text-danger">계좌번호는 숫자 8~20자리로 입력해 주세요</Text>}
+                      {invalid && <Text className="text-13 text-danger">계좌번호는 숫자 8~20자리로 입력해 주세요</Text>}
                     </>
                   );
                 }}
@@ -140,21 +139,16 @@ export default function PayoutAccountScreen() {
         ) : (
           <>
             <View className="gap-7 overflow-hidden rounded-card bg-ink p-[22px]">
-              {/* 어두운 배경 위 흰 실루엣은 10%면 안 보인다. 시안대로 컬러 심볼을 그대로 깐다.
-                  시안처럼 카드 높이의 절반쯤 되는 크기로 오른쪽 아래에 두고 밑동만 살짝 잘리게 한다. */}
-              <View className="absolute" style={{ right: 10, bottom: -10 }}>
-                <SplitoMark size={86} opacity={0.95} />
-              </View>
               <View className="flex-row items-center justify-between">
-                <Text className="font-semibold text-[17px] text-white">{current.bankName}</Text>
+                <Text className="font-semibold text-base text-white">{current.bankName}</Text>
                 <View className="flex-row items-center gap-1 rounded-badge px-2 py-1" style={{ backgroundColor: 'rgba(255,255,255,.14)' }}>
                   <Icon as={Lock} size={13} color="#FFFFFF" />
-                  <Text className="font-semibold text-[13px] text-white">암호화 저장</Text>
+                  <Text className="font-semibold text-xs text-white">암호화 저장</Text>
                 </View>
               </View>
               <View className="gap-1">
-                <Text className="font-semibold text-[26px] text-white">****-****-{current.accountLast4}</Text>
-                <Text className="text-[15px] text-on-dark-sub">예금주 {current.holderName}</Text>
+                <Text className="font-semibold text-xl text-white">****-****-{current.accountLast4}</Text>
+                <Text className="text-sm text-on-dark-sub">예금주 {current.holderName}</Text>
               </View>
             </View>
             <Notes />
@@ -162,7 +156,7 @@ export default function PayoutAccountScreen() {
         )}
       </ScrollView>
       <BottomBar>
-        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+        {error && <Text className="text-13 text-danger">{error}</Text>}
         {showForm ? (
           <PrimaryButton title="저장" disabled={!formState.isValid} loading={formState.isSubmitting} onPress={submit} />
         ) : (

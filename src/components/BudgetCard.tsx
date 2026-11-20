@@ -51,7 +51,7 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
     return (
       <Card gap={12}>
         <Header onEdit={onSetBudget} />
-        <Text className="font-semibold text-[28px] leading-[1.3] text-danger">예산 초과 +{formatKrw(stats.over)}</Text>
+        <Text className="font-semibold text-28 leading-[1.3] text-danger">예산 초과 +{formatKrw(stats.over)}</Text>
         <View className="h-2.5 rounded-full bg-danger" />
       </Card>
     );
@@ -66,17 +66,17 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
     <Card>
       <Header />
       <View>
-        <Text className="text-[13px] text-ink-400">여행 중 쓴 금액</Text>
-        <Text className="font-semibold text-[28px] leading-[1.3] text-ink">{formatKrw(stats.spent)}</Text>
+        <Text className="text-13 text-ink-400">여행 중 쓴 금액</Text>
+        <Text className="font-semibold text-28 leading-[1.3] text-ink">{formatKrw(stats.spent)}</Text>
       </View>
 
       <View className="gap-2 pt-1">
-        <View className="h-2.5 rounded-full bg-muted">
+        <View className="h-2.5 rounded-full bg-line">
           <View style={{ width: `${Math.min(100, pct)}%`, backgroundColor: barColor }} className="h-full rounded-full" />
-          {/* 계획 위치는 검정 점선 세로 마커만. 라벨은 붙이지 않는다(명세 §3-3). */}
+          {/* 계획 위치는 검정 1px 세로 마커만. 라벨은 붙이지 않는다(명세 §3-3). */}
           <View
             pointerEvents="none"
-            style={{ left: `${Math.round(stats.plan * 100)}%`, borderLeftWidth: 2, borderColor: colors.ink.DEFAULT, borderStyle: 'dashed' }}
+            style={{ left: `${Math.round(stats.plan * 100)}%`, borderLeftWidth: 1, borderColor: colors.ink.DEFAULT }}
             className="absolute -bottom-1 -top-1"
           />
         </View>
@@ -111,7 +111,7 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
                   <Icon as={Coins} size={14} color={colors.warning.accent} />
                   <Text className="font-semibold text-xs text-ink-400">오늘 남은 금액</Text>
                 </View>
-                <Text className="font-semibold text-[22px] leading-[1.3] text-warning-accent">{formatKrw(stats.todayLeft)}</Text>
+                <Text className="font-semibold text-22 leading-[1.3] text-warning-accent">{formatKrw(stats.todayLeft)}</Text>
               </View>
               <View className="w-px bg-line" />
               <View className="min-w-0 flex-1 gap-0.5">
@@ -119,10 +119,10 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
                   <Icon as={Calendar} size={14} color={colors.ink[400]} />
                   <Text className="font-semibold text-xs text-ink-400">하루 권장액</Text>
                 </View>
-                <Text className="mt-[3px] font-semibold text-[17px] leading-[1.3] text-ink-500">{formatKrw(stats.rec)}</Text>
+                <Text className="mt-[3px] font-semibold text-17 leading-[1.3] text-ink-500">{formatKrw(stats.rec)}</Text>
               </View>
             </View>
-            <View className="h-1.5 overflow-hidden rounded-full bg-line">
+            <View className="h-1.5 overflow-hidden rounded-full bg-muted">
               <View style={{ width: `${todayPct}%` }} className="h-full rounded-full bg-warning-bar" />
             </View>
           </View>
@@ -133,8 +133,8 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
         <View className={`flex-row items-start gap-2 rounded-chip px-3 py-2.5 ${fast ? 'bg-warning-banner' : 'bg-success-bg'}`}>
           <Icon as={fast ? Sparks : CheckCircle} size={18} color={fast ? colors.warning.accent : colors.success.DEFAULT} />
           <View className="flex-1">
-            <Text className="font-semibold text-[13px] text-ink-700">{cheer.title}</Text>
-            <Text className="text-[13px] text-ink-700">{cheer.body}</Text>
+            <Text className="font-semibold text-13 text-ink-700">{cheer.title}</Text>
+            <Text className="text-13 text-ink-700">{cheer.body}</Text>
           </View>
         </View>
       )}

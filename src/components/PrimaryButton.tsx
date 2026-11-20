@@ -16,7 +16,7 @@ const VARIANT = {
   sky: { box: 'bg-sky-100 active:bg-sky-200', text: 'text-primary-text', icon: colors.primary.text },
   kakao: { box: 'bg-kakao active:bg-[#F2DA00]', text: 'text-kakao-text', icon: colors.kakao.text },
   naver: { box: 'bg-naver active:bg-[#02B350]', text: 'text-white', icon: '#FFFFFF' },
-  danger: { box: 'bg-white border-[1.5px] border-line active:bg-muted', text: 'text-danger-text', icon: colors.danger.text },
+  danger: { box: 'bg-white border border-line active:bg-muted', text: 'text-danger-text', icon: colors.danger.text },
 } as const;
 
 export type ButtonVariant = keyof typeof VARIANT;
@@ -52,7 +52,7 @@ export function PrimaryButton({ title, onPress, disabled, loading, variant = 'pr
       ) : (
         <>
           {icon && <Icon as={icon} size={22} color={disabled ? colors.ink[300] : v.icon} />}
-          <Text className={`font-semibold ${size === 'lg' ? 'text-[17px]' : 'text-base'} ${disabled ? 'text-ink-300' : v.text}`}>
+          <Text className={`font-semibold ${size === 'lg' ? 'text-17' : 'text-base'} ${disabled ? 'text-ink-300' : v.text}`}>
             {title}
           </Text>
         </>

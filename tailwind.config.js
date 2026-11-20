@@ -61,6 +61,26 @@ module.exports = {
         sheet: '20px',
         hero: '28px',
       },
+      // 원본(1a) body line-height 1.6을 글자 크기마다 박는다(RN Text에는 전역 행간이 없다). 값 = 크기 × 1.6 반올림.
+      // 다른 행간이 필요하면 leading-* 클래스가 이긴다.
+      fontSize: {
+        10: ['10px', '16px'],
+        11: ['11px', '18px'],
+        xs: ['12px', '19px'],
+        13: ['13px', '21px'],
+        sm: ['14px', '22px'],
+        15: ['15px', '24px'],
+        base: ['16px', '26px'],
+        17: ['17px', '27px'],
+        lg: ['18px', '29px'],
+        19: ['19px', '30px'],
+        xl: ['20px', '32px'],
+        22: ['22px', '35px'],
+        '2xl': ['24px', '38px'],
+        26: ['26px', '42px'],
+        28: ['28px', '45px'],
+        30: ['30px', '48px'],
+      },
       fontFamily: {
         sans: ['Pretendard-Regular'],
         medium: ['Pretendard-Medium'],

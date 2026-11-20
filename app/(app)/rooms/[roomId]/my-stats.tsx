@@ -190,14 +190,14 @@ export default function MyStats() {
               accessibilityState={{ selected: on, disabled: c.disabled }}
               disabled={c.disabled}
               onPress={() => setDay(c.key)}
-              style={{ borderWidth: 1.5 }}
+              style={{ borderWidth: 1 }}
               className={`h-9 flex-row items-center gap-1 rounded-full px-3.5 ${
-                on ? 'border-ink bg-ink' : c.disabled ? 'border-line bg-transparent' : 'border-line bg-white'
+                on ? 'border-ink bg-ink' : 'border-line bg-white'
               }`}
             >
-              <Text className={`font-semibold text-sm ${on ? 'text-white' : c.disabled ? 'text-ink-300' : 'text-ink'}`}>{c.label}</Text>
+              <Text className={`font-semibold text-sm ${on ? 'text-white' : c.disabled ? 'text-line-off' : 'text-ink-700'}`}>{c.label}</Text>
               {!!c.sub && (
-                <Text className={`font-medium text-xs ${on ? 'text-on-dark-sub' : c.disabled ? 'text-ink-300' : 'text-ink-400'}`}>{c.sub}</Text>
+                <Text className={`font-medium text-xs ${on ? 'text-on-dark-sub' : c.disabled ? 'text-line-off' : 'text-ink-300'}`}>{c.sub}</Text>
               )}
             </Pressable>
           );
@@ -303,14 +303,14 @@ function CategorySheet({ code, onClose, shares, memberName }: CatSheetProps) {
           <Text className="font-semibold text-xl text-ink">{code ? categoryLabel(code) : ''}</Text>
           <Text className="text-sm text-ink-500">{formatKrw(sum)}</Text>
         </View>
-        <Text className="pb-1 text-[13px] text-ink-400">내 몫 기준</Text>
+        <Text className="pb-1 text-13 text-ink-400">내 몫 기준</Text>
         {rows.map((s, i) => (
           <View key={s.expenseId} className={`flex-row items-center gap-3 py-3 ${i < rows.length - 1 ? 'border-b border-line-row' : ''}`}>
             <View className="min-w-0 flex-1">
               <Text numberOfLines={1} className="font-semibold text-base text-ink">
                 {s.merchant ?? '지출'}
               </Text>
-              <Text className="text-[13px] text-ink-400">
+              <Text className="text-13 text-ink-400">
                 {s.paidLocalDate} · {s.payerKind === 'pool' ? '공금' : memberName(s.payerMemberId ?? '')}
               </Text>
             </View>

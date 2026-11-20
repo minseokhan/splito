@@ -147,11 +147,11 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
                   accessibilityLabel={`${e.merchant} ${formatKrw(e.krwAmount)}`}
                   onPress={() => toggleExpense(e.id)}
                   style={{ opacity: other ? 0.5 : 1 }}
-                  className={`flex-row items-center gap-2.5 rounded-button border-[1.5px] px-3 py-2.5 ${on ? 'border-primary bg-sky-50' : 'border-card-line bg-white'}`}
+                  className={`flex-row items-center gap-2.5 rounded-button border px-3 py-2.5 ${on ? 'border-primary bg-sky-50' : 'border-card-line bg-white'}`}
                 >
                   <Icon as={on ? CheckSquareSolid : Square} size={20} color={on ? colors.primary.DEFAULT : colors.line.off} />
                   <View className="min-w-0 flex-1">
-                    <Text className="font-semibold text-[15px] text-ink" numberOfLines={1}>
+                    <Text className="font-semibold text-15 text-ink" numberOfLines={1}>
                       {e.merchant}
                     </Text>
                     <Text className="text-xs text-ink-400">{who} 결제</Text>
@@ -159,7 +159,7 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
                   </View>
                   <View className="shrink-0 items-end">
                     {e.currency !== 'KRW' && (
-                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[15px] text-local">
+                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-15 text-local">
                         {formatForeign(e.amountOriginal, e.currency)}
                       </Text>
                     )}
@@ -176,7 +176,7 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
         {/* 요약 */}
         <View className="gap-1 rounded-button bg-app px-4 py-3.5">
           <View className="flex-row items-center justify-between gap-2">
-            <Text className="min-w-0 flex-1 text-[13px] text-ink-400" numberOfLines={1}>
+            <Text className="min-w-0 flex-1 text-13 text-ink-400" numberOfLines={1}>
               {selectedExpenses.map((e) => e.merchant).join(' · ') || '지출'}
             </Text>
             <View className="shrink-0 rounded-full bg-white px-2.5 py-1">
@@ -196,7 +196,7 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
             </View>
             <View className="min-w-0 flex-1 gap-1">
               <Text className="font-semibold text-base text-ink">이 QR을 보여주세요</Text>
-              <Text className="text-[13px] text-ink-400">처음 만난 사람도 스캔하면 이 자리 정산에만 들어와요</Text>
+              <Text className="text-13 text-ink-400">처음 만난 사람도 스캔하면 이 자리 정산에만 들어와요</Text>
             </View>
           </View>
         )}
@@ -205,7 +205,7 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
         <View className="gap-0.5">
           <View className="flex-row items-end justify-between pb-1">
             <Text className="font-semibold text-base text-ink">함께한 사람 {chosen.length}명</Text>
-            <Text className="text-[13px] text-ink-500">
+            <Text className="text-13 text-ink-500">
               1인 <Text className="font-semibold text-ink">{formatKrw(totals.share)}</Text>
             </Text>
           </View>
@@ -289,18 +289,18 @@ function MemberRow({
         guest={row.member.kind === 'guest' && !row.isQr}
         ring={row.isQr ? colors.success.DEFAULT : undefined}
       />
-      <Text className="font-semibold text-[15px] text-ink" numberOfLines={1}>
+      <Text className="font-semibold text-15 text-ink" numberOfLines={1}>
         {row.member.name}
       </Text>
       <View className={`shrink-0 rounded-badge px-1.5 py-px ${row.isQr ? 'bg-success-bg' : 'bg-muted'}`}>
-        <Text className={`font-semibold text-[11px] ${row.isQr ? 'text-success' : 'text-ink-500'}`}>{row.tag}</Text>
+        <Text className={`font-semibold text-11 ${row.isQr ? 'text-success' : 'text-ink-500'}`}>{row.tag}</Text>
       </View>
       <View className="flex-1" />
       {sent ? (
         <StatusBadge row={row} share={share} payerIsMe={payerIsMe} onConfirm={onConfirm} />
       ) : (
         on && (
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="shrink-0 font-semibold text-[15px] text-ink">
+          <Text style={{ fontVariant: ['tabular-nums'] }} className="shrink-0 font-semibold text-15 text-ink">
             {formatKrw(share)}
           </Text>
         )

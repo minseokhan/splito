@@ -396,13 +396,13 @@ export default function ReviewExpense() {
       <NavBar title={edit ? '지출 수정' : '확인하고 나누기'} align="center" />
       <ScrollView
         ref={scrollRef}
-        contentContainerClassName="gap-3.5 px-5 pt-1"
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerClassName="gap-3 px-5 pt-1"
+        contentContainerStyle={{ paddingBottom: 170 }}
         keyboardShouldPersistTaps="handled"
       >
         {/* ② 개인/공금 토글. 공금이 켜진 여행에서만(꺼진 뒤 열린 공금 지출도). 개인 = 올린 사람(나)이 결제. */}
         {(room?.pool_enabled || draft.payerKind === 'pool') && (
-          <View className="flex-row self-center rounded-chip bg-muted p-1">
+          <View className="flex-row gap-0.5 self-center rounded-chip bg-muted p-[3px]">
             {(['member', 'pool'] as const).map((k) => {
               const on = draft.payerKind === k;
               return (
@@ -417,7 +417,7 @@ export default function ReviewExpense() {
                     )
                   }
                   style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
-                  className={`h-9 w-[104px] flex-row items-center justify-center gap-1.5 rounded-toggle ${on ? 'bg-white' : ''}`}
+                  className={`h-[34px] flex-row items-center justify-center gap-1.5 rounded-toggle px-[18px] ${on ? 'bg-white' : ''}`}
                 >
                   <Icon as={k === 'pool' ? Wallet : User} size={16} color={k === 'pool' ? colors.warning.DEFAULT : colors.primary.text} />
                   <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{k === 'pool' ? '공금' : '개인'}</Text>
@@ -428,10 +428,10 @@ export default function ReviewExpense() {
         )}
 
         {/* ③ 영수증 티켓: 요약 + 중복 배너 + 절취선 + 품목 */}
-        <View onLayout={(e) => setY('top', e)} className="overflow-hidden rounded-t-card bg-white">
-          <View className="flex-row items-center gap-3.5 p-5">
+        <View onLayout={(e) => setY('top', e)} className="overflow-hidden rounded-t-box bg-white">
+          <View className="flex-row items-center gap-3.5 px-5 pb-3 pt-5">
             <ReceiptThumb uri={thumb} />
-            <View className="flex-1 gap-[3px]">
+            <View className="flex-1 gap-0.5">
               <View className="flex-row items-center gap-1.5">
                 <TextInput
                   value={draft.merchant}
@@ -439,23 +439,23 @@ export default function ReviewExpense() {
                   placeholder="가맹점"
                   placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="가맹점"
-                  className="flex-shrink p-0 font-semibold text-[17px] text-ink"
+                  className="flex-shrink p-0 font-semibold text-base text-ink"
                 />
                 {draft.needsReview && (
                   <Badge kind="review" onPress={() => update((d) => ({ ...d, needsReview: false }))} accessibilityLabel="확인 필요 해제" />
                 )}
               </View>
               {/* 결제 통화를 크게(#1272BF), 원화는 옆에 작게 회색. 원화 결제는 원화만. */}
-              <View className="mt-0.5 flex-row flex-wrap items-center gap-1.5">
+              <View style={{ zIndex: 10 }} className="relative flex-row flex-wrap items-center gap-1.5">
                 {isKrw ? (
                   total && (
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[22px] text-ink">
+                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-22 text-ink">
                       {total}
                     </Text>
                   )
                 ) : (
                   <>
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[22px] text-local">
+                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-22 text-local">
                       {formatForeign(sumOriginal, draft.currency)}
                     </Text>
                     {total && (
@@ -464,34 +464,40 @@ export default function ReviewExpense() {
                       </Text>
                     )}
                     {fx.fx && !draft.krwCharged && (
-                      <Pressable accessibilityRole="button" accessibilityLabel="환율 근거" onPress={() => setFxTip((v) => !v)} hitSlop={8}>
-                        <Icon as={InfoCircle} size={16} color={colors.ink[300]} />
+                      <Pressable accessibilityRole="button" accessibilityLabel="환율 근거" onPress={() => setFxTip((v) => !v)} hitSlop={4} className="h-6 w-6 items-center justify-center">
+                        <Icon as={InfoCircle} size={16} color={fxTip ? colors.info.DEFAULT : colors.ink[300]} />
                       </Pressable>
                     )}
                   </>
                 )}
                 {!total && fxPending && <Badge kind="pending" />}
+                {/* 환율 근거는 금액 줄 아래에 떠서 아래 내용을 밀지 않는다(시안). */}
+                {fxTip && fx.fx && !draft.krwCharged && (
+                  <View
+                    style={{ boxShadow: '0 8px 20px -10px rgba(18,168,119,.35)', elevation: 4 }}
+                    className="absolute left-0 top-full mt-1 rounded-badge bg-info-bg px-2.5 py-2"
+                  >
+                    <Text numberOfLines={1} className="font-semibold text-xs text-info">
+                      {fxBasisLabel({ source: fx.fx.source, baseDate: fx.fx.base_date, rate: fx.fx.rate, currency: draft.currency })}
+                    </Text>
+                  </View>
+                )}
               </View>
-              {fxTip && fx.fx && !draft.krwCharged && (
-                <View className="self-start rounded-badge bg-info-bg px-2 py-1">
-                  <Text className="text-xs text-info">
-                    {fxBasisLabel({ source: fx.fx.source, baseDate: fx.fx.base_date, rate: fx.fx.rate, currency: draft.currency })}
-                  </Text>
-                </View>
-              )}
-              <Pressable accessibilityRole="button" accessibilityLabel="결제일" onPress={() => setDateOpen(true)} hitSlop={6} className="self-start">
-                <Text className={`text-[13px] ${pickedDate ? 'text-ink-400' : 'text-ink-300'}`}>{pickedDate ? shortDate(pickedDate) : '날짜 선택'}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="결제일" onPress={() => setDateOpen(true)} hitSlop={6} className="mt-0.5 flex-row items-center gap-1 self-start">
+                <Icon as={Calendar} size={14} color={colors.ink[500]} />
+                <Text className={`text-13 ${pickedDate ? 'text-ink-500' : 'text-ink-300'}`}>{pickedDate ? shortDate(pickedDate) : '날짜 선택'}</Text>
+                <Icon as={NavArrowDown} size={14} color={colors.ink[500]} />
               </Pressable>
             </View>
           </View>
           {dup && (
-            <View className="mx-5 mb-4">
+            <View className="mx-5 mb-2">
               <DupBanner dup={dup} members={members} onMerge={onMerge} onDismiss={() => setDupDismissed(true)} />
             </View>
           )}
           <Perforation />
-          <View onLayout={(e) => setY('items', e)} className="pt-3">
-            <Text className="px-5 pb-1 font-semibold text-[13px] text-ink-500">품목 {draft.items.length}개</Text>
+          <View onLayout={(e) => setY('items', e)}>
+            <Text className="px-5 pb-0.5 pt-1.5 font-semibold text-13 text-ink-500">품목 {draft.items.length}개</Text>
             {draft.items.map((it, i) => (
               <ItemRow
                 key={`${it.id}:${splitRev}`}
@@ -548,10 +554,10 @@ export default function ReviewExpense() {
             <Pressable
               accessibilityRole="button"
               onPress={() => update((d) => addItem(d, uuidV4))}
-              className="mx-5 mb-4 mt-1 h-11 flex-row items-center justify-center gap-1.5 rounded-button bg-app active:bg-muted"
+              className="h-12 flex-row items-center justify-center gap-1 active:bg-app"
             >
-              <Icon as={Plus} size={18} color={colors.ink[500]} />
-              <Text className="font-semibold text-sm text-ink-500">품목 추가</Text>
+              <Icon as={Plus} size={16} color={colors.primary.text} />
+              <Text className="font-semibold text-sm text-primary-text">품목 추가</Text>
             </Pressable>
           </View>
           <WavyBottom />
@@ -563,22 +569,23 @@ export default function ReviewExpense() {
             accessibilityRole="button"
             accessibilityLabel="일정 고르기"
             onPress={() => setScheduleOpen(true)}
-            className="flex-row items-center gap-2.5 rounded-box bg-white px-4 py-3.5 active:bg-muted"
+            className="h-[52px] flex-row items-center justify-between gap-3 rounded-box bg-white pl-4 pr-3 active:bg-app"
           >
-            <Icon as={Calendar} size={18} color={selItem ? colors.primary.text : colors.ink[300]} />
-            <Text numberOfLines={1} className={`flex-shrink font-semibold text-[15px] ${selItem ? 'text-ink' : 'text-ink-400'}`}>
-              {selItem?.title ?? '일정 없음'}
-            </Text>
-            {!!selItem && scheduleMatchesCategory(draft.category, selItem.title) && <Recommend />}
-            <View className="flex-1" />
-            <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+            <Text className="text-15 text-ink-500">일정</Text>
+            <View className="flex-shrink flex-row items-center gap-1.5">
+              <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
+                {selItem?.title ?? '일정 없음'}
+              </Text>
+              {!!selItem && scheduleMatchesCategory(draft.category, selItem.title) && <Recommend />}
+              <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+            </View>
           </Pressable>
         )}
 
         <View onLayout={(e) => setY('date', e)} className="gap-4 rounded-card bg-white p-4">
           {!edit && pickableRooms.length > 0 && (
             <View className="gap-2" style={{ zIndex: 20 }}>
-              <Text className="font-semibold text-[13px] text-ink-500">정산할 곳</Text>
+              <Text className="font-semibold text-13 text-ink-500">정산할 곳</Text>
               <View>
                 <Pressable
                   accessibilityRole="button"
@@ -586,7 +593,7 @@ export default function ReviewExpense() {
                   accessibilityState={{ expanded: roomOpen }}
                   disabled={moving}
                   onPress={() => setRoomOpen((v) => !v)}
-                  className={`h-[54px] flex-row items-center gap-2 rounded-input border-[1.5px] bg-white px-4 ${
+                  className={`h-[54px] flex-row items-center gap-2 rounded-input border bg-white px-4 ${
                     roomOpen ? 'border-primary' : 'border-line'
                   }`}
                 >
@@ -599,7 +606,7 @@ export default function ReviewExpense() {
                 {roomOpen && (
                   <View
                     style={{ elevation: 8, boxShadow: '0 10px 24px -8px rgba(19,25,39,.22)' }}
-                    className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-input border-[1.5px] border-line bg-white"
+                    className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-input border border-line bg-white"
                   >
                     {pickableRooms.map((r, i) => {
                       const on = r.roomId === roomId;
@@ -629,7 +636,7 @@ export default function ReviewExpense() {
             </View>
           )}
           <View onLayout={(e) => setY('currency', e)} className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">통화</Text>
+            <Text className="font-semibold text-13 text-ink-500">통화</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
               {CURRENCIES.map((c) => {
                 const on = draft.currency === c.code;
@@ -639,7 +646,7 @@ export default function ReviewExpense() {
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     onPress={() => update((d) => ({ ...d, currency: c.code }))}
-                    className={`h-11 justify-center rounded-chip border-[1.5px] px-3.5 ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                    className={`h-11 justify-center rounded-chip border px-3.5 ${on ? 'border-primary-text bg-sky-100' : 'border-line bg-white active:border-sky-200 active:bg-app'}`}
                   >
                     <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.code}</Text>
                   </Pressable>
@@ -648,7 +655,7 @@ export default function ReviewExpense() {
             </ScrollView>
           </View>
           <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">카테고리</Text>
+            <Text className="font-semibold text-13 text-ink-500">카테고리</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
               {CATEGORIES.map((c) => {
                 const on = draft.category === c.code;
@@ -658,10 +665,10 @@ export default function ReviewExpense() {
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     onPress={() => update((d) => ({ ...d, category: c.code }))}
-                    className={`h-11 flex-row items-center gap-1.5 rounded-chip border-[1.5px] px-3.5 ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                    className={`h-11 flex-row items-center gap-1.5 rounded-chip border px-3.5 ${on ? 'border-ink bg-ink' : 'border-line bg-white active:border-sky-200 active:bg-app'}`}
                   >
-                    <Icon as={CATEGORY_ICON[c.code]} size={17} color={on ? colors.primary.text : colors.ink[400]} />
-                    <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.label}</Text>
+                    <Icon as={CATEGORY_ICON[c.code]} size={17} color={on ? '#FFFFFF' : colors.ink[400]} />
+                    <Text className={`font-semibold text-base ${on ? 'text-white' : 'text-ink-500'}`}>{c.label}</Text>
                   </Pressable>
                 );
               })}
@@ -670,7 +677,7 @@ export default function ReviewExpense() {
         </View>
 
         {multi && (
-          <Text className={`px-1 text-right text-[13px] ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
+          <Text className={`px-1 text-right text-13 ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
             {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
           </Text>
         )}
@@ -678,10 +685,13 @@ export default function ReviewExpense() {
 
       <BottomBar fade>
         {!!mealWarn && (
-          <Text className="text-[13px] text-warning-text">이 일정은 {mealWarn}이 포함돼 있어요. 따로 결제한 게 맞나요?</Text>
+          <View className="flex-row items-center gap-1.5">
+            <Icon as={InfoCircle} size={16} color={colors.warning.DEFAULT} />
+            <Text className="flex-1 text-13 text-warning-text">이 일정은 {mealWarn}이 포함돼 있어요. 따로 결제한 게 맞나요?</Text>
+          </View>
         )}
-        {!!budgetWarn && <Text className="text-[13px] text-warning-accent">{budgetWarn}</Text>}
-        {error && <Text className="text-[13px] text-danger-text">{error}</Text>}
+        {!!budgetWarn && <Text className="text-13 text-warning-accent">{budgetWarn}</Text>}
+        {error && <Text className="text-13 text-danger-text">{error}</Text>}
         <PrimaryButton
           title={total ? `${total} 저장하기` : '저장하기'}
           onPress={() => void onSave()}
@@ -738,7 +748,7 @@ export default function ReviewExpense() {
         onClose={() => setDateOpen(false)}
       />
 
-      <BottomSheet visible={scheduleOpen} onClose={() => setScheduleOpen(false)} title="어느 일정에 넣을까요?">
+      <BottomSheet visible={scheduleOpen} onClose={() => setScheduleOpen(false)} title="어떤 일정에 넣을까요?" subtitle={dateLabel ? `결제일 ${dateLabel}` : undefined}>
         <View className="flex-row flex-wrap gap-2">
           {[...dayItems, ...(target && !dayItems.includes(target) ? [target] : [])].map((x) => {
             const on = scheduleSel === x.id;
@@ -751,8 +761,9 @@ export default function ReviewExpense() {
                   setPickedSchedule(x.id);
                   setScheduleOpen(false);
                 }}
-                className={`h-10 flex-row items-center gap-1.5 rounded-chip border-[1.5px] px-3.5 ${on ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
+                className={`h-9 flex-row items-center gap-[5px] rounded-full border px-3 ${on ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
               >
+                {on && <Icon as={Check} size={14} color={colors.primary.text} />}
                 <Text className={`font-semibold text-sm ${on ? 'text-primary-text' : 'text-ink'}`}>{x.title}</Text>
                 {scheduleMatchesCategory(draft.category, x.title) && <Recommend />}
               </Pressable>
@@ -765,8 +776,9 @@ export default function ReviewExpense() {
               setPickedSchedule(null);
               setScheduleOpen(false);
             }}
-            className={`h-10 justify-center rounded-chip border-[1.5px] px-3.5 ${scheduleSel === null ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
+            className={`h-9 flex-row items-center gap-[5px] rounded-full border px-3 ${scheduleSel === null ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
           >
+            {scheduleSel === null && <Icon as={Check} size={14} color={colors.primary.text} />}
             <Text className={`font-semibold text-sm ${scheduleSel === null ? 'text-primary-text' : 'text-ink'}`}>일정 없음</Text>
           </Pressable>
         </View>
@@ -779,7 +791,7 @@ export default function ReviewExpense() {
 function Recommend() {
   return (
     <View className="rounded-badge bg-warning-bg px-1.5 py-0.5">
-      <Text className="font-semibold text-[11px] text-warning-text">✦ 추천</Text>
+      <Text className="font-semibold text-11 text-warning-text">✦ 추천</Text>
     </View>
   );
 }
@@ -801,12 +813,12 @@ function DupBanner({
   return (
     <View className="flex-row items-center gap-2.5 rounded-button bg-warning-banner px-3.5 py-3">
       <Icon as={Copy} size={20} color={colors.warning.DEFAULT} />
-      <Text className="flex-1 text-[13px] text-warning-deep">
+      <Text className="flex-1 text-13 text-warning-deep">
         {by ? `${by}님이 올린 ` : ''}
         <Text className="font-semibold">{describeDuplicate(dup, localToday())}</Text> 기록과 같은 결제 같아요
       </Text>
       <Pressable accessibilityRole="button" onPress={() => void onMerge(dup, by)} className="rounded-badge bg-white px-2.5 py-1.5">
-        <Text className="font-semibold text-[13px] text-warning-text">합치기</Text>
+        <Text className="font-semibold text-13 text-warning-text">합치기</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="별개예요" onPress={onDismiss} hitSlop={8}>
         <Icon as={Xmark} size={18} color={colors.warning.DEFAULT} />

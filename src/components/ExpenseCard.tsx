@@ -10,7 +10,7 @@ import { CategoryCircle } from './CategoryCircle';
 
 type Props = { row: FeedRow; payerName: string; recorderName: string; onPress: () => void };
 
-// 지출 내역 한 줄(행 높이 64). 구분선 없이 여백으로 나눈다(노션 13번).
+// 지출 내역 한 줄(최소 높이 64 · 위아래 10 · 좌우 16). 구분선 없이 여백으로 나눈다(노션 13번). 누르면 바탕 app.
 // 금액은 결제한 통화를 크게(외화면 local 강조색), 확정 원화를 작게 아래에 둔다. 원화 결제는 원화만(11번).
 export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
   const pending = row.krwAmount === null;
@@ -23,25 +23,25 @@ export function ExpenseCard({ row, payerName, recorderName, onPress }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`${merchant} ${pending ? `${original} 환율 대기` : formatKrw(row.krwAmount!)}`}
         onPress={onPress}
-        className="flex-row items-center gap-3 py-3"
+        className="min-h-16 flex-row items-center gap-2.5 px-4 py-2.5 active:bg-app"
       >
         <CategoryCircle code={row.category} size={40} />
-        <View className="flex-1 gap-[2px]">
+        <View className="flex-1 gap-[3px]">
           <View className="flex-row items-center gap-1.5">
-            <Text className="shrink font-semibold text-base text-ink" numberOfLines={1}>
+            <Text className="shrink font-semibold text-15 text-ink" numberOfLines={1}>
               {merchant}
             </Text>
             {row.visibility === 'private' && <Badge kind="private" />}
             {row.needsReview && <Badge kind="review" />}
           </View>
-          <Text className="text-[13px] text-ink-400" numberOfLines={1}>
+          <Text className="text-13 text-ink-400" numberOfLines={1}>
             {payerRecorderLabel(payerName, recorderName)}
           </Text>
         </View>
         <View className="items-end gap-[2px]">
           <Text
             style={{ fontVariant: ['tabular-nums'] }}
-            className={`font-semibold text-base ${foreign ? 'text-local' : 'text-ink'}`}
+            className={`font-semibold text-15 ${foreign ? 'text-local' : 'text-ink'}`}
           >
             {original}
           </Text>

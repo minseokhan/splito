@@ -9,14 +9,14 @@ export type AvatarPerson = { id: string; name: string; colorIndex: number; guest
 // 원은 4개를 넘지 않는다: 4명까지는 전부, 5명부터는 3명 + "+n" 검은 원.
 const MAX = 4;
 
-// 겹친 원형 아바타(-8 겹침). ring은 배경색과 같은 테두리.
-export function AvatarStack({ people, size = 24, ring }: { people: AvatarPerson[]; size?: number; ring?: string }) {
+// 겹친 원형 아바타(기본 -8 겹침, 원본 26px 줄은 -6). ring은 배경색과 같은 2px 테두리.
+export function AvatarStack({ people, size = 24, ring, overlap = 8 }: { people: AvatarPerson[]; size?: number; ring?: string; overlap?: number }) {
   const rest = people.length > MAX ? people.length - (MAX - 1) : 0;
   const shown = people.slice(0, rest > 0 ? MAX - 1 : MAX);
   return (
     <View className="flex-row items-center">
       {shown.map((p, i) => (
-        <View key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
+        <View key={p.id} style={{ marginLeft: i === 0 ? 0 : -overlap }}>
           <Avatar name={p.name} colorIndex={p.colorIndex} guest={p.guest} size={size} ring={ring} />
         </View>
       ))}
@@ -27,9 +27,9 @@ export function AvatarStack({ people, size = 24, ring }: { people: AvatarPerson[
             width: size,
             height: size,
             borderRadius: size / 2,
-            marginLeft: -8,
+            marginLeft: -overlap,
             backgroundColor: colors.ink.DEFAULT,
-            borderWidth: ring ? 2.5 : 0,
+            borderWidth: ring ? 2 : 0,
             borderColor: ring,
           }}
           className="items-center justify-center"

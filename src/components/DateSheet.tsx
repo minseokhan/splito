@@ -55,9 +55,9 @@ function ConfirmCalendar({ resultLabel, onPick, ...rest }: CalProps & { resultLa
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
                 onPress={() => setPicked(q.date)}
-                className={`h-9 justify-center rounded-chip border-[1.5px] px-3 ${on ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
+                className={`h-9 justify-center rounded-chip border px-3 ${on ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
               >
-                <Text className={`font-semibold text-[13px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>{q.label}</Text>
+                <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink-500'}`}>{q.label}</Text>
               </Pressable>
             );
           })}
@@ -65,7 +65,7 @@ function ConfirmCalendar({ resultLabel, onPick, ...rest }: CalProps & { resultLa
       )}
       <Calendar {...rest} value={picked} onPick={setPicked} />
       <View className="flex-row items-center justify-between gap-3 border-t border-muted pt-3">
-        <Text style={{ fontVariant: ['tabular-nums'] }} className="flex-1 font-semibold text-[15px] text-ink">
+        <Text style={{ fontVariant: ['tabular-nums'] }} className="flex-1 font-semibold text-15 text-ink">
           {DATE_RE.test(picked) ? resultLabel(picked) : ''}
         </Text>
         <PrimaryButton title="선택" size="md" disabled={!DATE_RE.test(picked)} onPress={() => onPick(picked)} />

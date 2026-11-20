@@ -1,6 +1,7 @@
-import { Group, NavArrowDown, NavArrowUp } from 'iconoir-react-native';
-import { useState } from 'react';
+import { GitMerge, Group, NavArrowDown, NavArrowUp, Scissor, Trash } from 'iconoir-react-native';
+import { useState, type ComponentType } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import type { SvgProps } from 'react-native-svg';
 
 import { colors, memberColor } from '@/theme/tokens';
 
@@ -48,7 +49,8 @@ export function ItemRow(p: Props) {
   const selected = allOn ? p.people : p.people.filter((m) => m.on);
 
   return (
-    <View className="bg-white">
+    // 펼친 줄은 연회색 바탕 + 왼쪽 막대(시안 rowBg·openBar).
+    <View className={open ? 'bg-app' : 'bg-white'}>
       {!p.first && <View className="mx-5 h-px bg-muted" />}
       {open && <View className="absolute bottom-0 left-0 top-0 w-0.5 bg-primary-text" />}
       <Pressable
@@ -56,12 +58,10 @@ export function ItemRow(p: Props) {
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         accessibilityLabel={`${name} 품목`}
-        className="flex-row gap-2 px-5 py-3.5"
+        className="min-h-[60px] flex-row items-center gap-2 py-2.5 pl-3.5 pr-5"
       >
-        <View className="pt-0.5">
-          <Icon as={open ? NavArrowUp : NavArrowDown} size={16} color={open ? colors.primary.text : colors.ink[300]} />
-        </View>
-        <View className="flex-1 gap-1">
+        <Icon as={open ? NavArrowUp : NavArrowDown} size={16} color={open ? colors.primary.text : colors.ink[300]} />
+        <View className="flex-1 gap-0.5">
           <View className="flex-row items-center justify-between gap-2">
             <View className="flex-shrink flex-row items-center gap-1.5">
               {open ? (
@@ -71,14 +71,14 @@ export function ItemRow(p: Props) {
                   placeholder="품목 이름"
                   placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="품목 이름"
-                  className="flex-shrink p-0 font-semibold text-[15px] text-ink"
+                  className="flex-shrink p-0 font-semibold text-15 text-ink"
                 />
               ) : (
-                <Text numberOfLines={1} className="flex-shrink font-semibold text-[15px] text-ink">
+                <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
                   {name}
                 </Text>
               )}
-              {!!qty && <Text className="font-semibold text-[15px] text-ink">{qty}</Text>}
+              {!!qty && <Text className="font-semibold text-15 text-ink">{qty}</Text>}
               {p.needsReview && <Badge kind="review" onPress={p.onClearReview} accessibilityLabel="확인 필요 해제" />}
             </View>
             {open ? (
@@ -91,10 +91,10 @@ export function ItemRow(p: Props) {
                 keyboardType="numbers-and-punctuation"
                 accessibilityLabel="품목 금액"
                 style={TABULAR}
-                className={`min-w-[56px] p-0 text-right font-semibold text-[15px] focus:bg-sky-50 ${mainCls}`}
+                className={`min-w-[56px] p-0 text-right font-semibold text-15 focus:bg-sky-50 ${mainCls}`}
               />
             ) : (
-              <Text style={TABULAR} className={`font-semibold text-[15px] ${mainCls}`}>
+              <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>
                 {mainLabel}
               </Text>
             )}
@@ -102,13 +102,16 @@ export function ItemRow(p: Props) {
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
               {!!p.nameOriginal && (
-                <Text numberOfLines={1} className="flex-shrink text-xs text-ink-400">
+                <Text numberOfLines={1} className="flex-shrink text-xs text-ink-500">
                   {p.nameOriginal + qty}
-                  {p.people.length > 0 ? ' ·' : ''}
                 </Text>
               )}
-              {p.people.length > 0 && !open && <AvatarStack people={selected} size={18} ring="#FFFFFF" />}
-              {p.people.length > 0 && <Text className="text-xs text-ink-500">{p.splitLabel}</Text>}
+              {!!p.nameOriginal && p.people.length > 0 && <Text className="text-xs text-line-off">·</Text>}
+              {/* 전원이면 글자만, 일부만 고르면 겹친 아바타 + 진한 글자(손댄 품목이 눈에 띄게). 펼치면 아바타는 숨긴다. */}
+              {p.people.length > 0 && !open && !allOn && <AvatarStack people={selected} size={20} ring="#FFFFFF" />}
+              {p.people.length > 0 && (
+                <Text className={`text-xs ${allOn ? 'text-ink-500' : 'font-semibold text-ink-700'}`}>{p.splitLabel}</Text>
+              )}
             </View>
             {!p.isKrw && !!p.krwLabel && (
               <Text style={TABULAR} className="text-xs text-ink-300">
@@ -120,14 +123,14 @@ export function ItemRow(p: Props) {
       </Pressable>
 
       {open && (
-        <View className="gap-3 pb-4 pl-[44px] pr-5">
+        <View className="gap-3 pb-3.5 pl-[38px] pr-5 pt-0.5">
           {p.people.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
               <Pressable accessibilityRole="button" accessibilityLabel="전원" onPress={p.onAll} className="items-center gap-1">
-                <View className="h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-primary-text bg-white">
+                <View className="h-9 w-9 items-center justify-center rounded-full border border-primary-text bg-white">
                   <Icon as={Group} size={18} color={colors.primary.text} />
                 </View>
-                <Text className="font-semibold text-[11px] text-primary-text">전원</Text>
+                <Text className="font-semibold text-11 text-ink">전원</Text>
               </Pressable>
               {p.people.map((m) => {
                 const on = allOn || m.on;
@@ -139,7 +142,7 @@ export function ItemRow(p: Props) {
                     accessibilityState={{ checked: on }}
                     accessibilityLabel={m.guest ? `${m.name}(게스트)` : m.name}
                     style={{ opacity: on ? 1 : 0.4 }}
-                    className="items-center gap-1"
+                    className="w-10 items-center gap-1"
                   >
                     <View
                       style={{
@@ -147,11 +150,11 @@ export function ItemRow(p: Props) {
                         borderColor: on ? memberColor(m.colorIndex).fg : colors.line.DEFAULT,
                         borderStyle: m.guest ? 'dashed' : 'solid',
                       }}
-                      className="h-9 w-9 items-center justify-center rounded-full border-[1.5px]"
+                      className="h-9 w-9 items-center justify-center rounded-full border"
                     >
-                      <Text className={`font-semibold text-[13px] ${on ? 'text-white' : 'text-ink-300'}`}>{m.name.slice(0, 1)}</Text>
+                      <Text className={`font-semibold text-13 ${on ? 'text-white' : 'text-ink-300'}`}>{m.name.slice(0, 1)}</Text>
                     </View>
-                    <Text numberOfLines={1} className="max-w-[44px] text-[11px] text-ink-500">
+                    <Text numberOfLines={1} className="text-11 text-ink-500">
                       {m.name}
                     </Text>
                   </Pressable>
@@ -159,13 +162,17 @@ export function ItemRow(p: Props) {
               })}
             </ScrollView>
           )}
-          <View className="flex-row gap-2">
+          <View className="h-8 flex-row items-center gap-4">
             {p.onMerge ? (
-              <RowButton label="합치기" onPress={p.onMerge} />
+              <RowButton label="합치기" icon={GitMerge} onPress={p.onMerge} />
             ) : (
-              !!p.onSplit && p.quantity > 1 && <RowButton label="쪼개기" onPress={p.onSplit} />
+              !!p.onSplit && p.quantity > 1 && <RowButton label="쪼개기" icon={Scissor} onPress={p.onSplit} />
             )}
-            {!!p.onRemove && <RowButton label="삭제" danger onPress={p.onRemove} />}
+            {!!p.onRemove && (
+              <View className="ml-auto">
+                <RowButton label="삭제" icon={Trash} danger onPress={p.onRemove} />
+              </View>
+            )}
           </View>
         </View>
       )}
@@ -173,14 +180,17 @@ export function ItemRow(p: Props) {
   );
 }
 
-function RowButton({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
+// 13px 텍스트 버튼(아이콘 15). 테두리·배경 없음.
+function RowButton({ label, icon, onPress, danger }: { label: string; icon: ComponentType<SvgProps>; onPress: () => void; danger?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="h-8 justify-center rounded-chip border-[1.5px] border-line bg-white px-3 active:bg-muted"
+      hitSlop={8}
+      className="h-8 flex-row items-center gap-[3px] active:opacity-60"
     >
-      <Text className={`font-semibold text-[13px] ${danger ? 'text-danger' : 'text-ink-500'}`}>{label}</Text>
+      <Icon as={icon} size={15} color={danger ? colors.danger.DEFAULT : colors.primary.text} />
+      <Text className={`font-semibold text-13 ${danger ? 'text-danger' : 'text-primary-text'}`}>{label}</Text>
     </Pressable>
   );
 }

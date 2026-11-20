@@ -17,7 +17,7 @@ export function ParsingState(props: Props) {
         <View className="h-16 w-16 items-center justify-center rounded-card bg-sky-100">
           <ActivityIndicator size="large" color={colors.primary.text} />
         </View>
-        <Text className="font-semibold text-[17px] text-ink">{props.label}</Text>
+        <Text className="font-semibold text-17 text-ink">{props.label}</Text>
         <Pressable accessibilityRole="button" onPress={props.onCancel} className="mt-2 h-11 justify-center rounded-full bg-muted px-5">
           <Text className="font-semibold text-base text-ink-700">취소</Text>
         </Pressable>

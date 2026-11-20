@@ -1,9 +1,9 @@
 import { Image, View } from 'react-native';
 
-// 영수증 썸네일 56×68 radius 10. 사진이 없으면 시안의 줄무늬 자리표시(6 muted / 4 흰색 반복).
+// 영수증 썸네일 56×68 radius 8. 사진이 없으면 시안의 줄무늬 자리표시(6 muted / 4 흰색 반복).
 export function ReceiptThumb({ uri }: { uri?: string | null }) {
   return (
-    <View className="h-[68px] w-14 overflow-hidden rounded-toggle border border-line bg-white">
+    <View className="h-[68px] w-14 overflow-hidden rounded-badge border border-line bg-white">
       {uri ? (
         <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
       ) : (

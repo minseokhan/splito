@@ -47,7 +47,7 @@ export default function ProfileSetup() {
           <Text className="text-base text-ink-500">받을 계좌는 나중에 등록할 수 있어요</Text>
         </View>
         <View className="gap-2">
-          <Text className="font-semibold text-[13px] text-ink-500">닉네임</Text>
+          <Text className="font-semibold text-13 text-ink-500">닉네임</Text>
           <Controller
             control={control}
             name="nickname"
@@ -59,15 +59,15 @@ export default function ProfileSetup() {
                 maxLength={12}
                 placeholder="1~12자"
                 invalid={invalid}
-                right={<Text className="font-medium text-[13px] text-ink-400">{`${field.value.length}/12`}</Text>}
+                right={<Text className="font-medium text-13 text-ink-400">{`${field.value.length}/12`}</Text>}
               />
             )}
           />
-          {invalid && <Text className="text-[13px] text-danger">닉네임은 1~12자로 입력해 주세요</Text>}
+          {invalid && <Text className="text-13 text-danger">닉네임은 1~12자로 입력해 주세요</Text>}
         </View>
       </View>
       <BottomBar>
-        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+        {error && <Text className="text-13 text-danger">{error}</Text>}
         <PrimaryButton title="받을 계좌 등록(선택)" variant="sky" disabled={disabled} onPress={submitTo('/payout-account')} />
         <PrimaryButton title="시작하기" disabled={disabled} onPress={submitTo('/')} />
       </BottomBar>

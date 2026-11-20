@@ -30,7 +30,7 @@ export function InvitePasteBox({ onSaved }: Props) {
     <View className="gap-2.5">
       <View className="gap-1">
         <Text className="font-semibold text-base text-ink">초대받으셨나요?</Text>
-        <Text className="text-[13px] text-ink-400">받은 초대 링크를 붙여넣으면 바로 참여할 수 있어요</Text>
+        <Text className="text-13 text-ink-400">받은 초대 링크를 붙여넣으면 바로 참여할 수 있어요</Text>
       </View>
       {/* iOS 16+: UIPasteControl이라 붙여넣기 권한 팝업이 없다. */}
       {Clipboard.isPasteButtonAvailable ? (
@@ -56,8 +56,8 @@ export function InvitePasteBox({ onSaved }: Props) {
           </Pressable>
         }
       />
-      {result === 'found' && <Text className="text-[13px] text-success">초대를 확인했어요. 로그인하면 참여할 수 있어요</Text>}
-      {result === 'missing' && <Text className="text-[13px] text-danger">초대 링크를 찾지 못했어요</Text>}
+      {result === 'found' && <Text className="text-13 text-success">초대를 확인했어요. 로그인하면 참여할 수 있어요</Text>}
+      {result === 'missing' && <Text className="text-13 text-danger">초대 링크를 찾지 못했어요</Text>}
     </View>
   );
 }

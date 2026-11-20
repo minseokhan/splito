@@ -19,7 +19,7 @@ export function Money({ net, size = 'base', label = true }: Props) {
         {netSign(net)}
         {abs}
       </Text>
-      {label && <Text className="text-[13px] text-ink-400">{text}</Text>}
+      {label && <Text className="text-13 text-ink-400">{text}</Text>}
     </View>
   );
 }

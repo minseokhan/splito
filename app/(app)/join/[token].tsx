@@ -75,7 +75,7 @@ export default function JoinSheet() {
             <PrimaryButton title="다시 시도" onPress={() => preview.refetch()} />
           ) : !invalid ? (
             <>
-              {join.error && !invalid && <Text className="mb-2 text-center text-[13px] text-danger">{error?.message}</Text>}
+              {join.error && !invalid && <Text className="mb-2 text-center text-13 text-danger">{error?.message}</Text>}
               <PrimaryButton title="참여하기" onPress={submit} loading={join.isPending} disabled={!p} />
             </>
           ) : null}

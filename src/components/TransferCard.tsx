@@ -1,4 +1,4 @@
-import { ArrowRight, Bank, Copy, Send } from 'iconoir-react-native';
+import { ArrowRight, Bank, Check, Copy, Send } from 'iconoir-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
@@ -58,7 +58,7 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
   const raw = send ? a?.accountNumber : null;
 
   return (
-    <View className="gap-3 rounded-card border border-card-line bg-white px-[18px] pb-[18px] pt-4" style={CARD_SHADOW}>
+    <View className="gap-3 rounded-box border border-card-line bg-white px-[18px] pb-[18px] pt-4" style={CARD_SHADOW}>
       <View className={`self-start rounded-badge px-2 py-[3px] ${badge.box}`}>
         <Text className={`font-semibold text-xs ${badge.text}`}>{badge.label}</Text>
       </View>
@@ -76,10 +76,10 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
         </View>
       </View>
 
-      {item.rejected && <Text className="text-[13px] text-danger">받지 못했다고 표시했어요</Text>}
+      {item.rejected && <Text className="text-13 text-danger">받지 못했다고 표시했어요</Text>}
 
       {send && item.state !== 'done' && a && (
-        <View className="flex-row items-center gap-2.5 rounded-input bg-app px-3.5 py-3">
+        <View className="flex-row items-center gap-2.5 rounded-box bg-app px-3.5 py-3">
           <Icon as={Bank} size={20} color={colors.primary.text} />
           {a.registered ? (
             <>
@@ -97,14 +97,14 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
                 className={`flex-row items-center gap-1 px-2 py-1.5 ${raw ? '' : 'opacity-40'}`}
               >
                 <Icon as={Copy} size={16} color={colors.primary.text} />
-                <Text className="font-semibold text-[13px] text-primary-text">복사</Text>
+                <Text className="font-semibold text-13 text-primary-text">복사</Text>
               </Pressable>
             </>
           ) : (
             <>
               <Text className="flex-1 text-sm text-ink-500">아직 계좌를 등록하지 않았어요</Text>
               <Pressable accessibilityRole="button" onPress={onRequestAccount} hitSlop={8} className="px-2 py-1.5">
-                <Text className="font-semibold text-[13px] text-primary-text">계좌 요청하기</Text>
+                <Text className="font-semibold text-13 text-primary-text">계좌 요청하기</Text>
               </Pressable>
             </>
           )}
@@ -112,7 +112,7 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
       )}
 
       {item.state === 'confirm' && (
-        <Text className="rounded-chip bg-app px-3 py-2.5 text-[13px] text-ink-500">
+        <Text className="overflow-hidden rounded-box bg-app px-3 py-2.5 text-13 text-ink-500">
           {from.name}님이 보냈다고 알려왔어요. 입금을 확인하고 눌러주세요.
         </Text>
       )}
@@ -132,8 +132,9 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
       )}
       {item.state === 'waiting' && (
         <View className="flex-row gap-2">
-          <View className="h-[52px] flex-1 items-center justify-center rounded-input bg-muted px-3">
-            <Text className="font-semibold text-base text-ink-700" numberOfLines={1}>
+          <View className="h-[52px] flex-1 flex-row items-center justify-center gap-1.5 rounded-input bg-muted px-3">
+            <Icon as={Check} size={18} color={colors.ink[700]} />
+            <Text className="shrink font-semibold text-base text-ink-700" numberOfLines={1}>
               {to.name}님 확인을 기다려요
             </Text>
           </View>
@@ -149,7 +150,8 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
         </View>
       )}
       {item.state === 'done' && (
-        <View className="h-[52px] items-center justify-center rounded-input bg-muted">
+        <View className="h-[52px] flex-row items-center justify-center gap-1.5 rounded-input bg-muted">
+          <Icon as={Check} size={18} color={colors.ink[700]} />
           <Text className="font-semibold text-base text-ink-700">정산 완료</Text>
         </View>
       )}

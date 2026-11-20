@@ -112,10 +112,10 @@ export default function BookingLookup() {
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="패키지 예약 불러오기" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 140, gap: 22 }}>
-        <Text className="font-semibold text-2xl text-ink">예약 정보를 입력해 주세요</Text>
+        <Text className="font-semibold text-2xl leading-[38px] text-ink">예약 정보를 입력해 주세요</Text>
 
         <View className="gap-2">
-          <Text className="font-semibold text-[13px] text-ink-500">예약번호</Text>
+          <Text className="font-semibold text-13 leading-[21px] text-ink-500">예약번호</Text>
           <TextField
             value={no}
             onChangeText={edit((v) => setNo(normalizeBookingNo(v)))}
@@ -129,13 +129,13 @@ export default function BookingLookup() {
           {noInvalid && (
             <View className="flex-row items-center gap-1">
               <Icon as={WarningCircle} size={15} color={colors.danger.DEFAULT} />
-              <Text className="text-[13px] text-danger">예약번호 형식이 올바르지 않아요.</Text>
+              <Text className="text-13 text-danger">예약번호 형식이 올바르지 않아요.</Text>
             </View>
           )}
         </View>
 
         <View className="gap-2">
-          <Text className="font-semibold text-[13px] text-ink-500">예약자 이름</Text>
+          <Text className="font-semibold text-13 leading-[21px] text-ink-500">예약자 이름</Text>
           <TextField
             value={holder}
             onChangeText={edit(setHolder)}
@@ -151,31 +151,30 @@ export default function BookingLookup() {
             onPress={() => setConsent((v) => !v)}
             className="flex-row items-center gap-2.5"
           >
-            {/* 라벨 줄 높이를 원 지름과 같게 두고(22), 한글 글자가 박스 안에서 살짝 위에 앉는 만큼 1px 내린다 */}
-            <View
-              className={`mt-px h-[22px] w-[22px] items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}
-            >
-              <Icon as={Check} size={12} color="#FFFFFF" />
+            {/* 시안: 원 24 · 체크 16 */}
+            <View className={`h-6 w-6 items-center justify-center rounded-full ${consent ? 'bg-primary' : 'bg-line-off'}`}>
+              <Icon as={Check} size={16} color="#FFFFFF" />
             </View>
-            <Text className="flex-1 font-semibold text-[15px] leading-[22px] text-ink">
+            <Text className="flex-1 font-semibold text-15 leading-6 text-ink">
               <Text className="text-primary-text">[필수]</Text> 개인정보 제3자 제공 동의
             </Text>
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setTerms(true)}>
-              <Text className="text-[13px] text-ink-400">보기 ›</Text>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setTerms(true)} className="flex-row items-center">
+              <Text className="text-13 text-ink-500">보기</Text>
+              <Icon as={NavArrowRight} size={14} color={colors.ink[500]} />
             </Pressable>
           </Pressable>
-          <Text className="pl-[34px] text-[13px] leading-[19px] text-ink-400">
+          <Text className="pl-[34px] text-xs leading-[19px] text-ink-500">
             예약 조회를 위해 예약번호와 예약자 이름을 하나투어에 제공해요
           </Text>
         </View>
 
         {result?.kind === 'success' && (
-          <View className="gap-3 rounded-card border border-sky-200 bg-sky-50 p-[18px]">
+          <View className="gap-3 rounded-card border border-sky-200 bg-app p-[18px]">
             <View className="flex-row items-center gap-1.5">
               <Icon as={CheckCircle} size={16} color={colors.primary.text} />
-              <Text className="font-semibold text-[13px] text-primary-text">예약을 찾았어요</Text>
+              <Text className="font-semibold text-13 text-primary-text">예약을 찾았어요</Text>
             </View>
-            <Text className="font-semibold text-[17px] text-ink">{result.booking.product_name}</Text>
+            <Text className="font-semibold text-17 text-ink">{result.booking.product_name}</Text>
             <View className="gap-1.5">
               <Field label="여행지" value={result.booking.destination} />
               <Field label="기간" value={bookingPeriodLabel(result.booking)} />
@@ -271,57 +270,32 @@ type BoxProps = {
   action?: { label: string; onPress: () => void };
 };
 
-// 성공 카드(sky-50 + sky-200 테두리 + radius 20)와 같은 생김새를 쓰고 색만 톤별로 바꾼다.
-// 버튼도 박스 톤을 따라가야 겉돌지 않는다 — 흰 배경에 회색 테두리면 박스에서 떠 보인다.
+// 시안: 테두리 없는 radius 12 박스(패딩 14 16), 버튼은 톤과 무관하게 흰 바탕 + 회색 테두리 + ink 글자.
 const TONE = {
-  danger: {
-    box: 'bg-danger-bg border-danger-soft',
-    icon: colors.danger.DEFAULT,
-    title: 'text-danger',
-    body: 'text-ink',
-    btn: 'border-danger-soft',
-    btnText: 'text-danger',
-    btnIcon: colors.danger.DEFAULT,
-  },
-  muted: {
-    box: 'bg-app border-line',
-    icon: colors.primary.text,
-    title: 'text-ink',
-    body: 'text-ink-500',
-    btn: 'border-line',
-    btnText: 'text-ink',
-    btnIcon: colors.ink.DEFAULT,
-  },
-  warning: {
-    box: 'bg-warning-banner border-warning-line',
-    icon: colors.warning.DEFAULT,
-    title: 'text-warning-deep',
-    body: 'text-warning-deep',
-    btn: 'border-warning-line',
-    btnText: 'text-warning-text',
-    btnIcon: colors.warning.DEFAULT,
-  },
+  // TODO(token): 시안 본문색 #7A271A — 토큰이 없어 ink로 둔다
+  danger: { box: 'bg-danger-bg', icon: colors.danger.DEFAULT, title: 'text-danger', body: 'text-ink' },
+  muted: { box: 'bg-app', icon: colors.primary.text, title: 'text-ink', body: 'text-ink-500' },
+  warning: { box: 'bg-warning-banner', icon: colors.warning.DEFAULT, title: 'text-warning-deep', body: 'text-warning-deep' },
 } as const;
 
 function ResultBox({ tone, icon, title, body, action }: BoxProps) {
   const t = TONE[tone];
   return (
-    <View className={`flex-row gap-2.5 rounded-card border p-4 ${t.box}`}>
+    <View className={`flex-row gap-2.5 rounded-chip px-4 py-3.5 ${t.box}`}>
       {/* 아이콘은 제목 첫 줄에 맞춘다 */}
       <View className="pt-px">
         <Icon as={icon} size={20} color={t.icon} />
       </View>
-      <View className="flex-1 gap-1">
-        <Text className={`font-semibold text-[15px] ${t.title}`}>{title}</Text>
-        <Text className={`text-[13px] leading-5 ${t.body}`}>{body}</Text>
+      <View className="flex-1 gap-0.5">
+        <Text className={`font-semibold text-15 leading-6 ${t.title}`}>{title}</Text>
+        <Text className={`text-13 leading-[21px] ${t.body}`}>{body}</Text>
         {!!action && (
           <Pressable
             accessibilityRole="button"
             onPress={action.onPress}
-            className={`mt-2.5 h-9 flex-row items-center gap-0.5 self-start rounded-chip border-[1.5px] bg-white pl-3.5 pr-2.5 active:opacity-70 ${t.btn}`}
+            className="mt-2 h-[34px] justify-center self-start rounded-chip border border-line bg-white px-3 active:border-sky-200 active:bg-app"
           >
-            <Text className={`font-semibold text-[13px] ${t.btnText}`}>{action.label}</Text>
-            <Icon as={NavArrowRight} size={14} color={t.btnIcon} />
+            <Text className="font-semibold text-13 text-ink">{action.label}</Text>
           </Pressable>
         )}
       </View>

@@ -2,9 +2,10 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Camera, EditPencil, Lock, MediaImage, MessageText, Microphone, NavArrowRight, Sparks } from 'iconoir-react-native';
+import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
 import { Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { SlideInDown } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
@@ -19,7 +20,7 @@ import { useScheduleItems } from '@/hooks/useBooking';
 import { useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
-import { aiChip, DEMO_AI_USED, FREE_AI_LIMIT, type PassReason } from '@/lib/pass';
+import { DEMO_AI_USED, FREE_AI_LIMIT, type PassReason } from '@/lib/pass';
 import { autoSelectPayer } from '@/lib/pool';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
@@ -299,7 +300,7 @@ export default function NewExpense() {
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="카드 승인 문자"
                 textAlignVertical="top"
-                className="min-h-40 rounded-input border-[1.5px] border-line bg-white p-4 text-[17px] text-ink focus:border-primary"
+                className="min-h-40 rounded-input border border-line bg-white p-4 text-17 text-ink focus:border-primary"
               />
               <Text className="self-end text-sm text-ink-400">
                 {text.length.toLocaleString()}/{TEXT_LIMIT.toLocaleString()}
@@ -337,96 +338,85 @@ function CameraPane({ camRef }: { camRef: React.RefObject<CameraView | null> }) 
 function Title({ title, sub }: { title: string; sub: string }) {
   return (
     <View className="gap-1.5">
-      <Text className="font-semibold text-[26px] text-ink">
+      <Text className="font-semibold text-26 text-ink">
         {title}
       </Text>
-      <Text className="text-[17px] text-ink-500">{sub}</Text>
+      <Text className="text-17 text-ink-500">{sub}</Text>
     </View>
   );
 }
 
-// 칸마다 배경·아이콘 색이 다르다(시안 10): 문자 민트 / 음성 옐로 / 직접 회색. 라벨은 시안대로 두 줄.
-const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; bg: string; iconColor: string }[] = [
-  { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, bg: 'bg-success-bg', iconColor: colors.success.DEFAULT },
-  { method: 'voice', label: '말로 입력', a11y: '음성으로 지출 추가', icon: Microphone, bg: 'bg-warning-bg', iconColor: colors.warning.DEFAULT },
-  { method: 'manual', label: '직접 입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, bg: 'bg-app', iconColor: colors.primary.text },
+// 11-18 시안: 세 칸 배경은 회색(app)으로 통일하고 아이콘 색만 다르다(문자 민트 / 음성 앰버 / 직접 스카이). 라벨은 두 줄.
+const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; iconColor: string }[] = [
+  { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, iconColor: colors.success.DEFAULT },
+  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, iconColor: colors.warning.DEFAULT },
+  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, iconColor: colors.primary.text },
 ];
 
-// 시안 10: 지출 올리기 방법 선택(전체 화면).
-const CHIP_TONE = {
-  free: { box: 'bg-muted', fg: colors.ink[500], text: 'text-ink-500', icon: Sparks },
-  out: { box: 'bg-warning-badge', fg: colors.warning.DEFAULT, text: 'text-warning-text', icon: Lock },
-  pass: { box: 'bg-sky-100', fg: colors.primary.text, text: 'text-primary-text', icon: Sparks },
-} as const;
-
-// pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined(칩을 그리지 않는다).
+// pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined.
 type PickerProps = { onSelect: (m: InputMethod) => void; scheduleTitle?: string; owner: boolean; memberCount: number; pass?: boolean };
 
+// 지출 올리기 방법 선택. 11-18 시안에서 'AI 인식 N건 남음' 칩은 삭제됐다(한도를 다 쓰면 고를 때 패스 시트가 뜨는 것은 그대로).
 function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn }: PickerProps) {
   const toast = useToast();
   // 무료 AI 인식 한도(방당 5건). ponytail: 건수 데이터가 아직 없어 시안 값(DEMO_AI_USED)을 쓴다.
   const used = DEMO_AI_USED;
   const out = !passOn && used >= FREE_AI_LIMIT;
-  const chip = aiChip(used, !!passOn);
-  const tone = CHIP_TONE[chip.tone];
   const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
+  const insets = useSafeAreaInsets();
   const select = (m: InputMethod) => (out && m !== 'manual' ? setPass({ reason: 'ai' }) : onSelect(m));
+  // 여행 상세 위에 뜨는 바텀시트(11-18 시안 §3). 라우트가 transparentModal이라 뒤의 상세가 스크림 너머로 보인다.
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <NavBar close />
-      <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-2">
-        {!!scheduleTitle && <ScheduleChip title={scheduleTitle} />}
-        <View className="gap-1.5">
-          <Text className="font-semibold text-[26px] text-ink">
-            어떻게 올릴까요?
-          </Text>
-          <Text className="text-[17px] text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
-        </View>
-        {passOn !== undefined && (
+    <View className="flex-1 justify-end">
+      <Pressable accessibilityLabel="닫기" onPress={() => router.back()} className="absolute inset-0 bg-[rgba(23,32,58,0.45)]" />
+      <Animated.View
+        entering={SlideInDown.duration(320)}
+        style={{ paddingBottom: Math.max(insets.bottom + 16, 36) }}
+        className="max-h-[88%] rounded-t-sheet bg-white pt-2.5"
+      >
+        <View className="mb-4 h-[5px] w-10 self-center rounded-full bg-line" />
+        <ScrollView contentContainerClassName="gap-4 px-5">
+          {!!scheduleTitle && <ScheduleChip title={scheduleTitle} />}
+          <View className="gap-1">
+            {/* 22·15는 시안 값(스케일 밖) */}
+            <Text className="font-semibold text-22 text-ink">어떻게 올릴까요?</Text>
+            <Text className="text-15 text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
+          </View>
+
           <Pressable
             accessibilityRole="button"
-            disabled={passOn}
-            onPress={() => setPass({ reason: out ? 'ai' : null })}
-            className={`-mt-2 h-8 flex-row items-center gap-1.5 self-start rounded-full px-3 ${tone.box}`}
+            accessibilityLabel="영수증 사진으로 지출 추가"
+            onPress={() => select('photo')}
+            className="flex-row items-center gap-4 rounded-card bg-primary-text p-5 active:translate-y-px"
           >
-            <Icon as={tone.icon} size={15} color={tone.fg} />
-            <Text className={`font-semibold text-[13px] ${tone.text}`}>{chip.text}</Text>
+            <View className="h-[52px] w-[52px] items-center justify-center rounded-button bg-white">
+              <Icon as={Camera} size={26} color={colors.primary.text} />
+            </View>
+            <View className="flex-1">
+              <Text className="font-semibold text-lg text-primary-on">영수증 찍기</Text>
+              <Text className="mt-[3px] text-sm text-primary-on">사진 한 장이면 품목·번역까지</Text>
+            </View>
+            <Icon as={NavArrowRight} size={22} color={colors.primary.on} />
           </Pressable>
-        )}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="영수증 사진으로 지출 추가"
-          onPress={() => select('photo')}
-          className="flex-row items-center gap-4 rounded-card-lg bg-primary p-[22px] active:bg-primary-press"
-        >
-          <View className="h-14 w-14 items-center justify-center rounded-box bg-white">
-            <Icon as={Camera} size={28} color={colors.primary.text} />
+          <View className="flex-row gap-2.5">
+            {SUB_METHODS.map((m) => (
+              <Pressable
+                key={m.method}
+                accessibilityRole="button"
+                accessibilityLabel={m.a11y}
+                onPress={() => select(m.method)}
+                className="flex-1 items-start gap-2.5 rounded-card bg-app px-3 py-4 active:bg-muted"
+              >
+                <Icon as={m.icon} size={24} color={m.iconColor} />
+                <Text style={{ lineHeight: 21 }} className="font-semibold text-15 text-ink">
+                  {m.label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-          <View className="flex-1">
-            <Text className="font-semibold text-xl text-primary-on">영수증 찍기</Text>
-            <Text className="mt-[3px] text-[15px] text-primary-on">사진 한 장이면 품목·번역까지</Text>
-          </View>
-          <Icon as={NavArrowRight} size={22} color={colors.primary.on} />
-        </Pressable>
-
-        <View className="flex-row gap-2.5">
-          {SUB_METHODS.map((m) => (
-            <Pressable
-              key={m.method}
-              accessibilityRole="button"
-              accessibilityLabel={m.a11y}
-              onPress={() => select(m.method)}
-              className={`flex-1 items-center justify-center gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
-            >
-              <Icon as={m.icon} size={24} color={m.iconColor} />
-              <Text style={{ lineHeight: 23 }} className="text-center font-semibold text-[17px] text-ink">
-                {m.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
       <PassSheet
         visible={!!pass}
         reason={pass?.reason}
@@ -442,7 +432,7 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
           toast('방장에게 결제 요청을 보냈어요');
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

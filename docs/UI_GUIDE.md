@@ -49,7 +49,8 @@
 ## 타이포그래피
 Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **굵기는 SemiBold 600 / Medium 500 / Regular 400 만 쓴다 — 700·800 금지.** 행간 160%, 자간 0, 한국어 `word-break: keep-all`. 시스템 글꼴 크기는 최대 1.3배.
 
-크기 스케일: H1 28 · H2 24 · H3 20 · H4 18 · B1 17 · B2 16 · B3 14 · B4 13 · C1 12. **이 9개 밖의 값(26·32·22·15)은 쓰지 않는다.**
+크기 스케일: H1 28 · H2 24 · H3 20 · H4 18 · B1 17 · B2 16 · B3 14 · B4 13 · C1 12. 1a 원본이 쓰는 22·15·11은 원본을 따른다.
+**글자 크기는 이름 클래스만 쓴다**: `text-10/11/xs(12)/13/sm(14)/15/base(16)/17/lg(18)/19/xl(20)/22/2xl(24)/26/28/30` — `tailwind.config.js`가 각 크기에 행간 1.6(원본 body `line-height:1.6`)을 박아 둔다. `text-[13px]` 같은 임의 값은 행간이 빠지므로 금지. 다른 행간이 필요하면 `leading-*`.
 
 | 용도 | 스타일 |
 |------|--------|
@@ -79,10 +80,13 @@ Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **�
 - **Badge**: '확인필요' 12/600 `warning` on `warning-badge`, radius 6, 2×6. 누르면 해제.
 - **StatusChip**: 12/600, 흰 배경 radius 8, 패딩 4×8. 정산 중 `primary-text`, 기록 중·정산 완료 `success`.
 - **아이콘 타일**: 44, radius 14, `muted` 배경, 아이콘 `primary-text` 21 — 입력 방식(사진=camera, 문자=message-text, 음성=microphone, 직접=edit-pencil).
-- **BottomSheet**: 스크림 `rgba(19,25,39,.45)`, 상단 radius 28, 핸들 40×5, 제목 20/600 + 부제 14.
+- **BottomSheet**: 스크림 `rgba(23,32,58,.45)`, 상단 `rounded-t-sheet`(원본 24, 토큰 20 유지), 핸들 40×5 `line`, 320ms `cubic-bezier(0.2,0.8,0.2,1)`, 제목 20/600 + 부제 14.
 - **Toast**: 하단 120 위, `ink` pill, check-circle `success-icon`(민트), 14/600, 1.8초.
-- **입력 필드**: 54h, radius 14, 테두리 1.5 `line`, 포커스 시 테두리 `primary` + `0 0 0 4px rgba(94,196,255,.18)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
+- **입력 필드**: 54h, radius 12, 테두리 1 `line`, 포커스 시 테두리 `primary-text` + `0 0 0 4px rgba(18,114,191,.16)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
 - **로고**: `SplitoSymbol`(그라데이션 지갑, `variant` color/white/navy), `Wordmark`(아웃라인 SVG, `variant` ink #0E2A47 / white). 핸드오프 `assets/logo/svg/` 의 도형을 그대로 재현한 것이며 텍스트로 그리지 않는다.
+
+- **눌림 상태**: 원본 `hover=`/`active=` 값을 `Pressable` pressed로 옮긴다. 선택 카드·옵션 행 = `active:bg-app active:border-sky-200`(배경을 하늘색으로 칠하지 않는다), 카드 = `active:scale-[0.98]`, 버튼 = 1px 아래. 선택(selected) 표시는 별개다.
+- **TabBar**(홈·통계): 알약 68h, 탭 56h, 가운데 + 60(`primary-text`, 흰 테두리 4). 여행 상세의 '지출 올리기'는 오른쪽 아래 떠 있는 알약(52h).
 
 ## 아이콘
 Iconoir(outline 1.5), `iconoir-react-native` + `Icon` 래퍼(크기를 숫자로 넘긴다). 아이콘 버튼에는 `accessibilityLabel`을 단다.

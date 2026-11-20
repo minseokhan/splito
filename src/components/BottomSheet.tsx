@@ -1,13 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { Easing, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 type Props = { visible: boolean; onClose: () => void; children: ReactNode; title?: string; subtitle?: string };
 
-const ENTER_MS = 260;
+// 시안: 시트 320ms cubic-bezier(0.2,0.8,0.2,1), 바운스 없음.
+const ENTER_MS = 320;
 const EXIT_MS = 200;
 // 키보드 위에 붙을 때 시트 흰 바닥을 키보드 밑으로 이만큼 더 깐다 —
 // 그러지 않으면 키보드 위쪽 둥근 모서리 사이로 스크림이 까맣게 비친다.
@@ -15,7 +16,7 @@ const EXIT_MS = 200;
 // 더하므로 내용 위치는 그대로다.
 const KEYBOARD_OVERLAP = 32;
 
-// 바텀시트: 스크림 rgba(19,25,39,.45), 상단 radius 28, 핸들 40×5. 스크림을 누르면 닫힌다.
+// 바텀시트: 스크림 rgba(23,32,58,.45), 상단 radius 28, 핸들 40×5. 스크림을 누르면 닫힌다.
 // Modal의 animationType="slide"는 스크림까지 같이 밀어 어색해서, 시트만 슬라이드하고 스크림은 즉시 켜고 끈다.
 export function BottomSheet({ visible, onClose, children, title, subtitle }: Props) {
   const insets = useSafeAreaInsets();
@@ -34,10 +35,10 @@ export function BottomSheet({ visible, onClose, children, title, subtitle }: Pro
   return (
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View className="flex-1 justify-end">
-        {visible && <Pressable accessibilityLabel="닫기" onPress={onClose} className="absolute inset-0 bg-[rgba(19,25,39,0.45)]" />}
+        {visible && <Pressable accessibilityLabel="닫기" onPress={onClose} className="absolute inset-0 bg-[rgba(23,32,58,0.45)]" />}
         {visible && (
           <Animated.View
-            entering={SlideInDown.duration(ENTER_MS)}
+            entering={SlideInDown.duration(ENTER_MS).easing(Easing.bezier(0.2, 0.8, 0.2, 1))}
             exiting={SlideOutDown.duration(EXIT_MS)}
             className="gap-[18px] rounded-t-sheet bg-white px-5 pt-3"
             // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없다 — 입력칸이 키보드에 붙게 둔다.

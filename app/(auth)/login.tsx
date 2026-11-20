@@ -54,7 +54,7 @@ function SnsButton({ label, icon, box, text, busy, onPress }: { label: string; i
       className={`h-14 flex-row items-center justify-center gap-2 rounded-button active:translate-y-px ${box}`}
     >
       {busy ? <ActivityIndicator color={text === 'text-white' ? '#FFFFFF' : colors.kakao.text} /> : icon}
-      <Text className={`font-semibold text-[17px] ${text}`}>{label}</Text>
+      <Text className={`font-semibold text-17 ${text}`}>{label}</Text>
     </Pressable>
   );
 }
@@ -87,17 +87,15 @@ export default function Login() {
 
   return (
     <View className="flex-1 bg-white">
-      {/* 랜딩 전용. 토큰 sky와 다른 값이며 확정 캡처 01-login.png 픽셀 실측으로 #E8F4FF다
-          (프로토타입 1a is.login 블록도 같은 값). 랜딩에서만 쓰여 토큰을 만들지 않았다. */}
-      <View className="flex-1 items-center justify-center gap-5 rounded-b-[40px]" style={{ backgroundColor: '#E8F4FF', paddingTop: insets.top + 40 }}>
+      {/* 원본 1a(11-20): 배경 sky-50, 아래 모서리 24. TODO(token): radius 24 토큰 없음 — 기존 40 유지. */}
+      <View className="flex-1 items-center justify-center gap-5 rounded-b-[40px] bg-sky-50" style={{ paddingTop: insets.top + 40 }}>
         {/* 시안의 둥근 앱 아이콘 132px. 그림자는 아이콘 밖에 깔아야 하므로 래퍼에 둔다. */}
         <View className="rounded-[30px]" style={{ boxShadow: '0 10px 28px -6px rgba(18,114,191,.28)' }}>
           <AnimatedSplitoMark size={132} />
         </View>
         <View className="items-center gap-3 px-8 pb-10">
-          {/* #0E2A47은 바로 아래 워드마크(Logo.tsx)와 같은 브랜드 값이라 토큰 ink를 쓰지 않는다. */}
           <Rise delay={RISE_DELAY.kicker} reduced={reduced}>
-            <Text className="text-center font-semibold text-lg text-[#0E2A47]">동행과 함께 쓰는 AI 정산 서비스</Text>
+            <Text className="text-center font-semibold text-lg text-ink">동행과 함께 쓰는 AI 정산 서비스</Text>
           </Rise>
           {/* 시안 글자 높이 48pt 실측(캡처 01-login.png). Wordmark의 size는 viewBox 높이다. */}
           <Rise delay={RISE_DELAY.wordmark} reduced={reduced}>
@@ -112,7 +110,7 @@ export default function Login() {
         </View>
       </View>
       <View className="gap-2.5 px-5 pt-7" style={{ paddingBottom: Math.max(insets.bottom + 10, 44) }}>
-        {error && <Text className="text-center text-[13px] text-danger">{error}</Text>}
+        {error && <Text className="text-center text-13 text-danger">{error}</Text>}
         <Rise delay={RISE_DELAY.kakao} reduced={reduced}>
           <SnsButton
             label="카카오로 시작하기"
@@ -138,7 +136,7 @@ export default function Login() {
         </Rise>
         {/* 앱 미설치 → 설치 후 첫 실행: 저장된 초대는 로그인 뒤 resolveEntryRoute의 join 분기가 처리한다. */}
         <Pressable accessibilityRole="button" onPress={() => setInviteOpen(true)} hitSlop={8} className="self-center py-1">
-          <Text className="font-semibold text-[13px] text-primary-text">초대 링크를 받으셨나요?</Text>
+          <Text className="font-semibold text-13 text-primary-text">초대 링크를 받으셨나요?</Text>
         </Pressable>
         {/* dev 빌드 전용: 다른 참여자 화면을 확인하기 위한 테스트 계정 로그인. 릴리스 번들에서는 사라진다. */}
         {__DEV__ && (

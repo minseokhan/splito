@@ -87,8 +87,8 @@ export default function Prepay() {
           <View className="h-11 w-11 items-center justify-center rounded-full bg-success-badge">
             <Icon as={Check} size={24} color={colors.success.DEFAULT} />
           </View>
-          <Text className="mt-1.5 font-semibold text-[22px] text-ink">예약을 불러왔어요</Text>
-          <Text className="text-[15px] text-ink-500">패키지 결제 금액을 ‘여행 전’ 지출로 등록했어요</Text>
+          <Text className="mt-1.5 font-semibold text-22 leading-[35px] text-ink">예약을 불러왔어요</Text>
+          <Text className="text-15 leading-6 text-ink-500">패키지 결제 금액을 ‘여행 전’ 지출로 등록했어요</Text>
         </View>
 
         <View className="gap-3 rounded-card border border-card-line p-4">
@@ -98,11 +98,11 @@ export default function Prepay() {
             </View>
             <View className="min-w-0 flex-1">
               <Text className="font-semibold text-base text-ink">패키지 상품 결제</Text>
-              <Text className="text-[13px] text-ink-400">
+              <Text className="text-13 text-ink-400">
                 하나투어{booking.paid_at ? ` · ${dateLabel(booking.paid_at)} 결제` : ''}
               </Text>
             </View>
-            <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[17px] text-ink">
+            <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-17 text-ink">
               {formatKrw(booking.paid_amount)}
             </Text>
           </View>
@@ -111,8 +111,8 @@ export default function Prepay() {
         {booking.pax > 1 && (
           <View className="gap-3 rounded-card bg-app p-4">
             <View>
-              <Text className="font-semibold text-[17px] text-ink">일행 몫도 함께 결제했나요?</Text>
-              <Text className="text-[13px] text-ink-400">예약 인원 {booking.pax}명</Text>
+              <Text className="font-semibold text-17 text-ink">일행 몫도 함께 결제했나요?</Text>
+              <Text className="text-13 text-ink-400">예약 인원 {booking.pax}명</Text>
             </View>
             <View className="flex-row gap-1.5 rounded-input bg-muted p-1">
               {[
@@ -124,7 +124,7 @@ export default function Prepay() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected: seg.on }}
                   onPress={() => setTogether(seg.set)}
-                  className={`h-10 flex-1 items-center justify-center rounded-toggle ${seg.on ? 'bg-white' : ''}`}
+                  className={`h-10 flex-1 items-center justify-center rounded-chip ${seg.on ? 'bg-white' : ''}`}
                   style={seg.on ? { boxShadow: '0 2px 4px -2px rgba(19,25,39,.12)' } : undefined}
                 >
                   <Text className={`font-semibold text-sm ${seg.on ? 'text-ink' : 'text-ink-400'}`}>{seg.label}</Text>
@@ -134,10 +134,10 @@ export default function Prepay() {
 
             {together ? (
               <>
-                <View className="rounded-box bg-white px-3.5 py-1">
+                <View className="rounded-badge bg-white px-3.5 py-1">
                   <View className="flex-row items-center gap-2.5 border-b border-muted py-2.5">
                     <Avatar name={me.name} colorIndex={0} size={32} />
-                    <Text className="flex-1 font-semibold text-[15px] text-ink">나 ({me.name})</Text>
+                    <Text className="flex-1 font-semibold text-15 text-ink">나 ({me.name})</Text>
                     <Text className="font-semibold text-xs text-primary-text">결제자</Text>
                   </View>
                   {slots.map((s, i) => (
@@ -148,15 +148,15 @@ export default function Prepay() {
                       {s ? (
                         <>
                           <Avatar name={s.name} colorIndex={i + 1} guest={s.kind === 'guest'} size={32} />
-                          <Text className="flex-1 font-semibold text-[15px] text-ink">
+                          <Text className="flex-1 font-semibold text-15 text-ink">
                             {s.name}
                             {s.kind === 'guest' && <Text className="text-xs text-ink-400"> 게스트</Text>}
                           </Text>
                         </>
                       ) : (
                         <>
-                          <View className="h-8 w-8 rounded-full border-[1.5px] border-dashed border-line-off" />
-                          <Text className="flex-1 text-[15px] text-ink-300">일행 {i + 1}</Text>
+                          <View className="h-8 w-8 rounded-full border border-line-off" />
+                          <Text className="flex-1 text-15 text-ink-300">일행 {i + 1}</Text>
                           <View className="flex-row gap-1.5">
                             <Pressable
                               accessibilityRole="button"
@@ -168,7 +168,7 @@ export default function Prepay() {
                             <Pressable
                               accessibilityRole="button"
                               onPress={() => setSheet('guest')}
-                              className="h-[30px] justify-center rounded-badge border-[1.5px] border-line px-2.5"
+                              className="h-[30px] justify-center rounded-badge border border-line px-2.5"
                             >
                               <Text className="font-semibold text-xs text-ink">이름으로 추가</Text>
                             </Pressable>
@@ -178,13 +178,13 @@ export default function Prepay() {
                     </View>
                   ))}
                 </View>
-                <Text className="text-[13px] text-ink-500">
+                <Text className="text-13 text-ink-500">
                   1인 {formatKrw(perPersonPreview(booking.paid_amount, booking.pax))}씩 나눠요. 동행은 자동으로 초대되지
                   않아요.
                 </Text>
               </>
             ) : (
-              <Text className="text-[13px] text-ink-500">{formatKrw(amount)}이 모두 내 몫으로 기록돼요.</Text>
+              <Text className="text-13 text-ink-500">{formatKrw(amount)}이 모두 내 몫으로 기록돼요.</Text>
             )}
           </View>
         )}
