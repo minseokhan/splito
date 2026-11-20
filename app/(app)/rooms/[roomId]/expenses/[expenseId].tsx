@@ -21,7 +21,7 @@ import { useReconfirmPendingFx } from '@/hooks/useFeed';
 import { useRoomMembers } from '@/hooks/useRooms';
 import { commentSchema } from '@/lib/activity';
 import { toUserError, type UserError } from '@/lib/errors';
-import { perPersonOriginal, splitLabel } from '@/lib/expenseForm';
+import { perPersonOriginal, splitLabel, toggleWho } from '@/lib/expenseForm';
 import { payerRecorderLabel } from '@/lib/feed';
 import { diffSnapshots, historyStamp } from '@/lib/history';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
@@ -229,11 +229,11 @@ export default function ExpenseDetailScreen() {
           {e.expense_items.map((it) => {
             // 편집 중이면 화면 상태가, 아니면 저장된 지정이 정답이다.
             const assigned = new Set(pick?.[it.id] ?? it.item_assignees.map((a) => a.member_id));
-            const n = assigned.size;
+            const n = assigned.size || scopePeople.length || 1;
             const per =
               it.krw_amount !== null
-                ? formatKrw(floorDiv(it.krw_amount, n || 1))
-                : formatForeign(perPersonOriginal(Number(it.amount_original), n || 1), e.currency);
+                ? formatKrw(floorDiv(it.krw_amount, n))
+                : formatForeign(perPersonOriginal(Number(it.amount_original), n), e.currency);
             return (
               <ItemBox
                 key={it.id}
@@ -245,10 +245,9 @@ export default function ExpenseDetailScreen() {
                 isKrw={e.currency === 'KRW'}
                 needsReview={it.needs_review}
                 people={scopePeople.length > 1 ? scopePeople.map((p) => ({ ...p, on: assigned.has(p.id) })) : []}
-                splitLabel={scopePeople.length > 1 ? (n ? splitLabel(n, scopePeople.length, per) : '전원 1/N') : ''}
+                splitLabel={scopePeople.length > 1 ? splitLabel(n, scopePeople.length, per) : ''}
                 expanded={openItems.includes(it.id)}
-                onExpand={() => setOpenItems((s) => [...s, it.id])}
-                onCollapse={() => setOpenItems((s) => s.filter((x) => x !== it.id))}
+                onToggleOpen={() => setOpenItems((s) => (s.includes(it.id) ? s.filter((x) => x !== it.id) : [...s, it.id]))}
                 onToggle={
                   scopePeople.length > 1
                     ? (memberId) =>
@@ -258,11 +257,9 @@ export default function ExpenseDetailScreen() {
                             Object.fromEntries(
                               e.expense_items.map((x) => [x.id, x.item_assignees.map((a) => a.member_id)]),
                             );
-                          const cur = base[it.id] ?? [];
-                          return {
-                            ...base,
-                            [it.id]: cur.includes(memberId) ? cur.filter((x) => x !== memberId) : [...cur, memberId],
-                          };
+                          // 지정 없음 = 전원 켜짐이라 누르면 그 사람이 빠진다. 마지막 한 명은 끄지 않는다.
+                          const next = toggleWho(base[it.id] ?? [], memberId, scopePeople.map((x) => x.id));
+                          return next ? { ...base, [it.id]: next } : base;
                         })
                     : undefined
                 }

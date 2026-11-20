@@ -19,43 +19,50 @@ const base = {
 };
 
 describe('ItemBox 먹은 사람 펼침', () => {
-  it('읽기 전용은 접혀 있다가 눌러서 펼친다', async () => {
-    const onExpand = jest.fn();
-    await render(<ItemBox {...base} people={people} expanded={false} onExpand={onExpand} />);
+  it('접힌 줄을 누르면 펼침을 화면에 알린다', async () => {
+    const onToggleOpen = jest.fn();
+    await render(<ItemBox {...base} people={people} onToggleOpen={onToggleOpen} />);
 
     await fireEvent.press(screen.getByRole('button', { name: '먹은 사람 보기' }));
-    expect(onExpand).toHaveBeenCalled();
+    expect(onToggleOpen).toHaveBeenCalled();
   });
 
-  it('접혀 있어도 고른 사람이 모두 겹친 원으로 보인다', async () => {
+  it('접혀 있으면 고른 사람이 겹친 원으로만 보이고 이름 칩은 없다', async () => {
     const three = [...people, { id: 'm3', name: '지훈', colorIndex: 2, guest: false, on: false }];
-    await render(<ItemBox {...base} people={three} expanded={false} onExpand={jest.fn()} />);
+    await render(<ItemBox {...base} people={three} />);
 
     expect(screen.getByText('서')).toBeOnTheScreen();
-    expect(screen.getByText('한')).toBeOnTheScreen();
     expect(screen.getByText('지')).toBeOnTheScreen();
-    expect(screen.queryByText('+2')).toBeNull();
+    expect(screen.queryByText('서연')).toBeNull();
   });
 
-  it('읽기 전용에서 펼치면 지정이 없어도 전원이 먹은 모양으로 보인다', async () => {
+  it('펼치면 지정이 없어도 전원 칩이 켜진 색이다', async () => {
     await render(<ItemBox {...base} people={people} expanded />);
 
-    expect(screen.getByRole('button', { name: '먹은 사람 닫기' })).toBeOnTheScreen();
-    expect(screen.getByText('서')).toHaveStyle({ color: memberColor(0).fg });
-    expect(screen.getByText('한')).toHaveStyle({ color: memberColor(1).fg });
+    expect(screen.getByText('서연')).toHaveStyle({ color: memberColor(0).fg });
+    expect(screen.getByText('한결')).toHaveStyle({ color: memberColor(1).fg });
   });
 
-  it('읽기 전용에서 지정이 있으면 지정된 사람만 켜진다', async () => {
+  it('지정이 있으면 지정된 사람 칩만 켜진다', async () => {
     await render(<ItemBox {...base} people={[{ ...people[0], on: true }, people[1]]} expanded />);
 
-    expect(screen.getByText('서')).toHaveStyle({ color: memberColor(0).fg });
-    expect(screen.getByText('한')).toHaveStyle({ color: colors.ink[300] });
+    expect(screen.getByText('서연')).toHaveStyle({ color: memberColor(0).fg });
+    expect(screen.getByText('한결')).toHaveStyle({ color: colors.ink[300] });
   });
 
-  it('편집 모드는 expanded를 안 줘도 펼친 채로 시작한다', async () => {
-    await render(<ItemBox {...base} people={people} onToggle={jest.fn()} />);
+  it('편집 모드에서 칩을 누르면 그 사람을 토글한다', async () => {
+    const onToggle = jest.fn();
+    await render(<ItemBox {...base} people={people} expanded onToggle={onToggle} />);
 
-    expect(screen.getByRole('button', { name: '사람 선택 닫기' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('checkbox', { name: '한결' }));
+    expect(onToggle).toHaveBeenCalledWith('m2');
+  });
+
+  it('이름 뒤에 수량을 붙인다', async () => {
+    await render(<ItemBox {...base} people={people} />);
+
+    expect(screen.getByText('타코야키 ×2')).toBeOnTheScreen();
+    expect(screen.getByText('たこ焼き ×2')).toBeOnTheScreen();
   });
 });
 
@@ -72,6 +79,15 @@ describe('ItemBox 쪼개기·삭제', () => {
     await render(<ItemBox {...base} quantity={1} people={people} onSplit={jest.fn()} />);
 
     expect(screen.queryByRole('button', { name: '쪼개기' })).toBeNull();
+  });
+
+  it('쪼갠 장이면 쪼개기 대신 합치기를 띄운다', async () => {
+    const onMerge = jest.fn();
+    await render(<ItemBox {...base} people={people} onSplit={jest.fn()} onMerge={onMerge} />);
+
+    expect(screen.queryByRole('button', { name: '쪼개기' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: '합치기' }));
+    expect(onMerge).toHaveBeenCalled();
   });
 
   it('삭제 X는 onRemove가 있으면 처음부터 보인다', async () => {

@@ -26,6 +26,7 @@ export type ParseResult = {
 export type DraftItem = {
   id: string; position: number; nameOriginal: string; nameKo: string; quantity: number;
   amountOriginal: number; needsReview: boolean; isAdjustment: boolean; assigneeMemberIds: string[];
+  splitFrom?: DraftItem; // 쪼갠 장이면 쪼개기 전 원본(합치기로 되돌린다). 저장 payload에는 안 들어간다.
 };
 export type ExpenseDraft = {
   id: string; roomId: string; source: ExpenseSource; payerKind: 'member' | 'pool'; payerMemberId: string | null;
@@ -115,17 +116,43 @@ export function draftFromExpense(p: SaveExpensePayload): ExpenseDraft {
   };
 }
 
+// 쪼개기: 수량 N(≥2) 박스를 1개짜리 N장으로, 같은 자리에. 금액은 N등분하고 나머지는 마지막 장에 붙인다.
+// 정수 금액은 정수로 나눈다(원·엔에 소수가 생기지 않게). 사람 지정은 이어받는다.
 export function splitItem(d: ExpenseDraft, itemId: string, newId: () => string): ExpenseDraft {
   const idx = d.items.findIndex((it) => it.id === itemId);
-  if (idx < 0) return d;
   const src = d.items[idx];
+  const n = src?.quantity ?? 0;
+  if (!src || src.splitFrom || !Number.isInteger(n) || n < 2) return d;
   const m = toMilli(src.amountOriginal);
-  const half = floorDiv(m, 2);
+  const step = Number.isInteger(src.amountOriginal) ? 1000 : 1;
+  const unit = floorDiv(m, n * step) * step;
+  const parts = Array.from({ length: n }, (_, i) => ({
+    ...src, id: newId(), quantity: 1, assigneeMemberIds: [...src.assigneeMemberIds], splitFrom: src,
+    amountOriginal: fromMilli(i === n - 1 ? m - unit * (n - 1) : unit),
+  }));
   const items = [...d.items];
-  items.splice(idx, 1, { ...src, amountOriginal: fromMilli(m - half) },
-    item(newId(), 0, { nameOriginal: src.nameOriginal, nameKo: src.nameKo, amountOriginal: fromMilli(half),
-      needsReview: src.needsReview, isAdjustment: src.isAdjustment, assigneeMemberIds: [...src.assigneeMemberIds] }));
+  items.splice(idx, 1, ...parts);
   return { ...d, items: renumber(items) };
+}
+
+// 합치기: 쪼갠 장 하나로 그 그룹 전체를 쪼개기 전 원본으로 되돌린다. 쪼갠 뒤 바꾼 지정은 버린다.
+export function mergeSplit(d: ExpenseDraft, itemId: string): ExpenseDraft {
+  const orig = d.items.find((it) => it.id === itemId)?.splitFrom;
+  if (!orig) return d;
+  const idx = d.items.findIndex((it) => it.splitFrom?.id === orig.id);
+  const items = d.items.filter((it) => it.splitFrom?.id !== orig.id);
+  items.splice(idx, 0, orig);
+  return { ...d, items: renumber(items) };
+}
+
+// 먹은 사람 칩 토글. 지정 없음 = 전원이 켜진 상태라, 누르면 그 사람이 빠진다.
+// 다시 전원이 되면 지정 없음([])으로 돌리고, 마지막 한 명은 끌 수 없다(null).
+export function toggleWho(cur: string[], memberId: string, allIds: string[]): string[] | null {
+  const base = cur.length ? cur : allIds;
+  const on = base.includes(memberId);
+  if (on && base.length === 1) return null;
+  const next = on ? base.filter((x) => x !== memberId) : [...base, memberId];
+  return allIds.every((x) => next.includes(x)) ? [] : next;
 }
 
 export function addItem(d: ExpenseDraft, newId: () => string): ExpenseDraft {

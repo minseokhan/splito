@@ -1,10 +1,10 @@
-import { Check, NavArrowRight, Scissor, Xmark } from 'iconoir-react-native';
+import { GitMerge, NavArrowDown, NavArrowUp, Scissor, Xmark } from 'iconoir-react-native';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { colors, memberColor } from '@/theme/tokens';
 
-import { AvatarStack, type AvatarPerson } from './AvatarStack';
+import type { AvatarPerson } from './AvatarStack';
 import { Badge } from './Badge';
 import { Icon } from './Icon';
 
@@ -14,47 +14,43 @@ type Props = {
   nameOriginal: string;
   nameKo: string;
   quantity: number;
-  amountLabel: string; // 현지 통화 금액("¥2,000")
-  krwLabel: string | null; // 원화(미리보기 또는 확정) "18,250원"
+  amountLabel: string; // 현지 통화 금액("¥2,180")
+  krwLabel: string | null; // 원화(미리보기 또는 확정) "19,840원"
   needsReview: boolean;
   people: BoxPerson[]; // 고를 수 있는 사람 + 지정 여부(아무도 on이 아니면 전원)
-  splitLabel: string; // "2명 · 1인 5,460원" | "전원 1/N"
+  splitLabel: string; // "전원 4명 · 1인 4,960원" | "2명 · 1인 5,460원"
   isKrw?: boolean; // 원화 지출이면 현지 통화 = 원화라 한 줄만 보여준다
-  // 사람 선택 펼침. 편집 모드에서만 의미가 있다(처음엔 펼쳐두고, 체크를 누르면 접힌다).
+  // 사람 선택 펼침(한 번에 한 카드만 — 화면이 정한다)
   expanded?: boolean;
-  onExpand?: () => void;
-  onCollapse?: () => void;
-  // 편집 모드(없으면 읽기 전용)
+  onToggleOpen?: () => void;
+  // 편집 모드(없으면 읽기 전용). 이름·금액은 글자를 눌러 고친다.
   amountText?: string; // 현지 통화 금액 입력 초깃값
   onChangeName?: (v: string) => void;
   onChangeAmount?: (v: string) => void;
   onToggle?: (memberId: string) => void;
   onClearReview?: () => void;
-  onSplit?: () => void;
-  onRemove?: () => void; // 주면 우상단에 삭제 X가 상시 보인다
+  onSplit?: () => void; // 수량 2 이상일 때만 [쪼개기]
+  onMerge?: () => void; // 쪼갠 장이면 [합치기]
+  onRemove?: () => void; // 주면 우상단에 ⓧ 배지
 };
 
 const TABULAR = { fontVariant: ['tabular-nums' as const] };
-// 수정 가능한 칸임을 알리는 점선 밑줄. 회색 1px은 화면에서 거의 안 보여 남색 1.5px로 올린다.
-// paddingBottom 없이는 점선이 글자 밑변에 붙어 겹쳐 보인다.
-export const EDITABLE_UNDERLINE = { borderBottomWidth: 1.5, borderStyle: 'dashed' as const, borderColor: colors.primary.DEFAULT, paddingBottom: 3 };
 
-// 시안 11 품목 박스: 흰색 radius 20, 확인필요면 1.5 warning-line 테두리. 금액 해석은 화면이 lib로 한다.
+// 시안 splito-split-handoff 품목 카드: 흰색 radius 20, 확인필요면 1.5 warning-line 테두리.
 export function ItemBox(p: Props) {
   const [amount, setAmount] = useState(p.amountText ?? '');
   const editable = !!p.onChangeName;
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
-  // 지정이 없으면 전원이 먹은 것으로 보여준다.
+  const qty = p.quantity > 1 ? ` ×${p.quantity}` : '';
+  // 지정이 없으면 전원이 먹은 것으로 보여준다(칩도 전원 켜짐).
   const allOff = !p.people.some((m) => m.on);
   const selected = allOff ? p.people : p.people.filter((m) => m.on);
-  const pick = !!p.onToggle; // 고를 수 있는 편집 모드인지(읽기 전용은 보여주기만)
-  // 편집 모드는 기본 펼침, 읽기 전용은 기본 접힘. 화면이 expanded를 주면 그대로 따른다.
-  const open = p.expanded ?? pick;
+  const pick = !!p.onToggle;
+  const open = !!p.expanded;
 
   return (
     <View
-      style={{ boxShadow: '0 1px 4px -1px rgba(14,27,61,.10)' }}
       className={`gap-3 rounded-card border-[1.5px] bg-white p-4 ${p.needsReview ? 'border-warning-line' : 'border-transparent'}`}
     >
       {p.onRemove && (
@@ -62,61 +58,53 @@ export function ItemBox(p: Props) {
           accessibilityRole="button"
           accessibilityLabel="이 품목 삭제"
           onPress={p.onRemove}
-          // 26px 원이라 hitSlop 10으로 터치 영역을 44 이상으로 맞춘다.
+          // 24px 원이라 hitSlop 10으로 터치 영역을 44 이상으로 맞춘다.
           hitSlop={10}
           style={{ boxShadow: '0 2px 6px -2px rgba(14,27,61,.18)' }}
-          className="absolute -right-2 -top-2 z-10 h-[26px] w-[26px] items-center justify-center rounded-full border-[1.5px] border-line bg-white"
+          className="absolute -right-2 -top-2 z-10 h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-line bg-white"
         >
-          <Icon as={Xmark} size={15} color={colors.ink[400]} />
+          <Icon as={Xmark} size={14} color={colors.ink[400]} />
         </Pressable>
       )}
       <View className="flex-row justify-between gap-2.5">
         <View className="flex-1 gap-0.5">
           <View className="flex-row items-center gap-1.5">
             {editable ? (
-              <TextInput
-                value={p.nameKo}
-                onChangeText={p.onChangeName}
-                placeholder="품목 이름"
-                placeholderTextColor={colors.ink[300]}
-                accessibilityLabel="품목 이름"
-                style={EDITABLE_UNDERLINE}
-                className="flex-shrink p-0 font-semibold text-base text-ink"
-              />
+              <View className="flex-shrink flex-row items-center">
+                <TextInput
+                  value={p.nameKo}
+                  onChangeText={p.onChangeName}
+                  placeholder="품목 이름"
+                  placeholderTextColor={colors.ink[300]}
+                  accessibilityLabel="품목 이름"
+                  className="flex-shrink p-0 font-semibold text-base text-ink"
+                />
+                {!!qty && <Text className="font-semibold text-base text-ink">{qty}</Text>}
+              </View>
             ) : (
-              <Text className="flex-shrink font-semibold text-base text-ink">{p.nameKo || p.nameOriginal || '품목'}</Text>
+              <Text className="flex-shrink font-semibold text-base text-ink">{(p.nameKo || p.nameOriginal || '품목') + qty}</Text>
             )}
             {p.needsReview && <Badge kind="review" onPress={p.onClearReview} accessibilityLabel={p.onClearReview ? '확인 필요 해제' : undefined} />}
           </View>
-          {!!p.nameOriginal && <Text className="text-xs text-ink-400">{p.nameOriginal}</Text>}
+          {!!p.nameOriginal && <Text className="text-xs text-ink-400">{p.nameOriginal + qty}</Text>}
         </View>
         <View className="items-end gap-0.5">
           {editable ? (
-            <View className="flex-row items-baseline gap-1">
-              {p.quantity !== 1 && (
-                <Text className="rounded-badge bg-muted px-1.5 py-0.5 font-semibold text-[15px] text-ink-500">{p.quantity} ×</Text>
-              )}
-              <TextInput
-                value={amount}
-                onChangeText={(v) => {
-                  setAmount(v);
-                  p.onChangeAmount?.(v);
-                }}
-                keyboardType="numbers-and-punctuation"
-                accessibilityLabel="품목 금액"
-                style={{ ...TABULAR, ...EDITABLE_UNDERLINE }}
-                className={`min-w-[56px] px-0.5 py-0 text-right font-semibold text-[18px] focus:bg-sky-50 ${mainCls}`}
-              />
-            </View>
+            <TextInput
+              value={amount}
+              onChangeText={(v) => {
+                setAmount(v);
+                p.onChangeAmount?.(v);
+              }}
+              keyboardType="numbers-and-punctuation"
+              accessibilityLabel="품목 금액"
+              style={TABULAR}
+              className={`min-w-[56px] p-0 text-right font-semibold text-[18px] leading-[23px] focus:bg-sky-50 ${mainCls}`}
+            />
           ) : (
-            <View className="flex-row items-baseline gap-1">
-              {p.quantity !== 1 && (
-                <Text className="rounded-badge bg-muted px-1.5 py-0.5 font-semibold text-[15px] text-ink-500">{p.quantity} ×</Text>
-              )}
-              <Text style={TABULAR} className={`font-semibold text-[18px] ${mainCls}`}>
-                {mainLabel}
-              </Text>
-            </View>
+            <Text style={TABULAR} className={`font-semibold text-[18px] leading-[23px] ${mainCls}`}>
+              {mainLabel}
+            </Text>
           )}
           {!p.isKrw && !!p.krwLabel && (
             <Text style={TABULAR} className="text-[13px] text-ink-300">
@@ -126,20 +114,49 @@ export function ItemBox(p: Props) {
         </View>
       </View>
 
-      <View className="flex-row items-center justify-between gap-2">
-        {p.people.length > 0 &&
-          (open ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ flexGrow: 0, flexShrink: 1 }}
-              className="rounded-full bg-app"
-              contentContainerClassName="flex-row items-center gap-1.5 p-0.5"
-            >
+      {p.people.length > 0 && (
+        <View className="gap-2.5 border-t border-muted pt-3">
+          <Pressable
+            disabled={!p.onToggleOpen}
+            onPress={p.onToggleOpen}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            accessibilityLabel={pick ? '먹은 사람 고르기' : '먹은 사람 보기'}
+            className="flex-row items-center gap-2"
+          >
+            <View className="flex-row">
+              {selected.map((m, i) => (
+                <View
+                  key={m.id}
+                  style={{ marginLeft: i ? -8 : 0, backgroundColor: memberColor(m.colorIndex).fg }}
+                  className="h-7 w-7 items-center justify-center rounded-full border-2 border-white"
+                >
+                  <Text className="font-semibold text-xs text-white">{m.name.slice(0, 1)}</Text>
+                </View>
+              ))}
+            </View>
+            <Text className="min-w-0 flex-1 font-semibold text-[13px] text-ink-700">{p.splitLabel}</Text>
+            {p.onMerge ? (
+              <Pressable accessibilityRole="button" onPress={p.onMerge} hitSlop={8} className="flex-row items-center gap-[3px] pr-1">
+                <Icon as={GitMerge} size={15} color={colors.primary.text} />
+                <Text className="font-semibold text-xs text-primary-text">합치기</Text>
+              </Pressable>
+            ) : (
+              p.onSplit &&
+              p.quantity > 1 && (
+                <Pressable accessibilityRole="button" onPress={p.onSplit} hitSlop={8} className="flex-row items-center gap-[3px] pr-1">
+                  <Icon as={Scissor} size={15} color={colors.primary.text} />
+                  <Text className="font-semibold text-xs text-primary-text">쪼개기</Text>
+                </Pressable>
+              )
+            )}
+            {!!p.onToggleOpen && <Icon as={open ? NavArrowUp : NavArrowDown} size={18} color={colors.ink[400]} />}
+          </Pressable>
+          {open && (
+            <View className="flex-row flex-wrap gap-1.5">
               {p.people.map((m) => {
                 const c = memberColor(m.colorIndex);
-                // 읽기 전용에서 지정이 없으면 전원 1/N이라 전원을 켜진 모양으로 보여준다.
-                const on = m.on || (!pick && allOff);
+                const on = allOff || m.on;
                 return (
                   <Pressable
                     key={m.id}
@@ -149,55 +166,30 @@ export function ItemBox(p: Props) {
                     accessibilityState={pick ? { checked: on } : undefined}
                     accessibilityLabel={m.guest ? `${m.name}(게스트)` : m.name}
                     style={{
-                      borderColor: on ? c.fg : colors.line.DEFAULT,
                       backgroundColor: on ? c.tint : '#FFFFFF',
+                      borderColor: on ? c.tint : colors['card-line'],
                       borderStyle: m.guest ? 'dashed' : 'solid',
                     }}
-                    className="h-[34px] w-[34px] items-center justify-center rounded-full border-2"
+                    className="h-[34px] flex-row items-center gap-1.5 rounded-full border-[1.5px] pl-[3px] pr-[11px]"
                   >
-                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-sm">
-                      {m.name.slice(0, 1)}
+                    <View
+                      style={{ backgroundColor: on ? c.fg : colors.muted }}
+                      className="h-[26px] w-[26px] items-center justify-center rounded-full"
+                    >
+                      <Text style={{ color: on ? '#FFFFFF' : colors.ink[300] }} className="font-semibold text-xs">
+                        {m.name.slice(0, 1)}
+                      </Text>
+                    </View>
+                    <Text style={{ color: on ? c.fg : colors.ink[300] }} className="font-semibold text-[13px]">
+                      {m.name}
                     </Text>
                   </Pressable>
                 );
               })}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={pick ? '사람 선택 닫기' : '먹은 사람 닫기'}
-                onPress={p.onCollapse}
-                className="h-[34px] w-[34px] items-center justify-center rounded-full bg-ink"
-              >
-                <Icon as={Check} size={18} color="#FFFFFF" />
-              </Pressable>
-            </ScrollView>
-          ) : (
-            <Pressable
-              disabled={!p.onExpand}
-              onPress={p.onExpand}
-              accessibilityRole={p.onExpand ? 'button' : 'text'}
-              accessibilityLabel={pick ? '먹은 사람 고르기' : '먹은 사람 보기'}
-              className="flex-row items-center gap-1.5 self-start rounded-full bg-app py-0.5 pl-0.5 pr-2.5"
-            >
-              <AvatarStack people={selected} size={34} ring="#FFFFFF" />
-              {!!p.onExpand && <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />}
-            </Pressable>
-          ))}
-        <View className="ml-auto items-end gap-1.5">
-          <Text className="text-right font-semibold text-xs text-ink-500">{p.splitLabel}</Text>
-          {/* 1개짜리 품목은 쪼갤 게 없다 — 사람 지정으로 나눈다 */}
-          {p.onSplit && p.quantity > 1 && (
-            <Pressable
-              accessibilityRole="button"
-              onPress={p.onSplit}
-              hitSlop={8}
-              className="flex-row items-center gap-[3px]"
-            >
-              <Icon as={Scissor} size={15} color={colors.primary.text} />
-              <Text className="font-semibold text-[13px] text-primary-text">쪼개기</Text>
-            </Pressable>
+            </View>
           )}
         </View>
-      </View>
+      )}
     </View>
   );
 }

@@ -13,6 +13,8 @@ import {
   setAssignees,
   removeItem,
   splitItem,
+  mergeSplit,
+  toggleWho,
   toDupInput,
   toSavePayload,
   updateItem,
@@ -136,23 +138,65 @@ describe('emptyDraft', () => {
 });
 
 describe('splitItem', () => {
-  it('금액을 반으로(소수 3자리 floor), 나머지는 원 박스, 합 보존, 새 박스는 바로 뒤', () => {
-    const d = draftFromParse(parse({ currency: 'USD', total: null, items: [
-      { name_original: 'a', name_ko: 'a', quantity: 1, amount: 10.001, confidence: 'high' },
-      { name_original: 'b', name_ko: 'b', quantity: 1, amount: 5, confidence: 'high' },
-    ] }), ctx());
-    const before = sumMilli(d);
-    const s = splitItem(d, d.items[0].id, () => 'new');
-    expect(sumMilli(s)).toBe(before);
-    expect(s.items.map((i) => [i.id, i.amountOriginal])).toEqual([[d.items[0].id, 5.001], ['new', 5], [d.items[1].id, 5]]);
+  const two = () => draftFromParse(parse({ currency: 'JPY', total: null, items: [
+    { name_original: 'ラーメン', name_ko: '라멘', quantity: 2, amount: 2181, confidence: 'high' },
+    { name_original: 'b', name_ko: 'b', quantity: 1, amount: 5, confidence: 'high' },
+  ] }), ctx());
+
+  it('수량 N개를 1개짜리 N장으로, 같은 자리에. 나머지는 마지막 장, 합 보존', () => {
+    const d = setAssignees(two(), two().items[0].id, ['m1']);
+    const s = splitItem(d, d.items[0].id, ids());
+    expect(sumMilli(s)).toBe(sumMilli(d));
+    expect(s.items.map((i) => [i.nameKo, i.quantity, i.amountOriginal])).toEqual([['라멘', 1, 1090], ['라멘', 1, 1091], ['b', 1, 5]]);
     expect(s.items.map((i) => i.position)).toEqual([0, 1, 2]);
+    // 사람 지정은 이어받는다
+    expect(s.items[1].assigneeMemberIds).toEqual(['m1']);
   });
 
-  it('음수 할인 박스도 합 보존', () => {
-    const d = draftFromParse(parse({ total: 3000 }), ctx());
-    const adj = d.items[2];
-    const s = splitItem(d, adj.id, () => 'new');
-    expect(sumMilli(s)).toBe(sumMilli(d));
+  it('정수 금액은 정수로 나눈다(원·엔에 소수가 생기지 않게)', () => {
+    const d = draftFromParse(parse({ currency: 'KRW', total: null, items: [
+      { name_original: 'a', name_ko: 'a', quantity: 3, amount: 10000, confidence: 'high' },
+    ] }), ctx());
+    expect(splitItem(d, d.items[0].id, ids()).items.map((i) => i.amountOriginal)).toEqual([3333, 3333, 3334]);
+  });
+
+  it('수량 1이거나 이미 쪼갠 장은 그대로 둔다', () => {
+    const d = two();
+    expect(splitItem(d, d.items[1].id, ids())).toBe(d);
+    const s = splitItem(d, d.items[0].id, ids());
+    expect(splitItem(s, s.items[0].id, ids())).toBe(s);
+  });
+});
+
+describe('mergeSplit', () => {
+  it('쪼갠 장 하나로 그룹 전체를 쪼개기 전 원본으로 되돌린다(쪼갠 뒤 바꾼 지정은 버린다)', () => {
+    const d = draftFromParse(parse({ currency: 'JPY', total: null, items: [
+      { name_original: 'x', name_ko: 'x', quantity: 1, amount: 1, confidence: 'high' },
+      { name_original: 'ラーメン', name_ko: '라멘', quantity: 2, amount: 2180, confidence: 'high' },
+    ] }), ctx());
+    const s = splitItem(d, d.items[1].id, ids());
+    const changed = setAssignees(s, s.items[2].id, ['m2']);
+    expect(mergeSplit(changed, changed.items[2].id)).toEqual(d);
+  });
+
+  it('쪼갠 장이 아니면 그대로 둔다', () => {
+    const d = draftFromParse(parse({}), ctx());
+    expect(mergeSplit(d, d.items[0].id)).toBe(d);
+  });
+});
+
+describe('toggleWho', () => {
+  const all = ['a', 'b', 'c'];
+  it('지정 없음(전원)에서 누르면 그 사람만 빠진다', () => {
+    expect(toggleWho([], 'a', all)).toEqual(['b', 'c']);
+  });
+  it('켜고 끈다. 다시 전원이 되면 지정 없음으로 돌린다', () => {
+    expect(toggleWho(['b'], 'a', all)).toEqual(['b', 'a']);
+    expect(toggleWho(['a', 'b'], 'b', all)).toEqual(['a']);
+    expect(toggleWho(['a', 'b'], 'c', all)).toEqual([]);
+  });
+  it('마지막 한 명은 끌 수 없다', () => {
+    expect(toggleWho(['a'], 'a', all)).toBeNull();
   });
 });
 
