@@ -14,9 +14,9 @@ describe('buildTripDays', () => {
     ]);
   });
 
-  it('여행 전 지출이 없으면 "여행 전" 칸을 만들지 않는다', () => {
+  it('기간이 있으면 여행 전 지출이 없어도 "여행 전" 칸은 늘 있다(전체·여행 전 고정)', () => {
     const days = buildTripDays({ startDate: '2025-10-20', endDate: '2025-10-21', sectionKeys: ['2025-10-20'] });
-    expect(days.map((d) => d.key)).toEqual(['all', '2025-10-20', '2025-10-21']);
+    expect(days.map((d) => d.key)).toEqual(['all', 'pre-trip', '2025-10-20', '2025-10-21']);
   });
 
   it('기간 미설정이면 전체 기간만, 기간 문구도 비운다', () => {
@@ -27,25 +27,25 @@ describe('buildTripDays', () => {
 
   it('종료일이 없으면 시작일 하루만', () => {
     const days = buildTripDays({ startDate: '2025-10-20', endDate: null, sectionKeys: [] });
-    expect(days.map((d) => d.key)).toEqual(['all', '2025-10-20']);
+    expect(days.map((d) => d.key)).toEqual(['all', 'pre-trip', '2025-10-20']);
     expect(days[0].sub).toBe('10.20');
   });
 
   it('종료일이 시작일보다 앞서면 시작일 하루만', () => {
     expect(
       buildTripDays({ startDate: '2025-10-20', endDate: '2025-10-18', sectionKeys: [] }).map((d) => d.key),
-    ).toEqual(['all', '2025-10-20']);
+    ).toEqual(['all', 'pre-trip', '2025-10-20']);
   });
 
   it('달과 해를 넘어가도 이어서 만든다', () => {
     const days = buildTripDays({ startDate: '2025-12-30', endDate: '2026-01-02', sectionKeys: [] });
-    expect(days.map((d) => d.key)).toEqual(['all', '2025-12-30', '2025-12-31', '2026-01-01', '2026-01-02']);
-    expect(days.map((d) => d.label)).toEqual(['전체 기간', '1일차', '2일차', '3일차', '4일차']);
-    expect(days.map((d) => d.sub)).toEqual(['12.30 – 1.2', '12.30', '12.31', '1.1', '1.2']);
+    expect(days.map((d) => d.key)).toEqual(['all', 'pre-trip', '2025-12-30', '2025-12-31', '2026-01-01', '2026-01-02']);
+    expect(days.map((d) => d.label)).toEqual(['전체 기간', '여행 전', '1일차', '2일차', '3일차', '4일차']);
+    expect(days.map((d) => d.sub)).toEqual(['12.30 – 1.2', '', '12.30', '12.31', '1.1', '1.2']);
   });
 
   it('30일 여행도 전부 만든다', () => {
-    expect(buildTripDays({ startDate: '2025-10-01', endDate: '2025-10-30', sectionKeys: [] })).toHaveLength(31);
+    expect(buildTripDays({ startDate: '2025-10-01', endDate: '2025-10-30', sectionKeys: [] })).toHaveLength(32);
   });
 });
 

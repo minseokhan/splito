@@ -21,10 +21,11 @@ import { useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
 import { DEMO_AI_USED, FREE_AI_LIMIT, type PassReason } from '@/lib/pass';
+import { formatForeign } from '@/lib/money';
 import { autoSelectPayer } from '@/lib/pool';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
-import { keepPhoto, saveDraft } from '@/services/drafts';
+import { keepPhoto, loadDraft, saveDraft, type StoredDraft } from '@/services/drafts';
 import { recognizeReceipt } from '@/services/ocr';
 import { preparePhoto, uploadReceipt } from '@/services/storage';
 import { colors } from '@/theme/tokens';
@@ -82,6 +83,7 @@ export default function NewExpense() {
         owner={room?.owner_id === session?.user.id}
         memberCount={members?.filter((m) => !m.leftAt).length ?? 1}
         pass={passLoaded ? !!passRec : undefined}
+        roomId={roomId}
       />
     );
 
@@ -354,16 +356,28 @@ const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typ
 ];
 
 // pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined.
-type PickerProps = { onSelect: (m: InputMethod) => void; scheduleTitle?: string; owner: boolean; memberCount: number; pass?: boolean };
+type PickerProps = {
+  onSelect: (m: InputMethod) => void;
+  scheduleTitle?: string;
+  owner: boolean;
+  memberCount: number;
+  pass?: boolean;
+  roomId: string;
+};
 
 // 지출 올리기 방법 선택. 11-18 시안에서 'AI 인식 N건 남음' 칩은 삭제됐다(한도를 다 쓰면 고를 때 패스 시트가 뜨는 것은 그대로).
-function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn }: PickerProps) {
+function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn, roomId }: PickerProps) {
   const toast = useToast();
   // 무료 AI 인식 한도(방당 5건). ponytail: 건수 데이터가 아직 없어 시안 값(DEMO_AI_USED)을 쓴다.
   const used = DEMO_AI_USED;
   const out = !passOn && used >= FREE_AI_LIMIT;
   const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
   const insets = useSafeAreaInsets();
+  // 기기에 남은 작성 중 지출(시안: 세 칸 아래 '이어서 쓰기' 카드).
+  const [saved, setSaved] = useState<StoredDraft | null>(null);
+  useEffect(() => {
+    void loadDraft(roomId).then(setSaved);
+  }, [roomId]);
   const select = (m: InputMethod) => (out && m !== 'manual' ? setPass({ reason: 'ai' }) : onSelect(m));
   // 여행 상세 위에 뜨는 바텀시트(11-18 시안 §3). 라우트가 transparentModal이라 뒤의 상세가 스크림 너머로 보인다.
   return (
@@ -406,15 +420,17 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
                 accessibilityRole="button"
                 accessibilityLabel={m.a11y}
                 onPress={() => select(m.method)}
-                className="flex-1 items-start gap-2.5 rounded-card bg-app px-3 py-4 active:bg-muted"
+                className="flex-1 items-center gap-2.5 rounded-card bg-app px-3 py-4 active:bg-muted"
               >
                 <Icon as={m.icon} size={24} color={m.iconColor} />
-                <Text style={{ lineHeight: 21 }} className="font-semibold text-15 text-ink">
+                <Text style={{ lineHeight: 21 }} className="text-center font-semibold text-15 text-ink">
                   {m.label}
                 </Text>
               </Pressable>
             ))}
           </View>
+
+          {saved && <DraftCard stored={saved} onPress={() => router.replace({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } })} />}
         </ScrollView>
       </Animated.View>
       <PassSheet
@@ -433,6 +449,36 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
         }}
       />
     </View>
+  );
+}
+
+// 시안: 둥글기 20 · 테두리 sky-100 · 아이콘 칸 36(회색) · 캡션 12 / 제목 15·600 · 오른쪽 '이어서 쓰기 >'.
+function DraftCard({ stored, onPress }: { stored: StoredDraft; onPress: () => void }) {
+  const { merchant, items, currency } = stored.draft;
+  const total = items.reduce((a, it) => a + it.amountOriginal, 0);
+  const title = [merchant.trim() || '이름 없는 지출', total > 0 ? formatForeign(total, currency) : ''].filter(Boolean).join(' · ');
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`작성 중인 지출 ${title} 이어서 쓰기`}
+      onPress={onPress}
+      className="flex-row items-center gap-3 rounded-card border border-sky-100 bg-white px-3.5 py-3 active:bg-app"
+      style={{ boxShadow: '0 0 4px rgba(18,114,191,.09)' }} // TODO(token): 시안 그림자
+    >
+      <View className="h-9 w-9 items-center justify-center rounded-chip bg-app">
+        <Icon as={EditPencil} size={18} color={colors.ink[500]} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-xs text-ink-500">작성 중인 지출 1건</Text>
+        <Text numberOfLines={1} className="font-semibold text-15 text-ink">
+          {title}
+        </Text>
+      </View>
+      <View className="flex-row items-center gap-0.5">
+        <Text className="font-semibold text-13 text-ink">이어서 쓰기</Text>
+        <Icon as={NavArrowRight} size={15} color={colors.ink.DEFAULT} />
+      </View>
+    </Pressable>
   );
 }
 

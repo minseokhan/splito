@@ -36,27 +36,30 @@ export function BottomSheet({ visible, onClose, children, title, subtitle }: Pro
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View className="flex-1 justify-end">
         {visible && <Pressable accessibilityLabel="닫기" onPress={onClose} className="absolute inset-0 bg-[rgba(23,32,58,0.45)]" />}
-        {visible && (
-          <Animated.View
-            entering={SlideInDown.duration(ENTER_MS).easing(Easing.bezier(0.2, 0.8, 0.2, 1))}
-            exiting={SlideOutDown.duration(EXIT_MS)}
-            className="gap-[18px] rounded-t-sheet bg-white px-5 pt-3"
-            // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없다 — 입력칸이 키보드에 붙게 둔다.
-            style={{
-              marginBottom: Math.max(lift - KEYBOARD_OVERLAP, 0),
-              paddingBottom: keyboard > 0 ? 16 + KEYBOARD_OVERLAP : Math.max(insets.bottom + 16, 40),
-            }}
-          >
-            <View className="h-[5px] w-10 self-center rounded-full bg-line" />
-            {title && (
-              <View className="gap-1">
-                <Text className="font-semibold text-xl text-ink">{title}</Text>
-                {subtitle && <Text className="text-sm text-ink-500">{subtitle}</Text>}
-              </View>
-            )}
-            {children}
-          </Animated.View>
-        )}
+        {/* 키보드 들어올림은 애니메이션 없는 바깥 뷰가 맡는다. SlideInDown은 시작할 때 잡은 위치(originY)로
+            끝나서, autoFocus로 키보드가 슬라이드 도중에 올라오면 시트에 준 margin이 무시되고 키보드에 가려졌다. */}
+        <View pointerEvents="box-none" style={{ marginBottom: Math.max(lift - KEYBOARD_OVERLAP, 0) }}>
+          {visible && (
+            <Animated.View
+              entering={SlideInDown.duration(ENTER_MS).easing(Easing.bezier(0.2, 0.8, 0.2, 1))}
+              exiting={SlideOutDown.duration(EXIT_MS)}
+              className="gap-[18px] rounded-t-sheet bg-white px-5 pt-3"
+              // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없다 — 입력칸이 키보드에 붙게 둔다.
+              style={{
+                paddingBottom: keyboard > 0 ? 16 + KEYBOARD_OVERLAP : Math.max(insets.bottom + 16, 40),
+              }}
+            >
+              <View className="h-[5px] w-10 self-center rounded-full bg-line" />
+              {title && (
+                <View className="gap-1">
+                  <Text className="font-semibold text-xl text-ink">{title}</Text>
+                  {subtitle && <Text className="text-sm text-ink-500">{subtitle}</Text>}
+                </View>
+              )}
+              {children}
+            </Animated.View>
+          )}
+        </View>
       </View>
     </Modal>
   );

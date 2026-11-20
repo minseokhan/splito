@@ -86,7 +86,7 @@ Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **�
 - **로고**: `SplitoSymbol`(그라데이션 지갑, `variant` color/white/navy), `Wordmark`(아웃라인 SVG, `variant` ink #0E2A47 / white). 핸드오프 `assets/logo/svg/` 의 도형을 그대로 재현한 것이며 텍스트로 그리지 않는다.
 
 - **눌림 상태**: 원본 `hover=`/`active=` 값을 `Pressable` pressed로 옮긴다. 선택 카드·옵션 행 = `active:bg-app active:border-sky-200`(배경을 하늘색으로 칠하지 않는다), 카드 = `active:scale-[0.98]`, 버튼 = 1px 아래. 선택(selected) 표시는 별개다.
-- **TabBar**(홈·통계): 알약 68h, 탭 56h, 가운데 + 60(`primary-text`, 흰 테두리 4). 여행 상세의 '지출 올리기'는 오른쪽 아래 떠 있는 알약(52h).
+- 홈에는 하단 탭바를 두지 않는다(2026-11-20 사용자 결정). 여행 상세의 '지출 올리기'는 오른쪽 아래 떠 있는 알약(52h).
 
 ## 아이콘
 Iconoir(outline 1.5), `iconoir-react-native` + `Icon` 래퍼(크기를 숫자로 넘긴다). 아이콘 버튼에는 `accessibilityLabel`을 단다.

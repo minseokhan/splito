@@ -36,7 +36,8 @@ export function buildTripDays({ startDate, endDate, sectionKeys }: Args): TripDa
       sub: !startDate ? '' : last === startDate ? md(startDate) : `${md(startDate)} – ${md(last!)}`,
     },
   ];
-  if (sectionKeys.includes(PRE_TRIP)) days.push({ key: PRE_TRIP, label: '여행 전', sub: '' });
+  // 기간이 있으면 [전체][여행 전]은 늘 고정이다(지출이 없어도).
+  if (startDate || sectionKeys.includes(PRE_TRIP)) days.push({ key: PRE_TRIP, label: '여행 전', sub: '' });
   if (!startDate) return days;
   let n = 1;
   for (let t = utc(startDate); t <= utc(last!); t += DAY_MS, n += 1) {

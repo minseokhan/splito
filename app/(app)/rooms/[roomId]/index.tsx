@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   Coins,
   DataTransferBoth,
@@ -14,7 +14,7 @@ import {
   Wallet,
   Xmark,
 } from 'iconoir-react-native';
-import { Fragment, useCallback, useMemo, useRef, useState, type ComponentType } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { Dimensions, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
@@ -58,7 +58,6 @@ import { buildScheduleDays, type ScheduleItem } from '@/lib/schedule';
 import { qrProgress, spotStatusText, spotTotals } from '@/lib/spotSettle';
 import { buildTripDays, dateTab, filterByCategory, nearestDay } from '@/lib/tripDays';
 import type { FeedRow } from '@/services/api';
-import { loadDraft } from '@/services/drafts';
 import type { RoomMember } from '@/types/domain';
 import { colors } from '@/theme/tokens';
 
@@ -115,9 +114,6 @@ export default function RoomHome() {
   const [catAt, setCatAt] = useState<MenuAnchor | null>(null);
   const [moreAt, setMoreAt] = useState<{ item: ScheduleItem; top: number } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
-  // 고정된 상단과 스크롤되는 목록을 구분하는 그림자. 맨 위에서는 띄우지 않는다.
-  const [scrolled, setScrolled] = useState(false);
   const toast = useToast();
   // ── 일정표: 자유여행·패키지 모두. 패키지(예약 연동)만 시간·포함 사항·이 자리 정산이 있다.
   const { data: booking } = useTripBooking(roomId);
@@ -231,12 +227,13 @@ export default function RoomHome() {
     scrollRef.current?.scrollTo({ y: Math.max(0, dayTop(target)) + 1, animated: true });
   };
 
-  // 입력 화면에서 돌아올 때마다 기기의 작성 중 지출을 다시 확인한다.
-  useFocusEffect(
-    useCallback(() => {
-      void loadDraft(roomId).then((d) => setHasDraft(!!d));
-    }, [roomId]),
-  );
+  // 날짜 줄이 넘치면 스크롤해서 고른 날짜를 보이게 한다. 전체·여행 전은 고정 칸이라 제외.
+  const dateStripRef = useRef<ScrollView>(null);
+  const [tabW, setTabW] = useState(0);
+  useEffect(() => {
+    const i = days.filter((d) => DATE_KEY.test(d.key)).findIndex((d) => d.key === activeTab);
+    if (i >= 0 && tabW) dateStripRef.current?.scrollTo({ x: Math.max(0, (i - 1) * tabW), animated: true });
+  }, [activeTab, days, tabW]);
   if (isLoading) return null;
   if (!room) {
     return (
@@ -291,7 +288,7 @@ export default function RoomHome() {
   const topBar = (
     <View
       className="h-[60px] flex-row items-center gap-0.5 bg-white px-1"
-      style={{ zIndex: 1, boxShadow: scrolled ? '0 6px 14px -8px rgba(19,25,39,.22)' : undefined }}
+      style={{ zIndex: 1 }}
     >
       <Pressable
         accessibilityRole="button"
@@ -382,7 +379,7 @@ export default function RoomHome() {
           />
         </View>
       </View>
-      {(offline || needJoinHint || hasDraft || pending.length > 0) && (
+      {(offline || needJoinHint || pending.length > 0) && (
         <View className="gap-2 pt-3">
           {offline && (
             <View className="rounded-input border border-warning-line bg-warning-banner px-4 py-3">
@@ -390,12 +387,6 @@ export default function RoomHome() {
             </View>
           )}
           {needJoinHint && <Text className="px-1 text-13 text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>}
-          {hasDraft && (
-            <Banner
-              text="작성 중인 지출 1건 · 이어서 쓰기"
-              onPress={() => router.push({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId } })}
-            />
-          )}
           {pending.length > 0 && (
             <Banner
               warning
@@ -409,34 +400,47 @@ export default function RoomHome() {
     </View>
   );
 
-  // 날짜 탭 줄(고정): 좌우 8, 같은 폭 칸(위 6 · 아래 10), 요일 줄 16 고정, 선택 밑줄 2.5가 구분선을 덮는다(-1).
+  // 날짜 탭 줄(고정): 좌우 8, 칸 폭 = 줄 폭의 1/6(위 6 · 아래 10), 요일 줄 16 고정, 선택 밑줄 2.5가 구분선을 덮는다.
+  // [전체][여행 전]은 왼쪽에 고정, 날짜는 그 오른쪽에서 가로로 스크롤한다(날짜가 적으면 남는 폭을 나눠 채운다).
+  const tabCell = (d: (typeof days)[number], style?: object) => {
+    const t = dateTab(d);
+    const on = activeTab === d.key;
+    return (
+      <Pressable
+        key={d.key}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: on }}
+        accessibilityLabel={d.label}
+        onPress={() => goTab(d.key)}
+        className="items-center pt-1.5"
+        style={style}
+      >
+        <Text className="h-4 text-11 leading-4 text-ink-300">{t.top}</Text>
+        <Text numberOfLines={1} className={`pb-2.5 font-semibold text-15 leading-6 ${on ? 'text-ink' : 'text-ink-500'}`}>
+          {t.label}
+        </Text>
+        <View className={`h-[2.5px] self-stretch ${on ? 'bg-local' : ''}`} />
+      </Pressable>
+    );
+  };
   const dateTabs = (
     <View
-      className="flex-row border-b border-line bg-white px-2"
+      className="flex-row bg-white px-2"
       onLayout={(e) => {
         lay.current.tabs = e.nativeEvent.layout.height;
+        setTabW((e.nativeEvent.layout.width - 16) / 6);
       }}
     >
-      {days.map((d) => {
-        const t = dateTab(d);
-        const on = activeTab === d.key;
-        return (
-          <Pressable
-            key={d.key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            accessibilityLabel={d.label}
-            onPress={() => goTab(d.key)}
-            className="-mb-px flex-1 items-center pt-1.5"
-          >
-            <Text className="h-4 text-11 leading-4 text-ink-300">{t.top}</Text>
-            <Text numberOfLines={1} className={`pb-2.5 font-semibold text-15 leading-6 ${on ? 'text-ink' : 'text-ink-500'}`}>
-              {t.label}
-            </Text>
-            <View className={`h-[2.5px] self-stretch ${on ? 'bg-local' : ''}`} />
-          </Pressable>
-        );
-      })}
+      <View className="absolute inset-x-0 bottom-0 h-px bg-line" />
+      {days.filter((d) => !DATE_KEY.test(d.key)).map((d) => tabCell(d, { width: tabW }))}
+      <ScrollView
+        ref={dateStripRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {days.filter((d) => DATE_KEY.test(d.key)).map((d) => tabCell(d, { minWidth: tabW, flex: 1 }))}
+      </ScrollView>
     </View>
   );
 
@@ -589,8 +593,6 @@ export default function RoomHome() {
         }}
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          const next = y > 0;
-          setScrolled((v) => (v === next ? v : next));
           // 스크롤 위치에 따라 밑줄을 옮긴다: 탭 아래를 지난 마지막 날짜.
           let on = 'all';
           for (const k of tabKeys) if (lay.current.days.has(k) && dayTop(k) <= y + 2) on = k;
@@ -748,12 +750,14 @@ type SegmentProps = {
 };
 
 // 요약 카드 버튼 묶음 한 칸: 높이 36 · 13/600 · 아이콘 16 · 아이콘↔글자 5.
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
 function Segment({ label, icon, iconColor, onPress }: SegmentProps) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="h-9 flex-1 flex-row items-center justify-center gap-[5px] active:bg-app"
+      className="h-11 flex-1 flex-row items-center justify-center gap-[5px] active:bg-app"
     >
       <Icon as={icon} size={16} color={iconColor} />
       <Text className="font-semibold text-13 text-ink">{label}</Text>

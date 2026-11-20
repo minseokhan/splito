@@ -14,7 +14,6 @@ import { formatKrw } from '@/components/Money';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { roomPeriod } from '@/components/RoomCard';
 import { STATUS_LABEL } from '@/components/StatusChip';
-import { TabBar } from '@/components/TabBar';
 import { useRecentExpenses } from '@/hooks/useRecentExpenses';
 import { useMyRooms } from '@/hooks/useRooms';
 import { kstToday } from '@/lib/expenseForm';
@@ -169,7 +168,7 @@ export default function Home() {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-white">
         <ScrollView
-          contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 140, gap: 28 }}
+          contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 28 }}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         >
@@ -190,7 +189,7 @@ export default function Home() {
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <ScrollView
-        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 130, gap: 28 }}
+        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 28 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refresh} />}
       >
         <Header />
@@ -267,11 +266,6 @@ export default function Home() {
           </>
         )}
       </ScrollView>
-      {/* 가운데 + : 대표 카드 방에 지출을 올린다(진행 중인 여행이 없으면 여행 만들기). */}
-      <TabBar
-        current="home"
-        onAdd={() => (featured ? router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId: featured.roomId } }) : goCreate())}
-      />
     </SafeAreaView>
   );
 }
