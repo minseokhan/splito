@@ -60,6 +60,13 @@
   - 예외: `app/`(Expo Router 화면), `src/components/`, `src/hooks/`, `src/services/`, `src/theme/`, `types/`, `*.d.ts`, `web/`, 설정·스타일·SQL 파일.
 - `Stop`: 턴이 끝날 때 `lint`/`build`/`test`를 실행하고, 실패하면 수정을 이어가도록 유도한다(`package.json`이 없으면 건너뛴다). 스크립트는 반드시 비대화형으로 끝나야 한다(`--watch` 금지).
 
+## Metro(개발 서버) 운용
+- CRITICAL: `app.config.ts`의 `web.output`은 `"single"`로 둔다. `"static"`으로 되돌리지 말 것.
+  - `"static"`이면 dev 서버가 웹 요청(브라우저로 `localhost:8081` 열기, 앱 경로 딥링크)마다 서버 렌더를 돈다. 이때 supabase 세션 저장소가 `window`를 만지다 `ReferenceError: window is not defined`로 **Metro 프로세스째 죽는다**. 앱은 "Could not connect to development server" 빨간 화면이 된다.
+  - 앱은 웹으로 배포하지 않는다. 랜딩은 `web/` 정적 HTML이다.
+- 시뮬레이터 화면 이동에 앱 경로 딥링크(`splito://rooms/<id>/...`)를 `simctl openurl`로 열지 않는다. dev client는 이 링크로 화면을 열지 못한다. 재연결은 `splito://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`만 쓴다.
+- 앱이 바뀐 코드를 반영하지 않으면, 먼저 Metro가 살아 있는지(`lsof -iTCP:8081 -sTCP:LISTEN`) 확인한다. 꺼진 Metro는 핫 리로드를 못 하고, 앱은 예전 번들로 계속 돈다.
+
 ## 명령어
 npm run lint                 # eslint . --max-warnings=0
 npm run build                # tsc --noEmit (Expo에는 웹식 build가 없으므로 타입 검사로 대체)

@@ -48,6 +48,7 @@ const MESSAGES = {
     message: '대표하는 게스트를 다른 분께 넘긴 뒤 나갈 수 있어요',
     action: '게스트 대표자 변경',
   },
+  MEMBER_HAS_ROLE: { message: '게스트 대표나 공금 통장 주인은 내보낼 수 없어요', action: '먼저 다른 분께 넘기기' },
   GUEST_IN_USE: { message: '지출에 포함된 게스트는 삭제할 수 없어요', action: '이름·대표자만 변경' },
   INVALID_INPUT: { message: '입력값을 확인해 주세요', action: '수정' },
   FORBIDDEN: { message: '이 작업을 할 권한이 없어요' },

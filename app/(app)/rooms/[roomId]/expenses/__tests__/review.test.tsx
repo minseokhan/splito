@@ -86,28 +86,34 @@ describe('확인·수정 화면', () => {
     );
   });
 
-  it('함께한 사람 섹션은 없고, 박스마다 참여자 전원이 펼쳐진 채로 보인다', async () => {
+  it('함께한 사람 섹션은 없고, 박스마다 사람 선택은 접힌 채 전원 요약을 보여준다', async () => {
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
     expect(screen.queryByText('함께한 사람')).toBeNull();
-    // 펼친 상태로 시작하므로 접는 체크 버튼이 박스마다 있고, 펼치기 버튼은 없다.
-    expect(screen.queryByRole('button', { name: '먹은 사람 고르기' })).toBeNull();
-    expect(screen.getAllByRole('button', { name: '사람 선택 닫기' })).toHaveLength(2);
-    // 박스 2개 × 참여자 2명
-    expect(screen.getAllByRole('checkbox', { name: '민지' })).toHaveLength(2);
-    expect(screen.getAllByRole('checkbox', { name: '지훈' })).toHaveLength(2);
-    expect(screen.getAllByText('전원 1/N')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '먹은 사람 고르기' })).toHaveLength(2);
+    expect(screen.queryByRole('checkbox', { name: '민지' })).toBeNull();
+    expect(screen.getAllByText(/^전원 2명 · 1인 /)).toHaveLength(2);
   });
 
-  it('체크를 누르면 그 박스만 접히고 다시 누르면 펼쳐진다', async () => {
+  it('한 번에 한 박스만 펼친다', async () => {
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
-    await fireEvent.press(screen.getAllByRole('button', { name: '사람 선택 닫기' })[0]);
-    // 접힌 박스 1개 + 펼친 박스 1개
-    expect(screen.getAllByRole('button', { name: '사람 선택 닫기' })).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: '먹은 사람 고르기' })).toHaveLength(1);
-    await fireEvent.press(screen.getByRole('button', { name: '먹은 사람 고르기' }));
-    expect(screen.getAllByRole('button', { name: '사람 선택 닫기' })).toHaveLength(2);
+    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[0]);
+    expect(screen.getAllByRole('checkbox', { name: '민지' })).toHaveLength(1);
+    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[1]);
+    expect(screen.getAllByRole('checkbox', { name: '민지' })).toHaveLength(1);
+    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[1]);
+    expect(screen.queryByRole('checkbox', { name: '민지' })).toBeNull();
+  });
+
+  it('마지막 한 명은 끌 수 없다', async () => {
+    await renderWith(draft());
+    expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
+    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[0]);
+    await fireEvent.press(screen.getByRole('checkbox', { name: '지훈' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: '민지' }));
+    expect(mockToast).toHaveBeenCalledWith('한 명 이상 골라 주세요');
+    expect(screen.getByRole('checkbox', { name: '민지' })).toBeChecked();
   });
 
   it('아무도 안 고르면 공동 지출로 보고 활동 참여자 전원으로 저장한다', async () => {
@@ -125,7 +131,11 @@ describe('확인·수정 화면', () => {
     jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 1 });
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
-    for (let i = 0; i < 2; i++) await fireEvent.press(screen.getAllByRole('checkbox', { name: '민지' })[i]);
+    // 지정 없음 = 전원 켜짐이라 지훈을 끄면 나만 남는다
+    for (let i = 0; i < 2; i++) {
+      await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[i]);
+      await fireEvent.press(screen.getByRole('checkbox', { name: '지훈' }));
+    }
     expect(await screen.findByText('나만 보기 · 정산에서 빠져요')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
     await waitFor(() => expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1'] }), null));

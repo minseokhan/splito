@@ -11,6 +11,10 @@ export function useRoom(id: RoomId) {
   return useQuery({ queryKey: ['room', id], queryFn: () => api.room(id) });
 }
 
+export function useRoomPass(id: RoomId) {
+  return useQuery({ queryKey: ['room', id, 'pass'], queryFn: () => api.roomPass(id) });
+}
+
 export function useRoomMembers(id: RoomId) {
   return useQuery({ queryKey: ['room', id, 'members'], queryFn: () => api.roomMembers(id) });
 }
@@ -39,6 +43,15 @@ export function useDeleteRoom() {
   return useMutation({
     mutationFn: api.deleteRoom,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+  });
+}
+
+// 링크가 재발급되므로 방(invite_token)도 같이 무효화한다.
+export function useRemoveMember(id: RoomId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.removeMember,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['room', id] }),
   });
 }
 

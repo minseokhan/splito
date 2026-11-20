@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { DateSheet } from '@/components/DateSheet';
-import { EDITABLE_UNDERLINE, ItemBox } from '@/components/ItemBox';
+import { ItemBox } from '@/components/ItemBox';
 import { Icon } from '@/components/Icon';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { NavBar } from '@/components/NavBar';
@@ -36,6 +36,7 @@ import {
   effScope,
   kstToday,
   mergePayload,
+  mergeSplit,
   parseAmountInput,
   perPersonOriginal,
   previewKrw,
@@ -43,7 +44,9 @@ import {
   removeItem,
   setAssignees,
   splitItem,
+  splitLabel,
   toDupInput,
+  toggleWho,
   toSavePayload,
   updateItem,
   validateDraft,
@@ -114,8 +117,8 @@ export default function ReviewExpense() {
   const pickableRooms = (myRooms ?? []).filter((r) => isActiveTrip(r, kstToday(new Date())) || r.roomId === roomId);
   const [roomOpen, setRoomOpen] = useState(false);
   const [moving, setMoving] = useState(false);
-  // 박스는 펼친 채로 시작한다. 체크를 누른 박스만 접는다.
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+  // 사람 선택은 한 번에 한 박스만 펼친다(시안). 처음엔 모두 접혀 있다.
+  const [openBox, setOpenBox] = useState<string | null>(null);
   const [dupDismissed, setDupDismissed] = useState(false);
   // ── 일정 연결: 일정 카드의 [+ 지출]로 들어온 경우에만 값이 있다(명세 §7)
   const { data: scheduleItems = [] } = useScheduleItems(roomId);
@@ -335,18 +338,20 @@ export default function ReviewExpense() {
           }),
         )
       : null;
-  const splitLabel = (i: number) => {
+  const itemSplitLabel = (i: number) => {
     const it = draft.items[i];
-    const n = it.assigneeMemberIds.length;
-    if (!n) return '전원 1/N';
+    const n = it.assigneeMemberIds.length || active.length;
     const per = preview ? formatKrw(floorDiv(preview.boxKrw[i], n)) : formatForeign(perPersonOriginal(it.amountOriginal, n), draft.currency);
-    return `${n}명 · 1인 ${per}`;
+    return splitLabel(n, active.length, per);
   };
-  const toggleAssignee = (itemId: string, memberId: string) =>
-    update((d) => {
-      const cur = d.items.find((x) => x.id === itemId)?.assigneeMemberIds ?? [];
-      return setAssignees(d, itemId, cur.includes(memberId) ? cur.filter((x) => x !== memberId) : [...cur, memberId]);
-    });
+  // 사람을 고르면 확인필요 배지도 내린다(시안).
+  const toggleAssignee = (itemId: string, memberId: string) => {
+    const cur = draft.items.find((x) => x.id === itemId)?.assigneeMemberIds ?? [];
+    const next = toggleWho(cur, memberId, activeIds);
+    if (!next) return toast('한 명 이상 골라 주세요');
+    update((d) => updateItem(setAssignees(d, itemId, next), itemId, { needsReview: false }));
+  };
+  const itemName = (it: ExpenseDraft['items'][number]) => it.nameKo || it.nameOriginal || '품목';
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top']}>
@@ -370,7 +375,6 @@ export default function ReviewExpense() {
                 placeholder="가맹점"
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="가맹점"
-                style={EDITABLE_UNDERLINE}
                 className="flex-shrink p-0 font-semibold text-[17px] text-ink"
               />
               {draft.needsReview && (
@@ -406,6 +410,76 @@ export default function ReviewExpense() {
               </Text>
             )}
           </View>
+        </View>
+
+        {multi && (
+          <View className="flex-row items-start gap-2 rounded-chip bg-sky-100 px-3 py-2.5">
+            <View className="mt-px h-[18px] w-[18px] items-center justify-center rounded-full bg-alert">
+              <Text className="font-semibold text-xs text-white">!</Text>
+            </View>
+            <Text className="flex-1 text-[13px] text-ink">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
+          </View>
+        )}
+
+        <View onLayout={(e) => setY('items', e)} className="gap-3.5">
+          {draft.items.map((it, i) => (
+            <ItemBox
+              key={`${it.id}:${splitRev}`}
+              nameOriginal={it.nameOriginal}
+              nameKo={it.nameKo}
+              quantity={it.quantity}
+              amountLabel={formatForeign(it.amountOriginal, draft.currency)}
+              amountText={String(it.amountOriginal)}
+              krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
+              needsReview={it.needsReview}
+              isKrw={isKrw}
+              people={multi ? active.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
+              splitLabel={multi ? itemSplitLabel(i) : ''}
+              expanded={openBox === it.id}
+              onToggleOpen={multi ? () => setOpenBox((o) => (o === it.id ? null : it.id)) : undefined}
+              onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
+              onChangeAmount={(text) => {
+                const amountOriginal = parseAmountInput(text);
+                if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
+              }}
+              onToggle={multi ? (id) => toggleAssignee(it.id, id) : undefined}
+              onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}
+              onSplit={() => {
+                update((d) => splitItem(d, it.id, uuidV4));
+                setSplitRev((r) => r + 1);
+                setOpenBox(null);
+                toast(`‘${itemName(it)}’을 ${it.quantity}개로 쪼갰어요`);
+              }}
+              onMerge={
+                it.splitFrom
+                  ? () => {
+                      update((d) => mergeSplit(d, it.id));
+                      setSplitRev((r) => r + 1);
+                      setOpenBox(null);
+                      toast(`‘${itemName(it.splitFrom!)}’로 다시 합쳤어요`);
+                    }
+                  : undefined
+              }
+              // 마지막 한 박스는 지울 수 없다(박스 0개 지출은 저장 불가)
+              onRemove={
+                draft.items.length > 1
+                  ? () => {
+                      update((d) => removeItem(d, it.id));
+                      toast(`‘${itemName(it)}’ 품목을 삭제했어요`);
+                    }
+                  : undefined
+              }
+            />
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => update((d) => addItem(d, uuidV4))}
+            style={{ borderStyle: 'dashed' }}
+            className="h-12 flex-row items-center justify-center gap-1.5 rounded-card border-[1.5px] border-line-off active:bg-muted"
+          >
+            <Icon as={Plus} size={20} color={colors.ink[500]} />
+            <Text className="text-base text-ink-500">품목 추가</Text>
+          </Pressable>
         </View>
 
         <View onLayout={(e) => setY('date', e)} className="gap-4 rounded-card bg-white p-4">
@@ -542,58 +616,6 @@ export default function ReviewExpense() {
             {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
           </Text>
         )}
-
-        {multi && (
-          <View className="flex-row items-start gap-2 rounded-chip bg-sky-100 px-3 py-2.5">
-            <View className="mt-px h-[18px] w-[18px] items-center justify-center rounded-full bg-alert">
-              <Text className="font-semibold text-xs text-white">!</Text>
-            </View>
-            <Text className="flex-1 text-[13px] text-ink">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
-          </View>
-        )}
-
-        <View onLayout={(e) => setY('items', e)} className="gap-3.5">
-          {draft.items.map((it, i) => (
-            <ItemBox
-              key={`${it.id}:${splitRev}`}
-              nameOriginal={it.nameOriginal}
-              nameKo={it.nameKo}
-              quantity={it.quantity}
-              amountLabel={formatForeign(it.amountOriginal, draft.currency)}
-              amountText={String(it.amountOriginal)}
-              krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
-              needsReview={it.needsReview}
-              isKrw={isKrw}
-              people={multi ? active.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
-              splitLabel={multi ? splitLabel(i) : ''}
-              expanded={!collapsed.includes(it.id)}
-              onExpand={() => setCollapsed((c) => c.filter((x) => x !== it.id))}
-              onCollapse={() => setCollapsed((c) => [...c, it.id])}
-              onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
-              onChangeAmount={(text) => {
-                const amountOriginal = parseAmountInput(text);
-                if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
-              }}
-              onToggle={multi ? (id) => toggleAssignee(it.id, id) : undefined}
-              onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}
-              onSplit={() => {
-                update((d) => splitItem(d, it.id, uuidV4));
-                setSplitRev((r) => r + 1);
-              }}
-              // 마지막 한 박스는 지울 수 없다(박스 0개 지출은 저장 불가)
-              onRemove={draft.items.length > 1 ? () => update((d) => removeItem(d, it.id)) : undefined}
-            />
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => update((d) => addItem(d, uuidV4))}
-            style={{ borderStyle: 'dashed' }}
-            className="h-12 flex-row items-center justify-center gap-1.5 rounded-card border-[1.5px] border-line-off active:bg-muted"
-          >
-            <Icon as={Plus} size={20} color={colors.ink[500]} />
-            <Text className="text-base text-ink-500">품목 추가</Text>
-          </Pressable>
-        </View>
       </ScrollView>
 
       <BottomBar shadow>

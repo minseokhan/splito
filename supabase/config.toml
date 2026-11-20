@@ -400,6 +400,10 @@ verify_jwt = false
 [functions.spot]
 verify_jwt = false
 
+# 지출 내역 내보내기. PDF에 넣을 Pretendard(KS X 1001 서브셋)·로고를 함수와 함께 배포한다.
+[functions.export-expenses]
+static_files = ["./functions/export-expenses/assets/*"]
+
 [analytics]
 enabled = true
 port = 54327

@@ -1,9 +1,8 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
+import { Camera, EditPencil, Lock, MediaImage, MessageText, Microphone, NavArrowRight, Sparks } from 'iconoir-react-native';
 import { Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,13 +10,16 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
 import { ParsingState } from '@/components/ParsingState';
+import { PassSheet } from '@/components/PassSheets';
 import { ScheduleChip } from '@/components/ScheduleChip';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
+import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useScheduleItems } from '@/hooks/useBooking';
-import { useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
+import { aiChip, DEMO_AI_USED, FREE_AI_LIMIT, type PassReason } from '@/lib/pass';
 import { autoSelectPayer } from '@/lib/pool';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
@@ -28,13 +30,12 @@ import { colors } from '@/theme/tokens';
 import type { ExpenseSource } from '@/types/domain';
 
 const TEXT_LIMIT = 4000;
-const VOICE_LIMIT_MS = 60_000;
 
 type InputMethod = 'photo' | 'text' | 'voice' | 'manual';
 type PhotoKind = 'receipt' | 'capture';
 type Phase = { kind: 'input' } | { kind: 'parsing' } | { kind: 'failed'; error: UserError; canRetry: boolean };
 
-// 기기 현지 날짜(음성·직접 입력은 기록한 날이 결제일).
+// 기기 현지 날짜(직접 입력은 기록한 날이 결제일).
 function localToday(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -56,6 +57,7 @@ export default function NewExpense() {
   const { session, profile, refreshProfile } = useAuth();
   const { data: room } = useRoom(roomId);
   const { data: members } = useRoomMembers(roomId);
+  const { data: passRec, isSuccess: passLoaded } = useRoomPass(roomId);
 
   const [expenseId] = useState(uuidV4);
   const [phase, setPhase] = useState<Phase>({ kind: 'input' });
@@ -63,33 +65,24 @@ export default function NewExpense() {
   // 업로드가 끝난 사진은 다시 시도할 때 재사용한다.
   const [photo, setPhoto] = useState<{ local: string; storagePath: string | null } | null>(null);
   const [text, setText] = useState('');
-  const [listening, setListening] = useState(false);
-  const finalText = useRef('');
   const camRef = useRef<CameraView>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  useSpeechRecognitionEvent('result', (e) => {
-    const t = e.results[0]?.transcript ?? '';
-    if (e.isFinal) finalText.current = `${finalText.current} ${t}`.trim();
-    setText(e.isFinal ? finalText.current : `${finalText.current} ${t}`.trim());
-  });
-  useSpeechRecognitionEvent('end', () => setListening(false));
-  useSpeechRecognitionEvent('error', (e) => {
-    setListening(false);
-    if (e.error === 'aborted' || e.error === 'no-speech') return;
-    const code = e.error === 'not-allowed' ? 'PERMISSION_DENIED' : 'STT_UNAVAILABLE';
-    setPhase({ kind: 'failed', error: codeError(code), canRetry: false });
-  });
-
-  // 최대 60초 후 자동으로 멈춘다. 화면을 떠나면 인식을 끊는다.
-  useEffect(() => {
-    if (!listening) return;
-    const t = setTimeout(() => ExpoSpeechRecognitionModule.stop(), VOICE_LIMIT_MS);
-    return () => clearTimeout(t);
-  }, [listening]);
-  useEffect(() => () => ExpoSpeechRecognitionModule.abort(), []);
-
-  if (!method) return <MethodPicker onSelect={setPicked} scheduleTitle={scheduleTitle} />;
+  if (!method)
+    return (
+      <MethodPicker
+        // 말로 입력은 별도 화면이다. push라 뒤로가기가 방법 선택으로 돌아온다.
+        onSelect={(m) =>
+          m === 'voice'
+            ? router.push({ pathname: '/rooms/[roomId]/expenses/voice', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } })
+            : setPicked(m)
+        }
+        scheduleTitle={scheduleTitle}
+        owner={room?.owner_id === session?.user.id}
+        memberCount={members?.filter((m) => !m.leftAt).length ?? 1}
+        pass={passLoaded ? !!passRec : undefined}
+      />
+    );
 
   const me = members?.find((m) => m.userId === session?.user.id && !m.leftAt);
   if (!room || !members || !me || profile === undefined) return null;
@@ -112,7 +105,7 @@ export default function NewExpense() {
   const photos = (p: typeof photo, kind: PhotoKind) => (p?.storagePath ? [{ storagePath: p.storagePath, kind }] : []);
 
   const manualTo = (nav: 'replace' | 'push') => {
-    const source: ExpenseSource = method === 'photo' ? 'receipt' : method === 'text' ? 'card_text' : method === 'voice' ? 'voice' : 'manual';
+    const source: ExpenseSource = method === 'photo' ? 'receipt' : method === 'text' ? 'card_text' : 'manual';
     const draft = emptyDraft({ ...ctx(source), currency: room.base_currency });
     void goReview({ ...draft, photos: photos(photo, 'receipt') }, photo ? [photo.local] : [], nav);
   };
@@ -206,24 +199,7 @@ export default function NewExpense() {
     await acceptPhoto(shot.uri);
   };
 
-  const startVoice = async () => {
-    if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
-      setPhase({ kind: 'failed', error: codeError('STT_UNAVAILABLE'), canRetry: false });
-      return;
-    }
-    const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    if (!perm.granted) {
-      setPhase({ kind: 'failed', error: codeError('PERMISSION_DENIED'), canRetry: false });
-      return;
-    }
-    finalText.current = '';
-    setText('');
-    setListening(true);
-    // 기기 STT만 쓴다. 음성 파일은 서버로 보내지 않는다(ADR-004).
-    ExpoSpeechRecognitionModule.start({ lang: 'ko-KR', interimResults: true, continuous: true });
-  };
-
-  const parseText = () => void parse({ kind: 'text', text: text.trim() }, method === 'voice' ? 'voice' : 'card_text', null);
+  const parseText = () => void parse({ kind: 'text', text: text.trim() }, 'card_text', null);
 
   const retry = () => {
     if (photo) void uploadAndParse(photo);
@@ -307,31 +283,21 @@ export default function NewExpense() {
         </View>
       )}
 
-      {phase.kind === 'input' && (method === 'text' || method === 'voice') && (
+      {phase.kind === 'input' && method === 'text' && (
         <View className="flex-1">
           {/* 입력칸 밖을 누르면 키보드를 내린다 */}
           <Pressable accessible={false} onPress={() => Keyboard.dismiss()} className="flex-1 gap-6 px-5 pt-2">
-            <Title
-              title={method === 'text' ? '카드 문자 붙여넣기' : '말로 입력'}
-              sub={
-                method === 'text'
-                  ? '카드 승인 문자를 그대로 붙여넣어 주세요'
-                  : listening
-                    ? '듣고 있어요. 다 말했으면 멈춰 주세요(최대 60초)'
-                    : '예: 민수는 카레 1000엔, 철수는 덮밥 1200엔, 둘 다 맥주 500엔'
-              }
-            />
+            <Title title="카드 문자 붙여넣기" sub="카드 승인 문자를 그대로 붙여넣어 주세요" />
             <View className="gap-2">
-              <Text className="font-semibold text-sm text-ink-500">{method === 'text' ? '승인 문자' : '인식된 내용'}</Text>
+              <Text className="font-semibold text-sm text-ink-500">승인 문자</Text>
               <TextInput
                 multiline
                 value={text}
                 onChangeText={setText}
-                editable={!listening}
                 maxLength={TEXT_LIMIT}
-                placeholder={method === 'text' ? '카드 승인 문자를 붙여넣어 주세요' : '말한 내용이 여기에 표시돼요'}
+                placeholder="카드 승인 문자를 붙여넣어 주세요"
                 placeholderTextColor={colors.ink[300]}
-                accessibilityLabel={method === 'text' ? '카드 승인 문자' : '음성 인식 결과'}
+                accessibilityLabel="카드 승인 문자"
                 textAlignVertical="top"
                 className="min-h-40 rounded-input border-[1.5px] border-line bg-white p-4 text-[17px] text-ink focus:border-primary"
               />
@@ -341,15 +307,7 @@ export default function NewExpense() {
             </View>
           </Pressable>
           <BottomBar>
-            {method === 'voice' && (
-              <PrimaryButton
-                title={listening ? '멈추기' : text ? '다시 말하기' : '말하기 시작'}
-                icon={Microphone}
-                variant="muted"
-                onPress={() => (listening ? ExpoSpeechRecognitionModule.stop() : void startVoice())}
-              />
-            )}
-            <PrimaryButton title="인식하기" onPress={parseText} disabled={listening || !text.trim()} />
+            <PrimaryButton title="인식하기" onPress={parseText} disabled={!text.trim()} />
           </BottomBar>
         </View>
       )}
@@ -395,7 +353,24 @@ const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typ
 ];
 
 // 시안 10: 지출 올리기 방법 선택(전체 화면).
-function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) => void; scheduleTitle?: string }) {
+const CHIP_TONE = {
+  free: { box: 'bg-muted', fg: colors.ink[500], text: 'text-ink-500', icon: Sparks },
+  out: { box: 'bg-warning-badge', fg: colors.warning.DEFAULT, text: 'text-warning', icon: Lock },
+  pass: { box: 'bg-sky-100', fg: colors.primary.text, text: 'text-primary-text', icon: Sparks },
+} as const;
+
+// pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined(칩을 그리지 않는다).
+type PickerProps = { onSelect: (m: InputMethod) => void; scheduleTitle?: string; owner: boolean; memberCount: number; pass?: boolean };
+
+function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn }: PickerProps) {
+  const toast = useToast();
+  // 무료 AI 인식 한도(방당 5건). ponytail: 건수 데이터가 아직 없어 시안 값(DEMO_AI_USED)을 쓴다.
+  const used = DEMO_AI_USED;
+  const out = !passOn && used >= FREE_AI_LIMIT;
+  const chip = aiChip(used, !!passOn);
+  const tone = CHIP_TONE[chip.tone];
+  const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
+  const select = (m: InputMethod) => (out && m !== 'manual' ? setPass({ reason: 'ai' }) : onSelect(m));
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <NavBar close />
@@ -407,11 +382,22 @@ function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) 
           </Text>
           <Text className="text-[17px] text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
         </View>
+        {passOn !== undefined && (
+          <Pressable
+            accessibilityRole="button"
+            disabled={passOn}
+            onPress={() => setPass({ reason: out ? 'ai' : null })}
+            className={`-mt-2 h-8 flex-row items-center gap-1.5 self-start rounded-full px-3 ${tone.box}`}
+          >
+            <Icon as={tone.icon} size={15} color={tone.fg} />
+            <Text className={`font-semibold text-[13px] ${tone.text}`}>{chip.text}</Text>
+          </Pressable>
+        )}
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="영수증 사진으로 지출 추가"
-          onPress={() => onSelect('photo')}
+          onPress={() => select('photo')}
           className="flex-row items-center gap-4 rounded-card-lg bg-primary p-[22px] active:bg-primary-press"
         >
           <View className="h-14 w-14 items-center justify-center rounded-[18px] bg-white">
@@ -430,7 +416,7 @@ function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) 
               key={m.method}
               accessibilityRole="button"
               accessibilityLabel={m.a11y}
-              onPress={() => onSelect(m.method)}
+              onPress={() => select(m.method)}
               className={`flex-1 items-center justify-center gap-2.5 rounded-card px-2.5 py-[18px] active:opacity-80 ${m.bg}`}
             >
               <Icon as={m.icon} size={24} color={m.iconColor} />
@@ -441,6 +427,21 @@ function MethodPicker({ onSelect, scheduleTitle }: { onSelect: (m: InputMethod) 
           ))}
         </View>
       </ScrollView>
+      <PassSheet
+        visible={!!pass}
+        reason={pass?.reason}
+        owner={owner}
+        memberCount={memberCount}
+        onClose={() => setPass(null)}
+        onPay={() => {
+          setPass(null);
+          toast('결제는 곧 열려요');
+        }}
+        onRequest={() => {
+          setPass(null);
+          toast('방장에게 결제 요청을 보냈어요');
+        }}
+      />
     </SafeAreaView>
   );
 }

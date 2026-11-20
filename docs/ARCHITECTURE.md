@@ -249,7 +249,8 @@ create index on room_members (user_id) where left_at is null;
 | `my_rooms()` | 방 목록 + 상태 + 내 순잔액 | |
 | `update_room(room_id, …)` | 방장만 호출. 지출이 있으면 기본 통화를 바꿀 수 없다 | `FORBIDDEN`, `CURRENCY_LOCKED` |
 | `rotate_invite(room_id)` | 방장만 호출. 새 토큰을 발급하고 이전 토큰을 무효화한다 | `FORBIDDEN` |
-| `remove_member(room_id, member_id)` (P1) | 방장만 호출. 순잔액이 0이 아니면 경고 플래그를 반환하고, 내보낸 뒤 토큰을 자동 재발급한다 | `FORBIDDEN` |
+| `remove_member(room_id, member_id)` | 방장만 호출(자기 자신 제외). 정산이 남아도 내보낼 수 있다 — 기록·잔액은 남고 경고는 클라이언트 확인 시트가 띄운다. 게스트 대표·공금 통장 주인은 막는다. 사용자를 내보내면 초대 토큰을 자동 재발급한다 | `FORBIDDEN`, `MEMBER_HAS_ROLE` |
+| `export_expense_shares(room_id)` | 지출 × 참여자 몫(원). 배분은 `room_balances`와 같다. 공동 지출 + 호출자의 나만 보기, 환율 대기 제외. `export-expenses` Edge Function(Excel·PDF 내보내기)이 쓴다 | `FORBIDDEN` |
 | `add_guest(room_id, name, representative_member_id?)` / `update_guest(member_id, name?, representative_member_id?)` | 게스트 추가(대표자 기본값은 호출자) / 이름·대표자 변경 + room_event. 누구나 호출 가능 | `INVALID_INPUT`, `MEMBER_LEFT` |
 | `remove_guest(member_id)` | 장부에서 참조되지 않는 게스트만 삭제 | `GUEST_IN_USE` |
 | `leave_room(room_id)` | 확인된 송금 기준 잔액 0(대표하는 게스트 합산 포함), 환율 대기 없음, 통장 주인 아님, 대표하는 게스트 없음 → 탈퇴. 방장이면 가장 먼저 합류한 활성 멤버에게 위임한다. 마지막 활성 멤버면 `rooms.deleted_at = now()`(사진 삭제는 P1 정리 작업) | `BALANCE_NOT_ZERO`, `FX_PENDING_EXISTS`, `POOL_OWNER`, `GUEST_REPRESENTATIVE` |
@@ -376,6 +377,7 @@ room_balances(room_id, false) → 사람별 net(화면용, 확인 대기 송금 
 | `OFFLINE` | 네트워크 없음 | 인터넷 연결이 필요해요 | 입력 보관 |
 | `RATE_LIMITED` | 한도 초과 | 잠시 후 다시 시도해 주세요 | — |
 | `GUEST_REPRESENTATIVE` | 게스트 대표자의 나가기 | 대표하는 게스트를 다른 분께 넘긴 뒤 나갈 수 있어요 | 게스트 대표자 변경 |
+| `MEMBER_HAS_ROLE` | 게스트 대표·공금 통장 주인 내보내기 | 게스트 대표나 공금 통장 주인은 내보낼 수 없어요 | 먼저 다른 분께 넘기기 |
 | `GUEST_IN_USE` | 장부에 쓰인 게스트 삭제 | 지출에 포함된 게스트는 삭제할 수 없어요 | 이름·대표자만 변경 |
 | `INVALID_INPUT` | 형식 오류 | 입력값을 확인해 주세요 | 수정 |
 | `FORBIDDEN` | 권한 없음 | 이 작업을 할 권한이 없어요 | — |

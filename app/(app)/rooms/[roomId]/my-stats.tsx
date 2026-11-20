@@ -8,11 +8,13 @@ import { BudgetCard } from '@/components/BudgetCard';
 import { CoachCard, CoachSheet } from '@/components/CoachSheet';
 import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
+import { BudgetExplainerSheet, PassLockBar, PassLockCard, PassSheet } from '@/components/PassSheets';
 import { CategoryCard, CompareCard, MatesCard, type MateRow } from '@/components/StatsCharts';
 import { useToast } from '@/components/Toast';
 import { api } from '@/services/api';
 import { useApplyBudgetPlan, useMyBudget, useMyShares } from '@/hooks/useBudget';
-import { useMyRooms, useRoomMembers } from '@/hooks/useRooms';
+import { useAuth } from '@/hooks/useAuth';
+import { useMyRooms, useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { useBalances } from '@/hooks/useSettlement';
 import {
   ALLOC_CATEGORIES,
@@ -29,6 +31,7 @@ import {
   type CheerVersion,
 } from '@/lib/budget';
 import { categoryLabel, type CategoryCode } from '@/lib/category';
+import { hiddenCount, maskWon, type PassReason } from '@/lib/pass';
 import { memberColor } from '@/theme/tokens';
 import type { BudgetPlan, Krw, MyShare } from '@/types/domain';
 
@@ -58,6 +61,15 @@ export default function MyStats() {
   const { data: members = [] } = useRoomMembers(roomId);
   const { data: balances } = useBalances(roomId);
   const applyPlan = useApplyBudgetPlan(roomId);
+  const myId = useAuth().session?.user.id;
+  const { data: roomRow } = useRoom(roomId);
+  const owner = roomRow?.owner_id === myId;
+  // 여행 패스 없음(무료)이면 일부 금액을 가린다. 불러오는 동안은 잠그지 않는다(잠금 화면이 깜빡이지 않게).
+  const { data: passRec, isSuccess: passLoaded } = useRoomPass(roomId);
+  const locked = passLoaded && !passRec;
+  const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const openPass = () => (owner ? setPass({ reason: 'stats' }) : toast('방장에게 결제 요청을 보냈어요'));
 
   const [day, setDay] = useState('all');
   const [catSheet, setCatSheet] = useState<CategoryCode | null>(null);
@@ -105,9 +117,10 @@ export default function MyStats() {
         fg: c.fg,
         paid: byId.get(m.id)?.paid ?? 0,
         owed: byId.get(m.id)?.owed ?? 0,
+        masked: locked && m.userId !== myId,
       };
     });
-  }, [members, balances]);
+  }, [members, balances, locked, myId]);
 
   const loadPlans = async () => {
     setCoachLoading(true);
@@ -191,20 +204,64 @@ export default function MyStats() {
         })}
       </ScrollView>
 
-      <ScrollView contentContainerClassName="gap-3 px-4 pb-12 pt-1">
-        <BudgetCard stats={stats} cheer={cheer} onSetBudget={goBudget} />
-        {coach && <CoachCard card={coach} onPress={openCoach} />}
+      <ScrollView contentContainerClassName={`gap-3 px-4 pt-1 ${locked ? 'pb-[120px]' : 'pb-12'}`}>
+        {locked ? (
+          <PassLockCard owner={owner} onStart={openPass} onExplain={() => setExplainOpen(true)} />
+        ) : (
+          <>
+            <BudgetCard stats={stats} cheer={cheer} onSetBudget={goBudget} />
+            {coach && <CoachCard card={coach} onPress={openCoach} />}
+          </>
+        )}
         <CompareCard
-          top={compare.top}
+          locked={locked}
+          top={locked ? maskWon(compare.top).text : compare.top}
           bottom={compare.bottom}
           daily={daily}
           baseline={dailyBaseline(stats.budget, stats.N)}
           d={stats.d}
           selected={selectedIndex}
         />
-        <CategoryCard rows={catRows} onPick={setCatSheet} />
-        {mates.length > 0 && <MatesCard rows={mates} />}
+        <CategoryCard rows={catRows} onPick={setCatSheet} locked={locked} onLocked={openPass} />
+        {mates.length > 0 && <MatesCard rows={mates} onLocked={openPass} />}
       </ScrollView>
+
+      {locked && (
+        <PassLockBar
+          owner={owner}
+          onPress={openPass}
+          count={hiddenCount({
+            compareTop: compare.top,
+            baseline: dailyBaseline(stats.budget, stats.N) > 0,
+            categories: catRows.length,
+            others: mates.filter((m) => m.masked).length,
+          })}
+        />
+      )}
+      <BudgetExplainerSheet
+        visible={explainOpen}
+        owner={owner}
+        onClose={() => setExplainOpen(false)}
+        onStart={() => {
+          setExplainOpen(false);
+          openPass();
+        }}
+      />
+      <PassSheet
+        visible={!!pass}
+        reason={pass?.reason}
+        owner={owner}
+        memberCount={members.filter((m) => !m.leftAt).length}
+        onClose={() => setPass(null)}
+        onPay={() => {
+          setPass(null);
+          toast('결제는 곧 열려요');
+        }}
+        onRequest={() => {
+          setPass(null);
+          toast('방장에게 결제 요청을 보냈어요');
+        }}
+      />
 
       <CategorySheet
         code={catSheet}

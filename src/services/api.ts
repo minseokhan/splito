@@ -4,6 +4,7 @@ import { type CategoryCode, toCategory } from '@/lib/category';
 import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
+import type { VoiceParseItem } from '@/lib/voice';
 import type { RoomEvent } from '@/lib/activity';
 import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
@@ -194,6 +195,10 @@ export const api = {
     unwrap(await supabase.rpc('delete_room', { p_room_id: roomId }));
   },
 
+  async removeMember(input: { roomId: RoomId; memberId: MemberId }): Promise<void> {
+    unwrap(await supabase.rpc('remove_member', { p_room_id: input.roomId, p_member_id: input.memberId }));
+  },
+
   async previewInvite(token: string): Promise<InvitePreview> {
     const r = unwrap(await supabase.rpc('preview_invite', { p_token: token })) as {
       room_id: string;
@@ -307,6 +312,11 @@ export const api = {
     return unwrap(await supabase.from('rooms').select('*').eq('id', roomId).single());
   },
 
+  // 여행 패스 구매 기록. 없으면 null(무료 이용 중).
+  async roomPass(roomId: RoomId): Promise<Tables<'room_passes'> | null> {
+    return unwrap(await supabase.from('room_passes').select('*').eq('room_id', roomId).maybeSingle());
+  },
+
   // 비용 때문에 자동 재시도하지 않는다(ARCHITECTURE §5.2). 사용자가 signal로 취소하면 원래 에러를 그대로 던진다.
   async parseExpense(
     req: { roomId: RoomId; kind: 'image' | 'text' | 'ocr'; storagePath?: string; text?: string; baseCurrency: string; roomStartDate?: string },
@@ -326,6 +336,17 @@ export const api = {
     });
     if (error) throw signal?.aborted ? error : await functionError(error);
     return data!;
+  },
+
+  // 말로 입력: 한 발화 → 가게·사람·품목·금액 여러 건(parse-expense kind 'voice'). names = 사람 인식에 쓸 참여자 이름,
+  // stores = 화면에 이미 있는 가게(같은 가게를 같은 이름으로 묶게).
+  async parseVoice(req: { roomId: RoomId; text: string; names: string[]; stores: string[]; baseCurrency: string }): Promise<VoiceParseItem[]> {
+    const { data, error } = await supabase.functions.invoke<{ items: VoiceParseItem[] }>('parse-expense', {
+      body: { room_id: req.roomId, kind: 'voice', text: req.text, names: req.names, stores: req.stores, base_currency: req.baseCurrency },
+      timeout: PARSE_TIMEOUT_MS,
+    });
+    if (error) throw await functionError(error);
+    return data!.items;
   },
 
   // AI 예산 코칭(내 통계). kind='alloc'이면 카테고리 배분 비율, 'plans'면 조정안 2~3개.

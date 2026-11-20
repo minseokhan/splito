@@ -27,6 +27,8 @@ export const colors = {
   'card-line': '#ECEEF2',
   // 내 통계 화면 배경 / 오늘 금액 박스 바탕.
   stats: { bg: '#F5F7FB', box: '#F7F8FB', line: '#D2DCEF' },
+  // 여행 패스(핸드오프 splito-pass-handoff 실측): AI 별, 가격 카드 그라데이션 양끝, 카드 위 보조 글자.
+  pass: { star: '#F2B705', from: '#2A4FB0', to: '#0E2A6B', sub: '#C9D4F2' },
 } as const;
 
 // 멤버 아바타 tint/fg. 합류 순서 기준 순환(민지·지훈·서연·엄마 순서가 시안 기준).

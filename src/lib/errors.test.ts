@@ -39,6 +39,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
     ['OFFLINE', '인터넷 연결이 필요해요', '입력 보관'],
     ['RATE_LIMITED', '잠시 후 다시 시도해 주세요', undefined],
     ['GUEST_REPRESENTATIVE', '대표하는 게스트를 다른 분께 넘긴 뒤 나갈 수 있어요', '게스트 대표자 변경'],
+    ['MEMBER_HAS_ROLE', '게스트 대표나 공금 통장 주인은 내보낼 수 없어요', '먼저 다른 분께 넘기기'],
     ['GUEST_IN_USE', '지출에 포함된 게스트는 삭제할 수 없어요', '이름·대표자만 변경'],
     ['INVALID_INPUT', '입력값을 확인해 주세요', '수정'],
     ['FORBIDDEN', '이 작업을 할 권한이 없어요', undefined],
@@ -56,7 +57,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
   });
 
   it('표의 코드를 빠짐없이 다룬다', () => {
-    expect(ERROR_CODES).toHaveLength(44);
+    expect(ERROR_CODES).toHaveLength(45);
   });
 });
 
