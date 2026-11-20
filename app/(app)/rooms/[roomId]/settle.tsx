@@ -405,7 +405,7 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-white">
       <NavBar title="정산" align="center" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 12 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">

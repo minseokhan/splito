@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             entering={FadeIn.duration(120)}
             exiting={FadeOut.duration(120)}
             accessibilityLiveRegion="polite"
-            className="flex-row items-center gap-2 rounded-full bg-ink px-[18px] py-3"
+            className="flex-row items-center gap-2 rounded-button bg-ink px-[18px] py-3"
           >
             <Icon as={CheckCircle} size={18} color={colors.success.icon} />
             <Text className="font-semibold text-sm text-white">{message}</Text>

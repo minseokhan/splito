@@ -27,7 +27,7 @@ function SheetFooter({ cta, onCta, close, onClose }: { cta: string; onCta: () =>
   return (
     <View className="gap-2">
       {/* 공용 PrimaryButton(56)보다 조금 높게(시트 하단 CTA 전용) */}
-      <Pressable accessibilityRole="button" onPress={onCta} className="h-[60px] items-center justify-center rounded-2xl bg-ink active:bg-black">
+      <Pressable accessibilityRole="button" onPress={onCta} className="h-[60px] items-center justify-center rounded-button bg-primary active:bg-primary-press">
         <Text className="font-semibold text-[17px] text-white">{cta}</Text>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={onClose} className="h-11 items-center justify-center">
@@ -61,12 +61,12 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
       <ScrollView style={{ maxHeight: 560 }} contentContainerClassName="gap-5">
         <View className="gap-2.5">
           {!!reason && (
-            <Text className="self-start rounded-[6px] bg-warning-badge px-2 py-1 font-semibold text-[13px] text-warning">{PASS_REASON[reason]}</Text>
+            <Text className="self-start rounded-badge bg-warning-badge px-2 py-1 font-semibold text-[13px] text-warning-text">{PASS_REASON[reason]}</Text>
           )}
           <Text className="font-semibold text-2xl leading-[29px] text-ink">{'여행 패스로\n이번 여행을 더 편하게'}</Text>
         </View>
 
-        <View className="gap-4 overflow-hidden rounded-[22px] px-5 py-[22px]">
+        <View className="gap-4 overflow-hidden rounded-card px-5 py-[22px]">
           {/* Svg 자체에 absolute를 주면 기본 크기로 그려져 카드가 잘린다. 감싼 View가 카드 크기를 받는다. */}
           <View style={StyleSheet.absoluteFill}>
             <Svg width="100%" height="100%">
@@ -102,7 +102,7 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
               accessibilityRole="checkbox"
               accessibilityState={{ checked: split }}
               onPress={() => setSplit((v) => !v)}
-              className={`flex-row items-center gap-3 rounded-2xl border-[1.5px] px-4 py-[18px] ${split ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+              className={`flex-row items-center gap-3 rounded-box border-[1.5px] px-4 py-[18px] ${split ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
             >
               <Icon as={split ? CheckCircleSolid : Circle} size={24} color={split ? colors.primary.DEFAULT : colors.line.off} />
               <View className="min-w-0 flex-1 gap-0.5">
@@ -123,7 +123,7 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
                       accessibilityRole="radio"
                       accessibilityState={{ selected: on }}
                       onPress={() => setMethod(m)}
-                      className={`h-[50px] flex-1 items-center justify-center rounded-xl border-[1.5px] ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                      className={`h-[50px] flex-1 items-center justify-center rounded-chip border-[1.5px] ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
                     >
                       <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink'}`}>{m}</Text>
                     </Pressable>
@@ -133,7 +133,7 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
             </View>
           </>
         ) : (
-          <View className="flex-row items-start gap-2 rounded-xl bg-sky-50 px-3.5 py-3">
+          <View className="flex-row items-start gap-2 rounded-chip bg-sky-50 px-3.5 py-3">
             <Icon as={InfoCircle} size={16} color={colors.primary.text} />
             <Text className="flex-1 text-sm text-ink-alt">여행 패스는 방장이 대표로 결제해요. 방장에게 요청을 보내면 알림이 가요.</Text>
           </View>
@@ -191,7 +191,7 @@ export function BudgetExplainerSheet({
           <Text className="font-semibold text-[22px] leading-[31px] text-ink">{'예산만 정하면\n남은 여행을 AI가 같이 챙겨요'}</Text>
         </View>
         <Step n={1} title="지금 얼마나 썼는지 한눈에">
-          <View className="gap-2.5 rounded-[18px] bg-app p-4">
+          <View className="gap-2.5 rounded-box bg-app p-4">
             <View className="flex-row justify-between">
               <Text className="text-[13px] text-ink-400">예산 500,000원 중</Text>
               <Text className="text-[13px] text-ink-400">남은 281,300원</Text>
@@ -203,8 +203,8 @@ export function BudgetExplainerSheet({
           </View>
         </Step>
         <Step n={2} title="오늘 써도 되는 금액">
-          <View className="flex-row items-center gap-3 rounded-[18px] bg-app p-4">
-            <View className="h-10 w-10 items-center justify-center rounded-xl bg-warning-badge">
+          <View className="flex-row items-center gap-3 rounded-box bg-app p-4">
+            <View className="h-10 w-10 items-center justify-center rounded-chip bg-warning-badge">
               <Icon as={Coins} size={20} color={colors.warning.accent} />
             </View>
             <View className="flex-1">
@@ -216,13 +216,13 @@ export function BudgetExplainerSheet({
           </View>
         </Step>
         <Step n={3} title="빠르게 쓰고 있으면 조정안 추천">
-          <View className="gap-2.5 rounded-[18px] border border-stats-line bg-sky-50 p-4">
+          <View className="gap-2.5 rounded-box border border-stats-line bg-sky-50 p-4">
             <View className="gap-0.5">
               <Text className="font-semibold text-[15px] text-ink">남은 2일 조정안</Text>
               <Text className="text-xs text-ink-500">하루 101,500원이면 예산 안이에요. 하나를 골라 주세요.</Text>
             </View>
             {DEMO_PLANS.map((p, i) => (
-              <View key={p.title} className={`gap-2 rounded-[14px] border-[1.5px] bg-white p-3 ${i === 0 ? 'border-primary' : 'border-card-line'}`}>
+              <View key={p.title} className={`gap-2 rounded-button border-[1.5px] bg-white p-3 ${i === 0 ? 'border-primary' : 'border-card-line'}`}>
                 <View className="flex-row items-center gap-2">
                   <View
                     className={`h-[18px] w-[18px] items-center justify-center rounded-full border-2 ${i === 0 ? 'border-primary' : 'border-line-off'}`}
@@ -236,7 +236,7 @@ export function BudgetExplainerSheet({
                 </View>
                 <View className="flex-row gap-[3px]">
                   {DEMO_CATS.map((c, k) => (
-                    <View key={c} className={`flex-1 items-center rounded-lg py-[5px] ${c === p.keep ? 'bg-sky-100' : 'bg-app'}`}>
+                    <View key={c} className={`flex-1 items-center rounded-badge py-[5px] ${c === p.keep ? 'bg-sky-100' : 'bg-app'}`}>
                       <Text className="text-[10px] text-ink-400">{c}</Text>
                       <Text className={`font-semibold text-xs ${c === p.keep ? 'text-primary-text' : 'text-ink'}`}>{p.v[k]}</Text>
                     </View>
@@ -246,11 +246,11 @@ export function BudgetExplainerSheet({
             ))}
             <Text className="text-[11px] text-ink-400">금액은 카테고리별 하루 금액이에요</Text>
             <View className="flex-row gap-1.5">
-              <View className="h-10 flex-row items-center gap-1 rounded-xl bg-white px-3">
+              <View className="h-10 flex-row items-center gap-1 rounded-chip bg-white px-3">
                 <Icon as={RefreshDouble} size={15} color={colors.ink.DEFAULT} />
                 <Text className="font-semibold text-[13px] text-ink">다시 분석</Text>
               </View>
-              <View className="h-10 flex-1 items-center justify-center rounded-xl bg-ink">
+              <View className="h-10 flex-1 items-center justify-center rounded-chip bg-primary">
                 <Text className="font-semibold text-[13px] text-white">이 안으로 적용</Text>
               </View>
             </View>
@@ -266,8 +266,8 @@ export function BudgetExplainerSheet({
 /** 내 통계 맨 위: 예산 현황 + AI 코칭 자리를 대신하는 잠금 카드(블러 없이 1장). */
 export function PassLockCard({ owner, onStart, onExplain }: { owner: boolean; onStart: () => void; onExplain: () => void }) {
   return (
-    <View style={CARD} className="items-center gap-3.5 rounded-[22px] bg-white px-5 pb-[18px] pt-6">
-      <View className="h-[52px] w-[52px] items-center justify-center rounded-2xl bg-sky-100">
+    <View style={CARD} className="items-center gap-3.5 rounded-card bg-white px-5 pb-[18px] pt-6">
+      <View className="h-[52px] w-[52px] items-center justify-center rounded-box bg-sky-100">
         <Icon as={Lock} size={26} color={colors.primary.text} />
       </View>
       <View className="items-center gap-1">
@@ -280,7 +280,7 @@ export function PassLockCard({ owner, onStart, onExplain }: { owner: boolean; on
       <Pressable
         accessibilityRole="button"
         onPress={onStart}
-        className="h-[52px] self-stretch items-center justify-center rounded-[14px] bg-ink active:bg-black"
+        className="h-[52px] self-stretch items-center justify-center rounded-button bg-primary active:bg-primary-press"
       >
         <Text className="font-semibold text-[17px] text-white">{owner ? '여행 패스로 시작하기' : '방장에게 요청하기'}</Text>
       </Pressable>
@@ -297,14 +297,14 @@ export function PassLockBar({ count, owner, onPress }: { count: number; owner: b
   return (
     <View
       style={{ boxShadow: '0 10px 32px -4px rgba(19,25,39,.35)' }}
-      className="absolute bottom-7 left-4 right-4 flex-row items-center gap-3 rounded-[20px] bg-ink py-3.5 pl-[18px] pr-3.5"
+      className="absolute bottom-7 left-4 right-4 flex-row items-center gap-3 rounded-button bg-ink py-3.5 pl-[18px] pr-3.5"
     >
       <Icon as={Lock} size={22} color={colors.pass.star} />
       <View className="min-w-0 flex-1 gap-0.5">
         <Text className="font-semibold text-base text-white">숨겨진 금액이 {count}개 있어요</Text>
         <Text className="text-sm text-on-dark-sub">여행 패스로 전부 볼 수 있어요</Text>
       </View>
-      <Pressable accessibilityRole="button" onPress={onPress} className="h-11 justify-center rounded-xl bg-white px-4 active:bg-muted">
+      <Pressable accessibilityRole="button" onPress={onPress} className="h-11 justify-center rounded-chip bg-white px-4 active:bg-muted">
         <Text className="font-semibold text-[15px] text-ink">{owner ? '패스 보기' : '요청하기'}</Text>
       </Pressable>
     </View>

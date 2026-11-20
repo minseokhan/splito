@@ -1,5 +1,5 @@
 import type { FeedSection } from './feed';
-import { buildTripDays, dayCaption, filterByCategory, filterSections, md, tripDayText } from './tripDays';
+import { buildTripDays, dateTab, dayCaption, filterByCategory, md, nearestDay } from './tripDays';
 
 describe('buildTripDays', () => {
   it('전체 기간 + 여행 전 + 기간의 각 날짜, 날짜 칸은 N일차 · M.D', () => {
@@ -49,26 +49,25 @@ describe('buildTripDays', () => {
   });
 });
 
-describe('tripDayText', () => {
-  it('날짜가 있으면 가운뎃점으로 잇고, 없으면 라벨만', () => {
-    expect(tripDayText({ key: 'all', label: '전체 기간', sub: '10.20 – 10.23' })).toBe('전체 기간 · 10.20 – 10.23');
-    expect(tripDayText({ key: 'pre-trip', label: '여행 전', sub: '' })).toBe('여행 전');
+describe('dateTab', () => {
+  it('전체·여행 전은 글자만, 날짜는 요일 + 날짜 숫자', () => {
+    expect(dateTab({ key: 'all', label: '전체 기간', sub: '' })).toEqual({ top: '', label: '전체' });
+    expect(dateTab({ key: 'pre-trip', label: '여행 전', sub: '' })).toEqual({ top: '', label: '여행 전' });
+    expect(dateTab({ key: '2025-10-20', label: '1일차', sub: '10.20' })).toEqual({ top: '월', label: '20' });
   });
 });
 
-describe('filterSections', () => {
-  const sections = [
-    { key: '2025-10-21', title: '', data: [] },
-    { key: 'pre-trip', title: '', data: [] },
-  ];
-
-  it('all이면 전부', () => {
-    expect(filterSections(sections, 'all')).toEqual(sections);
+describe('nearestDay', () => {
+  const keys = ['2025-10-20', '2025-10-21', '2025-10-22', '2025-10-23'];
+  it('그 날에 지출이 있으면 그대로', () => {
+    expect(nearestDay(keys, new Set(['2025-10-21']), '2025-10-21')).toBe('2025-10-21');
   });
-
-  it('그 키의 섹션만', () => {
-    expect(filterSections(sections, 'pre-trip')).toEqual([sections[1]]);
-    expect(filterSections(sections, '2025-10-20')).toEqual([]);
+  it('없으면 가장 가까운 날, 같은 거리면 앞날', () => {
+    expect(nearestDay(keys, new Set(['2025-10-20', '2025-10-23']), '2025-10-22')).toBe('2025-10-23');
+    expect(nearestDay(keys, new Set(['2025-10-20', '2025-10-22']), '2025-10-21')).toBe('2025-10-20');
+  });
+  it('지출이 하나도 없으면 null', () => {
+    expect(nearestDay(keys, new Set(), '2025-10-21')).toBeNull();
   });
 });
 

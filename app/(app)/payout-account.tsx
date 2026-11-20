@@ -139,7 +139,7 @@ export default function PayoutAccountScreen() {
           </>
         ) : (
           <>
-            <View className="gap-7 overflow-hidden rounded-card-lg bg-ink p-[22px]">
+            <View className="gap-7 overflow-hidden rounded-card bg-ink p-[22px]">
               {/* 어두운 배경 위 흰 실루엣은 10%면 안 보인다. 시안대로 컬러 심볼을 그대로 깐다.
                   시안처럼 카드 높이의 절반쯤 되는 크기로 오른쪽 아래에 두고 밑동만 살짝 잘리게 한다. */}
               <View className="absolute" style={{ right: 10, bottom: -10 }}>

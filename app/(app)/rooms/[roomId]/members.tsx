@@ -32,7 +32,7 @@ export default function Members() {
   const colorIndex = new Map(members.map((m, i) => [m.id, i]));
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="멤버" align="center" />
       <ScrollView contentContainerClassName="gap-2.5 px-5 pt-2" contentContainerStyle={{ paddingBottom: 200 }}>
         <Text className="px-1 font-semibold text-[13px] text-ink-500">참여자 {active.length}명</Text>
@@ -66,7 +66,7 @@ export default function Members() {
           })}
         </View>
       </ScrollView>
-      <BottomBar bg={colors.app} fade>
+      <BottomBar fade>
         <PrimaryButton title="초대하기" icon={UserPlus} onPress={() => setInviteOpen(true)} />
       </BottomBar>
       {/* 초대와 게스트 추가는 시트 하나를 번갈아 쓴다 — iOS는 Modal이 닫히는 중에 다음 Modal을 띄우면 그걸 무시한다. */}

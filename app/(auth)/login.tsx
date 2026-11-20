@@ -87,15 +87,15 @@ export default function Login() {
 
   return (
     <View className="flex-1 bg-white">
-      {/* 랜딩 전용. sky-100(#E8EEF8)과 다른 값이며 확정 캡처 01-login.png 픽셀 실측으로 #E8F4FF다
+      {/* 랜딩 전용. 토큰 sky와 다른 값이며 확정 캡처 01-login.png 픽셀 실측으로 #E8F4FF다
           (프로토타입 1a is.login 블록도 같은 값). 랜딩에서만 쓰여 토큰을 만들지 않았다. */}
       <View className="flex-1 items-center justify-center gap-5 rounded-b-[40px]" style={{ backgroundColor: '#E8F4FF', paddingTop: insets.top + 40 }}>
         {/* 시안의 둥근 앱 아이콘 132px. 그림자는 아이콘 밖에 깔아야 하므로 래퍼에 둔다. */}
-        <View className="rounded-[30px]" style={{ boxShadow: '0 10px 28px -6px rgba(29,60,143,.28)' }}>
+        <View className="rounded-[30px]" style={{ boxShadow: '0 10px 28px -6px rgba(18,114,191,.28)' }}>
           <AnimatedSplitoMark size={132} />
         </View>
         <View className="items-center gap-3 px-8 pb-10">
-          {/* #0E2A47은 바로 아래 워드마크(Logo.tsx)와 같은 값이라 토큰 ink(#0E1B3D)를 쓰지 않는다. */}
+          {/* #0E2A47은 바로 아래 워드마크(Logo.tsx)와 같은 브랜드 값이라 토큰 ink를 쓰지 않는다. */}
           <Rise delay={RISE_DELAY.kicker} reduced={reduced}>
             <Text className="text-center font-semibold text-lg text-[#0E2A47]">동행과 함께 쓰는 AI 정산 서비스</Text>
           </Rise>

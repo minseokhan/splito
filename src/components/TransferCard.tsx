@@ -16,8 +16,8 @@ export type Party = { name: string; label: string; colorIndex: number; guest?: b
 const BADGE = {
   'send-need': { label: '송금 필요', box: 'bg-sky-100', text: 'text-primary-text' },
   'recv-need': { label: '받을 차례', box: 'bg-muted', text: 'text-ink-500' },
-  'send-waiting': { label: '확인 대기', box: 'bg-warning-badge', text: 'text-warning' },
-  'recv-confirm': { label: '입금 확인 필요', box: 'bg-warning-badge', text: 'text-warning' },
+  'send-waiting': { label: '확인 대기', box: 'bg-warning-badge', text: 'text-warning-text' },
+  'recv-confirm': { label: '입금 확인 필요', box: 'bg-warning-badge', text: 'text-warning-text' },
   'send-done': { label: '보냈어요', box: 'bg-success-badge', text: 'text-success' },
   'recv-done': { label: '받았어요', box: 'bg-success-badge', text: 'text-success' },
 } as const;
@@ -58,7 +58,7 @@ export function TransferCard({ item, from, to, account: a, busy, shareLabel, onS
   const raw = send ? a?.accountNumber : null;
 
   return (
-    <View className="gap-3 rounded-[22px] border border-card-line bg-white px-[18px] pb-[18px] pt-4" style={CARD_SHADOW}>
+    <View className="gap-3 rounded-card border border-card-line bg-white px-[18px] pb-[18px] pt-4" style={CARD_SHADOW}>
       <View className={`self-start rounded-badge px-2 py-[3px] ${badge.box}`}>
         <Text className={`font-semibold text-xs ${badge.text}`}>{badge.label}</Text>
       </View>

@@ -104,7 +104,7 @@ export default function Consent() {
           />
         </View>
 
-        <View className="rounded-[18px] bg-app p-1.5">
+        <View className="rounded-box bg-app p-1.5">
           <View className="rounded-input bg-white px-3 py-1.5" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.08)' }}>
             <Checkbox label="전체 동의하기" round bold checked={all} onChange={(c) => ALL.forEach((k) => set(k, c))} />
           </View>

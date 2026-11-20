@@ -63,11 +63,12 @@ beforeEach(() => {
 });
 
 describe('확인·수정 화면', () => {
-  it('상단 결제 박스는 현지 통화를 크게, 원화·날짜를 따로 보여준다', async () => {
+  it('영수증 티켓 요약은 결제 통화를 크게, 원화·날짜를 따로 보여준다', async () => {
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
     expect(screen.getByText('29,925원')).toBeOnTheScreen();
-    expect(screen.getByText('10월 21일')).toBeOnTheScreen();
+    expect(screen.getByText('10.21 (수)')).toBeOnTheScreen();
+    expect(screen.getByText('품목 2개')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: '29,925원 저장하기' })).toBeOnTheScreen();
   });
 
@@ -86,11 +87,11 @@ describe('확인·수정 화면', () => {
     );
   });
 
-  it('함께한 사람 섹션은 없고, 박스마다 사람 선택은 접힌 채 전원 요약을 보여준다', async () => {
+  it('함께한 사람 섹션은 없고, 품목 줄은 접힌 채 전원 요약을 보여준다', async () => {
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
     expect(screen.queryByText('함께한 사람')).toBeNull();
-    expect(screen.getAllByRole('button', { name: '먹은 사람 고르기' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: / 품목$/ })).toHaveLength(2);
     expect(screen.queryByRole('checkbox', { name: '민지' })).toBeNull();
     expect(screen.getAllByText(/^전원 2명 · 1인 /)).toHaveLength(2);
   });
@@ -98,18 +99,18 @@ describe('확인·수정 화면', () => {
   it('한 번에 한 박스만 펼친다', async () => {
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
-    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[0]);
+    await fireEvent.press(screen.getAllByRole('button', { name: / 품목$/ })[0]);
     expect(screen.getAllByRole('checkbox', { name: '민지' })).toHaveLength(1);
-    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[1]);
+    await fireEvent.press(screen.getAllByRole('button', { name: / 품목$/ })[1]);
     expect(screen.getAllByRole('checkbox', { name: '민지' })).toHaveLength(1);
-    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[1]);
+    await fireEvent.press(screen.getAllByRole('button', { name: / 품목$/ })[1]);
     expect(screen.queryByRole('checkbox', { name: '민지' })).toBeNull();
   });
 
   it('마지막 한 명은 끌 수 없다', async () => {
     await renderWith(draft());
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
-    await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[0]);
+    await fireEvent.press(screen.getAllByRole('button', { name: / 품목$/ })[0]);
     await fireEvent.press(screen.getByRole('checkbox', { name: '지훈' }));
     await fireEvent.press(screen.getByRole('checkbox', { name: '민지' }));
     expect(mockToast).toHaveBeenCalledWith('한 명 이상 골라 주세요');
@@ -120,7 +121,6 @@ describe('확인·수정 화면', () => {
     jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 1 });
     await renderWith(draft());
     expect(await screen.findByText('공동 지출')).toBeOnTheScreen();
-    expect(screen.getByText('박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
     await waitFor(() =>
       expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1', 'm2'] }), null),
@@ -133,7 +133,7 @@ describe('확인·수정 화면', () => {
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
     // 지정 없음 = 전원 켜짐이라 지훈을 끄면 나만 남는다
     for (let i = 0; i < 2; i++) {
-      await fireEvent.press(screen.getAllByRole('button', { name: '먹은 사람 고르기' })[i]);
+      await fireEvent.press(screen.getAllByRole('button', { name: / 품목$/ })[i]);
       await fireEvent.press(screen.getByRole('checkbox', { name: '지훈' }));
     }
     expect(await screen.findByText('나만 보기 · 정산에서 빠져요')).toBeOnTheScreen();
@@ -141,15 +141,48 @@ describe('확인·수정 화면', () => {
     await waitFor(() => expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1'] }), null));
   });
 
-  it('결제일은 직접 치지 않고 달력에서 고른다', async () => {
+  it('결제일은 티켓의 날짜를 눌러 달력에서 고르고 [선택]으로 확정한다', async () => {
     await renderWith(draft());
     const trigger = await screen.findByRole('button', { name: '결제일' });
-    expect(screen.getByText('2026년 10월 21일 (수)')).toBeOnTheScreen();
+    expect(screen.getByText('10.21 (수)')).toBeOnTheScreen();
 
     await fireEvent.press(trigger);
     expect(screen.getByText('2026년 10월')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: '영수증 날짜 10.21' })).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: '2026년 10월 15일 (목)' }));
-    expect(screen.getByText('2026년 10월 15일 (목)')).toBeOnTheScreen();
+    expect(screen.getByText('10.15 (목)')).toBeOnTheScreen(); // 결과 줄(확정 전)
+    await fireEvent.press(screen.getByRole('button', { name: '선택' }));
+    expect(screen.getByText('10.15 (목)')).toBeOnTheScreen();
+    expect(mockToast).toHaveBeenCalledWith('결제일을 10.15 (목)로 바꿨어요');
+  });
+
+  it('처음 들어오면 확인필요 중 첫 품목을 펼치고, [전원]은 이미 전원이면 나만 남긴다', async () => {
+    jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 1 });
+    const d = draft();
+    d.items[1] = { ...d.items[1], needsReview: true };
+    await renderWith(d);
+    expect(await screen.findByRole('button', { name: '맥주 품목' })).toHaveProp('accessibilityState', { expanded: true });
+    expect(screen.getByRole('button', { name: '라멘 품목' })).toHaveProp('accessibilityState', { expanded: false });
+    await fireEvent.press(screen.getByRole('button', { name: '전원' }));
+    expect(screen.getByRole('checkbox', { name: '지훈' })).not.toBeChecked();
+    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await waitFor(() =>
+      expect(api.saveExpense).toHaveBeenCalledWith(
+        expect.objectContaining({ items: expect.arrayContaining([expect.objectContaining({ assignee_member_ids: ['m1'] })]) }),
+        null,
+      ),
+    );
+  });
+
+  it('쪼갠 품목은 [합치기]로 원본으로 되돌린다', async () => {
+    await renderWith(draft({ items: [{ id: 'i1', position: 0, nameOriginal: '', nameKo: '라멘', quantity: 2, amountOriginal: 2000, needsReview: false, isAdjustment: false, assigneeMemberIds: [] }] }));
+    await fireEvent.press(await screen.findByRole('button', { name: '라멘 품목' }));
+    await fireEvent.press(screen.getByRole('button', { name: '쪼개기' }));
+    expect(screen.getByText('품목 2개')).toBeOnTheScreen();
+    await fireEvent.press(screen.getAllByRole('button', { name: '라멘 품목' })[0]);
+    await fireEvent.press(screen.getByRole('button', { name: '합치기' }));
+    expect(screen.getByText('품목 1개')).toBeOnTheScreen();
+    expect(mockToast).toHaveBeenCalledWith('‘라멘 ×2’로 다시 합쳤어요');
   });
 
   it('카테고리 칩으로 고른 값을 저장한다', async () => {

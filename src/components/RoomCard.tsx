@@ -63,7 +63,7 @@ export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`내 지출 금액 ${formatKrw(spent)}`}
         onPress={onPressAmount}
-        className="flex-row items-center justify-between rounded-[18px] bg-white p-3.5"
+        className="flex-row items-center justify-between rounded-box bg-white p-3.5"
       >
         <Text className="text-[13px] text-ink-500">내 지출 금액</Text>
         <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[18px] text-ink-alt">

@@ -44,7 +44,7 @@ type Props = {
   defaultValues: RoomFormValues;
   onSubmit: (v: RoomFormValues) => Promise<void>;
   children?: ReactNode; // 폼 아래 칸(새 여행 안내, 여행 방 설정의 참여자·삭제)
-  cards?: boolean; // 회색 배경 위 흰 카드 하나에 담는다(여행 방 설정). 화면 배경은 호출하는 쪽이 bg-app으로 깐다
+  cards?: boolean; // 회색 배경 위 흰 카드 하나에 담는다(여행 방 설정). 화면 배경은 호출하는 쪽이 bg-muted로 깐다
 };
 
 // 통화 고르기에서는 유로도 깃발이 있어야 줄이 맞는다. currencyFlag는 홈 카드용이라 EUR을 비워 둔다(비행기로 대체).
@@ -201,7 +201,7 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
 
         {children}
       </ScrollView>
-      <BottomBar bg={cards ? colors.app : undefined} fade={cards}>
+      <BottomBar bg={cards ? colors.muted : undefined} fade={cards}>
         {error && <Text className="text-[13px] text-danger">{error}</Text>}
         <PrimaryButton title={submitLabel} loading={formState.isSubmitting} disabled={!formState.isValid} onPress={submit} />
       </BottomBar>

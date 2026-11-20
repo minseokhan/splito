@@ -114,7 +114,7 @@ export default function Prepay() {
               <Text className="font-semibold text-[17px] text-ink">일행 몫도 함께 결제했나요?</Text>
               <Text className="text-[13px] text-ink-400">예약 인원 {booking.pax}명</Text>
             </View>
-            <View className="flex-row gap-1.5 rounded-input bg-[#E9EDF2] p-1">
+            <View className="flex-row gap-1.5 rounded-input bg-muted p-1">
               {[
                 { on: together, label: '네, 함께 결제했어요', set: true },
                 { on: !together, label: '아니요, 제 몫만', set: false },
@@ -124,7 +124,7 @@ export default function Prepay() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected: seg.on }}
                   onPress={() => setTogether(seg.set)}
-                  className={`h-10 flex-1 items-center justify-center rounded-[10px] ${seg.on ? 'bg-white' : ''}`}
+                  className={`h-10 flex-1 items-center justify-center rounded-toggle ${seg.on ? 'bg-white' : ''}`}
                   style={seg.on ? { boxShadow: '0 2px 4px -2px rgba(19,25,39,.12)' } : undefined}
                 >
                   <Text className={`font-semibold text-sm ${seg.on ? 'text-ink' : 'text-ink-400'}`}>{seg.label}</Text>
@@ -134,7 +134,7 @@ export default function Prepay() {
 
             {together ? (
               <>
-                <View className="rounded-2xl bg-white px-3.5 py-1">
+                <View className="rounded-box bg-white px-3.5 py-1">
                   <View className="flex-row items-center gap-2.5 border-b border-muted py-2.5">
                     <Avatar name={me.name} colorIndex={0} size={32} />
                     <Text className="flex-1 font-semibold text-[15px] text-ink">나 ({me.name})</Text>
@@ -161,7 +161,7 @@ export default function Prepay() {
                             <Pressable
                               accessibilityRole="button"
                               onPress={() => setSheet('invite')}
-                              className="h-[30px] justify-center rounded-badge bg-ink px-2.5"
+                              className="h-[30px] justify-center rounded-badge bg-primary-text px-2.5"
                             >
                               <Text className="font-semibold text-xs text-white">초대</Text>
                             </Pressable>

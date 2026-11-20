@@ -41,3 +41,22 @@ export function addDays(isoDate: string, n: number): string {
   const [y, m, d] = isoDate.split('-').map(Number);
   return iso(Date.UTC(y, m - 1, d + n));
 }
+
+// "10.21 (수)" — 결제일 달력 결과 줄·빠른 선택 칩
+export function shortDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return `${m}.${d} (${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+}
+
+// 결제일이 여행의 몇 일차인지. 기간 앞은 '여행 전', 뒤는 '여행 후', 기간이 없으면 ''.
+export function tripDayTag(isoDate: string, start: string | null, end: string | null): string {
+  if (!start) return '';
+  if (isoDate < start) return '여행 전';
+  if (end && isoDate > end) return '여행 후';
+  return `${Math.round((firstOfDay(isoDate) - firstOfDay(start)) / DAY_MS) + 1}일차`;
+}
+
+const firstOfDay = (isoDate: string) => {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return Date.UTC(y, m - 1, d);
+};

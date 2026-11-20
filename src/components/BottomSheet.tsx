@@ -39,7 +39,7 @@ export function BottomSheet({ visible, onClose, children, title, subtitle }: Pro
           <Animated.View
             entering={SlideInDown.duration(ENTER_MS)}
             exiting={SlideOutDown.duration(EXIT_MS)}
-            className="gap-[18px] rounded-t-hero bg-white px-5 pt-3"
+            className="gap-[18px] rounded-t-sheet bg-white px-5 pt-3"
             // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없다 — 입력칸이 키보드에 붙게 둔다.
             style={{
               marginBottom: Math.max(lift - KEYBOARD_OVERLAP, 0),

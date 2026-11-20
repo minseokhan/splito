@@ -760,16 +760,16 @@ export const api = {
     const rows = unwrap(
       await supabase
         .from('schedule_items')
-        .select('id, day_index, start_time, title, includes, excludes, optional, est_amount, edited_at')
+        .select('id, day_index, start_time, position, title, includes, excludes, optional, est_amount, edited_at')
         .eq('room_id', roomId)
         .order('day_index')
-        .order('start_time')
-        .order('created_at'),
+        .order('position'),
     );
     return rows.map((r) => ({
       id: r.id,
       dayIndex: r.day_index,
       startTime: r.start_time,
+      position: r.position,
       title: r.title,
       includes: r.includes,
       excludes: r.excludes,
@@ -789,11 +789,12 @@ export const api = {
     id?: string;
     roomId: RoomId;
     dayIndex: number;
-    startTime: string;
+    startTime: string | null;
     title: string;
     includes: string[];
     optional: boolean;
     estAmount: number;
+    position?: number; // 새 일정을 넣을 자리([위에/아래에 일정 추가]). 없으면 그날 맨 아래
   }): Promise<string> {
     return unwrap(
       await supabase.rpc('save_schedule_item', {
@@ -806,6 +807,7 @@ export const api = {
           includes: input.includes,
           optional: input.optional,
           est_amount: input.estAmount,
+          position: input.position ?? null,
         },
       }),
     );

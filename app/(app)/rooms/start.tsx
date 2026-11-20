@@ -32,7 +32,7 @@ function Card({ icon, title, badge, description, onPress }: CardProps) {
         <View className="flex-row items-center gap-1.5">
           <Text className="font-semibold text-[17px] text-ink">{title}</Text>
           {!!badge && (
-            <View className="rounded-[6px] bg-sky-100 px-[7px] py-px">
+            <View className="rounded-badge bg-sky-100 px-[7px] py-px">
               <Text className="font-semibold text-[11px] text-primary-text">{badge}</Text>
             </View>
           )}

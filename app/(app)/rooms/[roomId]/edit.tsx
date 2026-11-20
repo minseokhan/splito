@@ -94,7 +94,7 @@ export default function EditRoom() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top']} className="flex-1 bg-muted">
       <NavBar title="여행 방 설정" />
       {!!room && (
         <RoomForm
@@ -121,8 +121,8 @@ export default function EditRoom() {
           {/* 여행 패스: room_passes에 행이 있으면 이용 중. AI 사용 건수는 아직 시안 값이다(src/lib/pass.ts). */}
           <View className="gap-2.5">
             <Text className="px-1 font-semibold text-[13px] text-ink-500">여행 패스</Text>
-            <View className="flex-row items-center gap-3 rounded-[22px] bg-white px-5 py-[18px]" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
-              <View className={`h-10 w-10 items-center justify-center rounded-xl ${passRec ? 'bg-primary' : 'bg-muted'}`}>
+            <View className="flex-row items-center gap-3 rounded-card bg-white px-5 py-[18px]" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
+              <View className={`h-10 w-10 items-center justify-center rounded-chip ${passRec ? 'bg-primary' : 'bg-muted'}`}>
                 <Icon as={Sparks} size={20} color={passRec ? colors.primary.on : colors.ink[400]} />
               </View>
               <View className="min-w-0 flex-1">
@@ -133,7 +133,7 @@ export default function EditRoom() {
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => (isOwner ? setPassOpen(true) : toast('방장에게 결제 요청을 보냈어요'))}
-                  className="h-[34px] justify-center rounded-[10px] bg-ink px-3 active:bg-black"
+                  className="h-[34px] justify-center rounded-toggle bg-primary-text px-3 active:opacity-80"
                 >
                   <Text className="font-semibold text-[13px] text-white">{passInfo.button}</Text>
                 </Pressable>
@@ -162,7 +162,7 @@ export default function EditRoom() {
                         {m.kind === 'guest' && <GuestChip />}
                       </View>
                       {!mine && (
-                        <Text className={`text-xs ${pending ? 'text-warning' : 'text-ink-400'}`} numberOfLines={1}>
+                        <Text className={`text-xs ${pending ? 'text-warning-text' : 'text-ink-400'}`} numberOfLines={1}>
                           {pending ?? '정산 완료'}
                         </Text>
                       )}
@@ -188,7 +188,7 @@ export default function EditRoom() {
               <Text className="font-semibold text-[13px] text-ink-500">패키지 예약</Text>
               <View className="gap-1 rounded-card border border-card-line bg-white px-[18px] py-4">
                 <View className="flex-row items-center gap-1.5">
-                  <View className="rounded-[6px] bg-sky-100 px-[7px] py-px">
+                  <View className="rounded-badge bg-sky-100 px-[7px] py-px">
                     <Text className="font-semibold text-[11px] text-primary-text">하나투어</Text>
                   </View>
                   <View className="flex-row items-center gap-[3px]">

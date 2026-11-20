@@ -275,13 +275,13 @@ type BoxProps = {
 // 버튼도 박스 톤을 따라가야 겉돌지 않는다 — 흰 배경에 회색 테두리면 박스에서 떠 보인다.
 const TONE = {
   danger: {
-    box: 'bg-[#FEF3F2] border-danger-soft',
+    box: 'bg-danger-bg border-danger-soft',
     icon: colors.danger.DEFAULT,
-    title: 'text-[#B42318]',
-    body: 'text-[#7A271A]',
+    title: 'text-danger',
+    body: 'text-ink',
     btn: 'border-danger-soft',
-    btnText: 'text-[#B42318]',
-    btnIcon: '#B42318',
+    btnText: 'text-danger',
+    btnIcon: colors.danger.DEFAULT,
   },
   muted: {
     box: 'bg-app border-line',
@@ -298,7 +298,7 @@ const TONE = {
     title: 'text-warning-deep',
     body: 'text-warning-deep',
     btn: 'border-warning-line',
-    btnText: 'text-warning',
+    btnText: 'text-warning-text',
     btnIcon: colors.warning.DEFAULT,
   },
 } as const;

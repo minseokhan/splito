@@ -71,7 +71,7 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
       </View>
 
       <View className="gap-2 pt-1">
-        <View className="h-2.5 rounded-full bg-[#EEF0F3]">
+        <View className="h-2.5 rounded-full bg-muted">
           <View style={{ width: `${Math.min(100, pct)}%`, backgroundColor: barColor }} className="h-full rounded-full" />
           {/* 계획 위치는 검정 점선 세로 마커만. 라벨은 붙이지 않는다(명세 §3-3). */}
           <View
@@ -81,7 +81,7 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
           />
         </View>
         <View className="flex-row items-center gap-1.5">
-          <View style={{ backgroundColor: barColor }} className="h-2.5 w-2.5 rounded-[3px]" />
+          <View style={{ backgroundColor: barColor }} className="h-2.5 w-2.5 rounded-full" />
           <Text className="text-xs text-ink-500">지출 금액 {pct}%</Text>
         </View>
       </View>
@@ -103,7 +103,7 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
       {/* 여행이 끝났으면 오늘 금액 박스를 숨긴다(명세 §11). */}
       {!stats.afterTrip && !stats.beforeTrip && (
         <>
-          <View className="h-px bg-[#F0F3F7]" />
+          <View className="h-px bg-line-row" />
           <View className="gap-3 rounded-button bg-stats-box px-4 py-3.5">
             <View className="flex-row items-stretch gap-3.5">
               <View className="min-w-0 flex-1 gap-0.5">
@@ -122,7 +122,7 @@ export function BudgetCard({ stats, cheer, onSetBudget }: Props) {
                 <Text className="mt-[3px] font-semibold text-[17px] leading-[1.3] text-ink-500">{formatKrw(stats.rec)}</Text>
               </View>
             </View>
-            <View className="h-1.5 overflow-hidden rounded-full bg-[#E9ECF2]">
+            <View className="h-1.5 overflow-hidden rounded-full bg-line">
               <View style={{ width: `${todayPct}%` }} className="h-full rounded-full bg-warning-bar" />
             </View>
           </View>

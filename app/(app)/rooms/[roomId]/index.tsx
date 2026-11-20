@@ -1,21 +1,21 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
-  Calendar,
   Coins,
+  DataTransferBoth,
   MoreHoriz,
   NavArrowDown,
   NavArrowLeft,
   NavArrowRight,
   NavArrowUp,
   Plus,
+  Search,
   StatsUpSquare,
-  UserPlus,
   ViewGrid,
   Wallet,
   Xmark,
 } from 'iconoir-react-native';
 import { Fragment, useCallback, useMemo, useRef, useState, type ComponentType } from 'react';
-import { Dimensions, FlatList, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 
@@ -35,6 +35,7 @@ import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { useToast } from '@/components/Toast';
+import { ScheduleEmpty } from '@/components/trip/ScheduleEmpty';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useDeleteScheduleItem,
@@ -53,13 +54,16 @@ import { eventText, mergeActivity } from '@/lib/activity';
 import { CATEGORIES, categoryLabel, type CategoryCode } from '@/lib/category';
 import { currencyFlag } from '@/lib/flag';
 import { formatForeign } from '@/lib/money';
-import { buildScheduleDays } from '@/lib/schedule';
+import { buildScheduleDays, type ScheduleItem } from '@/lib/schedule';
 import { qrProgress, spotStatusText, spotTotals } from '@/lib/spotSettle';
-import { buildTripDays, filterByCategory, filterSections, tripDayText } from '@/lib/tripDays';
+import { buildTripDays, dateTab, filterByCategory, nearestDay } from '@/lib/tripDays';
 import type { FeedRow } from '@/services/api';
 import { loadDraft } from '@/services/drafts';
 import type { RoomMember } from '@/types/domain';
 import { colors } from '@/theme/tokens';
+
+// Modal 두 개를 연달아 띄우면 iOS가 뒤의 것을 무시한다. 팝오버가 닫히는 시간만큼 미룬다.
+const AFTER_POPOVER_MS = 300;
 
 export default function RoomHome() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -81,18 +85,17 @@ export default function RoomHome() {
       ),
     [events.data, myMemberId, myAccount],
   );
-  // groupFeed가 '여행 전' 섹션을 이미 맨 아래에 둔다.
+  // 지출 내역은 최신순(노션 11번). groupFeed가 '여행 전' 섹션을 맨 아래에 둔다.
   const sections = useMemo(
     () => mergeActivity(feed.data ?? [], myRequests, room?.startDate ?? null),
     [feed.data, myRequests, room?.startDate],
   );
   const pending = useMemo(() => (feed.data ?? []).filter((r) => r.krwAmount === null), [feed.data]);
-  // 기간 선택: 'all' | 'pre-trip' | 'YYYY-MM-DD'
-  const [day, setDay] = useState('all');
-  // 카테고리 필터: null = 전체
+  // 카테고리 필터: null = 전체. 지출 내역 보기에서만 쓴다.
   const [category, setCategory] = useState<CategoryCode | null>(null);
-  // 일정표/지출 내역 토글. null이면 아직 안 골랐다는 뜻 — 패키지 연동 방은 일정표가 기본이다.
-  const [view, setView] = useState<'sched' | 'exp' | null>(null);
+  // 일정표 / 지출 내역. 두 종류 방 모두 일정표가 기본이다(노션 19번 ①).
+  const [view, setView] = useState<'sched' | 'exp'>('sched');
+  // 날짜 탭: [전체] [여행 전] [날짜…]. 누르면 그 날짜로 스크롤한다(필터 아님).
   const days = useMemo(
     () =>
       buildTripDays({
@@ -102,25 +105,21 @@ export default function RoomHome() {
       }),
     [room?.startDate, room?.endDate, sections],
   );
-  const visibleSections = useMemo(
-    () => filterByCategory(filterSections(sections, day), category),
-    [sections, day, category],
-  );
+  const visibleSections = useMemo(() => filterByCategory(sections, category), [sections, category]);
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
-  // 팝오버 3종(참여자·기간·카테고리)은 누른 순간의 화면 좌표를 재서 그 아래에 띄운다.
+  // 팝오버(참여자·카테고리·일정 메뉴)는 누른 순간의 화면 좌표를 재서 그 아래에 띄운다.
   const avatarRef = useRef<View>(null);
-  const pillRef = useRef<View>(null);
   const catRef = useRef<View>(null);
   const [peopleAt, setPeopleAt] = useState<{ top: number; right: number } | null>(null);
-  const [pdayAt, setPdayAt] = useState<MenuAnchor | null>(null);
   const [catAt, setCatAt] = useState<MenuAnchor | null>(null);
+  const [moreAt, setMoreAt] = useState<{ item: ScheduleItem; top: number } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   // 고정된 상단과 스크롤되는 목록을 구분하는 그림자. 맨 위에서는 띄우지 않는다.
   const [scrolled, setScrolled] = useState(false);
   const toast = useToast();
-  // ── 패키지 일정: 예약이 붙은 방에서만 날짜별 피드 대신 일정 영역을 그린다(명세 §5)
+  // ── 일정표: 자유여행·패키지 모두. 패키지(예약 연동)만 시간·포함 사항·이 자리 정산이 있다.
   const { data: booking } = useTripBooking(roomId);
   const { data: scheduleItems = [] } = useScheduleItems(roomId);
   const { data: hiddenIds = [] } = useHiddenSchedules(roomId);
@@ -128,31 +127,32 @@ export default function RoomHome() {
   const deleteSchedule = useDeleteScheduleItem(roomId);
   const setHidden = useSetScheduleHidden(roomId);
   const [draft, setDraft] = useState<ScheduleDraft | null>(null);
-  const linked = !!booking;
+  const pkg = !!booking;
   const scheduleRows = useMemo<ScheduleRow[]>(() => {
     const name = (r: FeedRow) =>
       r.payerKind === 'pool' ? '공금' : (members.find((m) => m.id === r.payerMemberId)?.name ?? '참여자');
-    return (feed.data ?? [])
-      .filter((r) => category === null || r.category === category)
-      .map((r) => {
-        const local = r.currency !== 'KRW';
-        const prepay = r.flags.includes('auto_prepay');
-        return {
-          id: r.id,
-          scheduleId: r.scheduleId,
-          paidLocalDate: r.paidLocalDate,
-          krwAmount: r.krwAmount,
-          title: r.merchant ?? '지출',
-          who: `${name(r)} 결제${prepay ? ' · 하나투어' : ''}`,
-          category: r.category,
-          main: local ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount ?? 0),
-          mainLocal: local,
-          sub: prepay ? '선결제' : local ? formatKrw(r.krwAmount ?? 0) : null,
-        };
-      });
+    return (feed.data ?? []).map((r) => {
+      const local = r.currency !== 'KRW';
+      const prepay = r.flags.includes('auto_prepay');
+      return {
+        id: r.id,
+        scheduleId: r.scheduleId,
+        paidLocalDate: r.paidLocalDate,
+        paidLocalTime: r.paidLocalTime,
+        createdAt: r.createdAt,
+        krwAmount: r.krwAmount,
+        title: r.merchant ?? '지출',
+        who: `${name(r)} 결제${prepay ? ' · 하나투어' : ''}`,
+        category: r.category,
+        // 외화 크게 + 원화 작게 / 원화 결제는 원화만(노션 11번)
+        main: local ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount ?? 0),
+        mainLocal: local,
+        sub: local && r.krwAmount !== null ? formatKrw(r.krwAmount) : null,
+      };
+    });
     // feed.data만 보면 되지만 lint 규칙이 feed 전체를 요구한다.
-  }, [feed, category, members]);
-  // ── 이 자리 정산: 일정 카드의 상태 줄 + 바텀시트(명세 §1~§3)
+  }, [feed, members]);
+  // ── 이 자리 정산: 일정 카드의 칩·상태 줄 + 바텀시트(명세 §1~§3)
   const [openSpotId, setOpenSpotId] = useState<string | null>(null);
   // 시트가 열려 있는 동안에는 짧게 다시 묻는다 — QR 참여는 앱 밖(웹)에서 일어난다.
   const { data: spots = [] } = useRoomSpotSettles(roomId, openSpotId !== null);
@@ -192,10 +192,45 @@ export default function RoomHome() {
       }),
     [scheduleItems, scheduleRows, hiddenIds, room?.startDate, room?.endDate],
   );
-  const visibleDays = useMemo(
-    () => (day === 'all' ? scheduleDays : scheduleDays.filter((d) => d.key === day)),
-    [scheduleDays, day],
+  // 시트의 날짜 칩·날짜 표시. 여행 전에는 일정을 둘 수 없다.
+  const sheetDays = useMemo(
+    () => scheduleDays.filter((d) => d.dayIndex > 0).map((d) => ({ dayIndex: d.dayIndex, label: d.header })),
+    [scheduleDays],
   );
+
+  // ── 날짜 탭 바로가기(노션 19번 ②). 좌표는 모두 ScrollView 콘텐츠 기준으로 되짚는다.
+  const scrollRef = useRef<ScrollView>(null);
+  const lay = useRef({ body: 0, list: 0, tabs: 0, viewport: 0, days: new Map<string, { y: number; h: number }>() });
+  const [activeTab, setActiveTab] = useState('all');
+  const [bottomPad, setBottomPad] = useState(140);
+  const dayTop = (key: string) => lay.current.body + lay.current.list + (lay.current.days.get(key)?.y ?? 0) - lay.current.tabs;
+  // 마지막 날짜도 탭 바로 아래까지 올라오도록 아래 여백을 확보한다.
+  const fitBottom = () => {
+    const last = [...lay.current.days.values()].sort((a, b) => b.y - a.y)[0];
+    const next = Math.max(140, last ? lay.current.viewport - lay.current.tabs - last.h : 140);
+    setBottomPad((v) => (v === next ? v : next));
+  };
+  const onDayLayout = (key: string, y: number, h: number) => {
+    lay.current.days.set(key, { y, h });
+    fitBottom();
+  };
+  const switchView = (v: 'sched' | 'exp') => {
+    lay.current.days.clear();
+    setView(v);
+  };
+  const tabKeys = days.filter((d) => d.key !== 'all').map((d) => d.key);
+  const goTab = (key: string) => {
+    if (key === 'all') return scrollRef.current?.scrollTo({ y: 0, animated: true });
+    let target: string | null = key;
+    if (!lay.current.days.has(key)) {
+      // 지출 없는 날(지출 내역): 가장 가까운 날로 보내고 알려 준다.
+      target = nearestDay(tabKeys, new Set(lay.current.days.keys()), key);
+      toast(`${days.find((d) => d.key === key)?.label ?? '이 날'}에는 지출이 없어요`);
+      if (!target) return;
+    }
+    scrollRef.current?.scrollTo({ y: Math.max(0, dayTop(target)) + 1, animated: true });
+  };
+
   // 입력 화면에서 돌아올 때마다 기기의 작성 중 지출을 다시 확인한다.
   useFocusEffect(
     useCallback(() => {
@@ -231,21 +266,32 @@ export default function RoomHome() {
   const together = room.memberCount >= 2;
   const go = (pathname: '/rooms/[roomId]/settle' | '/rooms/[roomId]/pool' | '/rooms/[roomId]/members' | '/rooms/[roomId]/edit') =>
     router.push({ pathname, params: { roomId } });
-  // 패키지 연동 방은 일정표가 기본, 아니면 지출 내역만 있다(프로토타입 showSchedule/showFlat).
-  const showSchedule = linked && view !== 'exp';
+  // 기간이 없는 방은 날짜를 못 만들어 일정표가 없다 → 지출 내역만, 전환 버튼도 없다.
+  const hasSchedule = !!room.startDate;
+  const showSchedule = hasSchedule && view === 'sched';
+  // 일정·지출이 하나도 없는 자유여행 방은 일정표 첫 화면(노션 16번).
+  const firstRun = !pkg && scheduleItems.length === 0 && (feed.data ?? []).length === 0 && !feed.isLoading;
   // 가입 안내는 직접 만든 방에서만 — 패키지 연동 방은 동행이 예약으로 정해져 있다.
-  const needJoinHint = !together && !linked;
-  const selectedDay = days.find((d) => d.key === day) ?? days[0];
-  // 순잔액 부호: 음수면 내가 보낼 돈(홈 카드와 같은 규칙).
-  const net = room.myNet;
-  const netLabel = net < 0 ? '내가 보낼 돈' : net > 0 ? '내가 받을 돈' : '정산할 돈';
+  const needJoinHint = !together && !pkg;
   const flag = currencyFlag(room.baseCurrency);
   // 메뉴는 누른 요소 아래로 8pt 띄운다. 오른쪽 정렬은 화면 폭에서 되짚는다.
   const rightOf = (x: number, w: number) => Math.max(16, Dimensions.get('window').width - (x + w));
+  const newDraft = (dayIndex: number, position?: number): ScheduleDraft => ({
+    dayIndex,
+    position,
+    startTime: '',
+    title: '',
+    includes: [],
+    optional: false,
+    estAmount: 0,
+  });
 
-  // 상단 바 60: 뒤로 28 + [아이콘 박스 40 + 제목 17/600] + 더보기 26.
+  // 상단 바 60: 뒤로 28 + [아이콘 박스 40 + 제목 17/600] + 검색·더보기.
   const topBar = (
-    <View className="h-[60px] flex-row items-center gap-0.5 pl-1 pr-3">
+    <View
+      className="h-[60px] flex-row items-center gap-0.5 bg-white pl-1 pr-3"
+      style={{ zIndex: 1, boxShadow: scrolled ? '0 6px 14px -8px rgba(19,25,39,.22)' : undefined }}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="뒤로"
@@ -264,6 +310,10 @@ export default function RoomHome() {
           {room.name}
         </Text>
       </View>
+      {/* 검색 범위는 아직 정하지 않았다(노션 19번 질문 사항) */}
+      <Pressable accessibilityRole="button" accessibilityLabel="검색" onPress={() => toast('검색은 준비 중이에요')} hitSlop={4} className="p-2">
+        <Icon as={Search} size={22} color={colors.ink.DEFAULT} />
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="여행 방 설정"
@@ -276,84 +326,54 @@ export default function RoomHome() {
     </View>
   );
 
-  // 요약 영역(시안 08): 흰 배경 · 기간 pill + 아바타 / 총 지출 / 내 순잔액 박스 / 액션 3칸.
+  // 요약 카드(노션 19번 ①): sky-50 · 둥글기 16 · 안쪽 위·좌우 16 / 아래 12 · 총 지출 줄과 버튼 묶음 사이 14.
   const summary = (
-    <View className="gap-4 px-5 pb-[18px] pt-1">
-      <View className="flex-row items-center justify-between gap-3">
-        <Pressable
-          ref={pillRef}
-          accessibilityRole="button"
-          accessibilityLabel={`기간 선택 · ${tripDayText(selectedDay)}`}
-          onPress={() => pillRef.current?.measureInWindow((x, y, _w, h) => setPdayAt({ top: y + h + 8, left: x }))}
-          className="h-[34px] min-w-0 flex-row items-center gap-1.5 rounded-full bg-app px-3 active:opacity-70"
-        >
-          <Icon as={Calendar} size={16} color={colors.primary.text} />
-          <Text className="min-w-0 shrink font-semibold text-sm text-ink" numberOfLines={1}>
-            {tripDayText(selectedDay)}
-          </Text>
-          <Icon as={pdayAt ? NavArrowUp : NavArrowDown} size={16} color={colors.ink[300]} />
-        </Pressable>
-        <Pressable
-          ref={avatarRef}
-          accessibilityRole="button"
-          accessibilityLabel={`참여자 ${people.length}명 보기`}
-          hitSlop={8}
-          onPress={() =>
-            avatarRef.current?.measureInWindow((x, y, w, h) => setPeopleAt({ top: y + h + 10, right: rightOf(x, w) }))
-          }
-        >
-          <AvatarStack people={people} size={30} />
-        </Pressable>
-      </View>
-      <View>
-        <Text className="text-sm text-ink-400">총 지출</Text>
-        <Text style={{ fontVariant: ['tabular-nums'], letterSpacing: -1 }} className="font-semibold text-[30px] leading-[39px] text-ink">
-          {formatKrw(room.totalKrw)}
-        </Text>
-      </View>
-      <View className="-mt-1.5 flex-row items-center gap-3 rounded-button bg-sky-100 px-3.5 py-3.5">
-        <Icon as={Coins} size={22} color={colors.primary.text} />
-        <View className="min-w-0 flex-1">
-          <Text className="text-[13px] text-primary-text">{netLabel}</Text>
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[17px] text-ink">
-            {formatKrw(Math.abs(net))}
-          </Text>
+    <View className="px-5 pb-2 pt-1">
+      <View className="rounded-box bg-sky-50 px-4 pb-3 pt-4">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[13px] text-ink-500">총 지출</Text>
+            <Text style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.8 }} className="font-semibold text-[26px] text-ink">
+              {formatKrw(room.totalKrw)}
+            </Text>
+          </View>
+          <Pressable
+            ref={avatarRef}
+            accessibilityRole="button"
+            accessibilityLabel={`참여자 ${people.length}명 보기`}
+            hitSlop={8}
+            onPress={() =>
+              avatarRef.current?.measureInWindow((x, y, w, h) => setPeopleAt({ top: y + h + 10, right: rightOf(x, w) }))
+            }
+          >
+            <AvatarStack people={people} size={28} />
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => (together ? go('/rooms/[roomId]/settle') : setInviteOpen(true))}
-          // 시안 실측 라운드 10 — 토큰에 없다.
-          className="h-10 justify-center rounded-[10px] bg-ink px-4 active:opacity-80"
-        >
-          <Text className="font-semibold text-sm text-primary-on">정산 보기</Text>
-        </Pressable>
+        <View className="mt-3.5 flex-row overflow-hidden rounded-button bg-white">
+          <Segment
+            label="정산 보기"
+            icon={Coins}
+            iconColor={colors.primary.text}
+            onPress={() => (together ? go('/rooms/[roomId]/settle') : setInviteOpen(true))}
+          />
+          <View className="w-px bg-line" />
+          <Segment
+            label="공금 지갑"
+            icon={Wallet}
+            iconColor={colors.warning.DEFAULT}
+            onPress={() => (together ? go('/rooms/[roomId]/pool') : setInviteOpen(true))}
+          />
+          <View className="w-px bg-line" />
+          <Segment
+            label="내 통계"
+            icon={StatsUpSquare}
+            iconColor={colors.success.DEFAULT}
+            onPress={() => router.push({ pathname: '/rooms/[roomId]/my-stats', params: { roomId } })}
+          />
+        </View>
       </View>
-      <View className="flex-row gap-2">
-        <Action
-          label="공금 지갑"
-          icon={Wallet}
-          iconColor={colors.warning.DEFAULT}
-          onPress={() => (together ? go('/rooms/[roomId]/pool') : setInviteOpen(true))}
-        />
-        <Action
-          label="내 통계"
-          icon={StatsUpSquare}
-          iconColor={colors.success.DEFAULT}
-          onPress={() => router.push({ pathname: '/rooms/[roomId]/my-stats', params: { roomId } })}
-        />
-        <Action label="초대하기" icon={UserPlus} iconColor={colors.primary.text} onPress={() => setInviteOpen(true)} />
-      </View>
-    </View>
-  );
-
-  const header = (
-    <View
-      className="bg-white"
-      style={{ zIndex: 1, boxShadow: scrolled ? '0 6px 14px -8px rgba(19,25,39,.22)' : undefined }}
-    >
-      {summary}
       {(offline || needJoinHint || hasDraft || pending.length > 0) && (
-        <View className="-mt-2.5 gap-2 px-5 pb-3.5">
+        <View className="gap-2 pt-3">
           {offline && (
             <View className="rounded-input border border-warning-line bg-warning-banner px-4 py-3">
               <Text className="text-[13px] text-warning-deep">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
@@ -376,30 +396,57 @@ export default function RoomHome() {
           )}
         </View>
       )}
-      <View className="h-px bg-card-line" />
     </View>
   );
 
-  // 지출 내역 | 카테고리 줄은 목록과 함께 스크롤된다(고정 머리는 요약까지).
-  const listTop = (
-      <View
-        className="min-h-[28px] flex-row items-center justify-between gap-3 px-5 pb-2 pt-3.5"
-        style={{ backgroundColor: colors.app }}
-      >
-        {/* 일정표 토글은 패키지 연동 방에만 둔다. 아닌 방은 지출 내역뿐이다 */}
-        {linked ? (
-          <View className="flex-row items-center gap-2.5">
-            <ViewTab label="일정표" icon={Calendar} on={showSchedule} onPress={() => setView('sched')} />
-            <View className="h-3 w-px bg-line-off" />
-            <ViewTab label="지출 내역" icon={Coins} on={!showSchedule} onPress={() => setView('exp')} />
-          </View>
-        ) : (
-          <View className="flex-row items-center gap-1">
-            <Icon as={Coins} size={15} color={colors.ink.DEFAULT} />
-            <Text className="font-semibold text-sm text-ink">지출 내역</Text>
-          </View>
-        )}
-        {!showSchedule && (
+  // 날짜 탭 줄(고정): 좌우 8, 같은 폭 칸, 선택 밑줄 2.5 칸 전체 폭, 아래 구분선 화면 끝까지.
+  const dateTabs = (
+    <View
+      className="flex-row border-b border-line bg-white px-2"
+      onLayout={(e) => {
+        lay.current.tabs = e.nativeEvent.layout.height;
+      }}
+    >
+      {days.map((d) => {
+        const t = dateTab(d);
+        const on = activeTab === d.key;
+        return (
+          <Pressable
+            key={d.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={d.label}
+            onPress={() => goTab(d.key)}
+            className="flex-1 items-center justify-end pt-2"
+          >
+            {!!t.top && <Text className="text-[11px] text-ink-300">{t.top}</Text>}
+            <Text numberOfLines={1} className={`pb-2 font-semibold text-[15px] ${on ? 'text-ink' : 'text-ink-500'}`}>
+              {t.label}
+            </Text>
+            <View className={`h-[2.5px] self-stretch ${on ? 'bg-local' : ''}`} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  // 보기 전환(노션 19번 ③): 왼쪽 ⇄ 버튼, 오른쪽 카테고리 드롭다운(지출 내역일 때만).
+  const toggleRow = (
+    <View className="min-h-[28px] flex-row items-center justify-between gap-3 px-5 pb-3 pt-4">
+      {hasSchedule ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => switchView(showSchedule ? 'exp' : 'sched')}
+          hitSlop={8}
+          className="flex-row items-center gap-1 active:opacity-70"
+        >
+          <Icon as={DataTransferBoth} size={16} color={colors.ink[500]} />
+          <Text className="font-semibold text-sm text-ink-500">{showSchedule ? '지출 내역' : '일정표'}</Text>
+        </Pressable>
+      ) : (
+        <View />
+      )}
+      {!showSchedule && (
         <Pressable
           ref={catRef}
           accessibilityRole="button"
@@ -408,134 +455,175 @@ export default function RoomHome() {
           hitSlop={8}
           className="flex-row items-center gap-1 py-0.5 active:opacity-70"
         >
-          <Text className="font-semibold text-sm text-ink">{category ? categoryLabel(category) : '카테고리'}</Text>
+          <Text className="font-semibold text-sm text-ink">{category ? categoryLabel(category) : '전체'}</Text>
           <Icon as={catAt ? NavArrowUp : NavArrowDown} size={16} color={colors.ink.DEFAULT} />
         </Pressable>
-        )}
+      )}
+    </View>
+  );
+
+  // 지출 내역(노션 13번): 날짜마다 흰 묶음 카드, 제목·합계는 카드 위, 행 구분선 없이 4 간격.
+  const expenseList =
+    visibleSections.length === 0 ? (
+      feed.isLoading ? null : (
+        <View className="items-center justify-center gap-1.5 px-5 py-14">
+          <Text className="text-center font-semibold text-base text-ink">
+            {category === null ? '첫 지출을 올려보세요' : '해당 품목의 지출이 없어요'}
+          </Text>
+          <Text className="text-center text-sm text-ink-400">
+            {category === null ? '영수증 사진 한 장이면 돼요' : '아래 버튼으로 지출을 올려보세요'}
+          </Text>
+        </View>
+      )
+    ) : (
+      <View className="gap-6 px-5">
+        {visibleSections.map((section) => {
+          const sum = section.data.reduce((s, r) => s + ('kind' in r ? 0 : (r.krwAmount ?? 0)), 0);
+          const hasExpense = section.data.some((r) => !('kind' in r));
+          return (
+            <View
+              key={section.key}
+              className="gap-2.5"
+              onLayout={(e) => onDayLayout(section.key, e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="font-semibold text-[13px] text-ink-500">{section.title}</Text>
+                {hasExpense && (
+                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[13px] text-ink">
+                    {formatKrw(sum)}
+                  </Text>
+                )}
+              </View>
+              <View className="gap-1 rounded-box border border-card-line bg-white px-4 py-1">
+                {section.data.map((item) => (
+                  <Fragment key={item.id}>
+                    {'kind' in item ? (
+                      <ActivityRow
+                        text={eventText(item, names)}
+                        // 나에게 온 계좌 요청이고 아직 미등록이면 탭해서 바로 등록한다(J6 3번).
+                        onPress={
+                          item.kind === 'payout_request' && item.targetMemberId === myMemberId && myAccount === null
+                            ? () => router.push('/payout-account')
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <ExpenseCard
+                        row={item}
+                        payerName={
+                          item.payerKind === 'pool' ? '공금' : (members.find((m) => m.id === item.payerMemberId)?.name ?? '참여자')
+                        }
+                        recorderName={userName.get(item.createdBy ?? '') ?? '탈퇴한 사용자'}
+                        onPress={() =>
+                          router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId: item.id } })
+                        }
+                      />
+                    )}
+                  </Fragment>
+                ))}
+              </View>
+            </View>
+          );
+        })}
       </View>
+    );
+
+  const scheduleBody = firstRun ? (
+    <ScheduleEmpty
+      days={days
+        .filter((d) => d.key !== 'all' && d.key !== 'pre-trip')
+        .map((d, i) => ({ key: d.key, dayIndex: i + 1, label: d.label, sub: `${d.sub} (${dateTab(d).top})` }))}
+      onAddSchedule={(dayIndex) => setDraft(newDraft(dayIndex))}
+      onDayLayout={onDayLayout}
+    />
+  ) : (
+    <ScheduleSection
+      days={scheduleDays}
+      pkg={pkg}
+      onMore={(item, pageY) => setMoreAt({ item, top: pageY + 14 })}
+      onAddSchedule={(dayIndex) => setDraft(newDraft(dayIndex))}
+      onSkip={(scheduleId) => setHidden.mutate({ scheduleId, hidden: true })}
+      onUnhide={(dayIndex) =>
+        scheduleItems
+          .filter((x) => x.dayIndex === dayIndex && hiddenIds.includes(x.id))
+          .forEach((x) => setHidden.mutate({ scheduleId: x.id, hidden: false }))
+      }
+      onOpenExpense={(expenseId) =>
+        router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId } })
+      }
+      spots={spotCards}
+      onSpot={openSpotSettle}
+      onDayLayout={onDayLayout}
+    />
   );
 
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {topBar}
-      {header}
-      <FlatList
-        data={showSchedule ? [] : visibleSections}
-        keyExtractor={(s) => s.key}
-        style={{ backgroundColor: colors.app }}
-        contentContainerStyle={{ paddingBottom: 140, flexGrow: 1 }}
-        ListHeaderComponent={listTop}
-        ItemSeparatorComponent={() => <View className="h-4" />}
+      <ScrollView
+        ref={scrollRef}
+        stickyHeaderIndices={[1]}
         scrollEventThrottle={16}
+        onLayout={(e) => {
+          lay.current.viewport = e.nativeEvent.layout.height;
+          fitBottom();
+        }}
         onScroll={(e) => {
-          const next = e.nativeEvent.contentOffset.y > 0;
+          const y = e.nativeEvent.contentOffset.y;
+          const next = y > 0;
           setScrolled((v) => (v === next ? v : next));
+          // 스크롤 위치에 따라 밑줄을 옮긴다: 탭 아래를 지난 마지막 날짜.
+          let on = 'all';
+          for (const k of tabKeys) if (lay.current.days.has(k) && dayTop(k) <= y + 2) on = k;
+          setActiveTab((v) => (v === on ? v : on));
         }}
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />}
-        renderItem={({ item: section }) => {
-          const sum = section.data.reduce((s, r) => s + ('kind' in r ? 0 : (r.krwAmount ?? 0)), 0);
-          const hasExpense = section.data.some((r) => !('kind' in r));
-          return (
-            <View className="px-5 pt-1.5">
-              <View className="flex-row justify-between py-1.5">
-                <Text className="font-semibold text-[13px] text-ink-500">{section.title}</Text>
-                {hasExpense && (
-                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[13px] text-ink-500">
-                    {formatKrw(sum)}
-                  </Text>
-                )}
-              </View>
-              {section.data.map((item, i) => (
-                <Fragment key={item.id}>
-                  {i > 0 && <View className="h-px bg-line-row" />}
-                  {'kind' in item ? (
-                    <ActivityRow
-                      text={eventText(item, names)}
-                      // 나에게 온 계좌 요청이고 아직 미등록이면 탭해서 바로 등록한다(J6 3번).
-                      onPress={
-                        item.kind === 'payout_request' && item.targetMemberId === myMemberId && myAccount === null
-                          ? () => router.push('/payout-account')
-                          : undefined
-                      }
-                    />
-                  ) : (
-                    <ExpenseCard
-                      row={item}
-                      payerName={
-                        item.payerKind === 'pool' ? '공금' : (members.find((m) => m.id === item.payerMemberId)?.name ?? '참여자')
-                      }
-                      recorderName={userName.get(item.createdBy ?? '') ?? '탈퇴한 사용자'}
-                      onPress={() =>
-                        router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId: item.id } })
-                      }
-                    />
-                  )}
-                </Fragment>
-              ))}
-            </View>
-          );
-        }}
-        ListFooterComponent={
-          showSchedule ? (
-            <ScheduleSection
-              days={visibleDays}
-              onEdit={(id) => {
-                const it = scheduleItems.find((x) => x.id === id);
-                if (it) setDraft(draftOf(it));
-              }}
-              onAddSchedule={(dayIndex) =>
-                setDraft({ dayIndex, startTime: '', title: '', includes: [], optional: false, estAmount: 0 })
-              }
-              onAddExpense={(scheduleId) =>
-                router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId, scheduleId } })
-              }
-              onSkip={(scheduleId) => setHidden.mutate({ scheduleId, hidden: true })}
-              onUnhide={(dayIndex) =>
-                scheduleItems
-                  .filter((x) => x.dayIndex === dayIndex && hiddenIds.includes(x.id))
-                  .forEach((x) => setHidden.mutate({ scheduleId: x.id, hidden: false }))
-              }
-              onOpenExpense={(expenseId) =>
-                router.push({ pathname: '/rooms/[roomId]/expenses/[expenseId]', params: { roomId, expenseId } })
-              }
-              spots={spotCards}
-              onSpot={openSpotSettle}
-            />
-          ) : null
-        }
-        ListEmptyComponent={
-          showSchedule || feed.isLoading ? null : (
-            <View className="flex-1 items-center justify-center gap-1.5 px-5 py-14">
-              <Text className="text-center font-semibold text-base text-ink">
-                {day === 'all' && category === null
-                  ? '첫 지출을 올려보세요'
-                  : category === null
-                    ? '이 날은 지출이 없어요'
-                    : '해당 품목의 지출이 없어요'}
-              </Text>
-              <Text className="text-center text-sm text-ink-400">
-                {day === 'all' && category === null ? '영수증 사진 한 장이면 돼요' : '아래 버튼으로 지출을 올려보세요'}
-              </Text>
-            </View>
-          )
-        }
-      />
+      >
+        {summary}
+        {dateTabs}
+        <View
+          onLayout={(e) => {
+            lay.current.body = e.nativeEvent.layout.y;
+          }}
+        >
+          {toggleRow}
+          <View
+            key={showSchedule ? 'sched' : 'exp'}
+            onLayout={(e) => {
+              lay.current.list = e.nativeEvent.layout.y;
+            }}
+          >
+            {showSchedule ? scheduleBody : expenseList}
+          </View>
+          <View style={{ height: bottomPad }} />
+        </View>
+      </ScrollView>
       <BottomBar fade>
         <PrimaryButton
           title="지출 올리기"
-          variant="dark"
           icon={Plus}
           onPress={() => router.push({ pathname: '/rooms/[roomId]/expenses/new', params: { roomId } })}
         />
       </BottomBar>
       <ScheduleSheet
         draft={draft}
-        dayLabel={draft ? (scheduleDays.find((d) => d.dayIndex === draft.dayIndex)?.header ?? '') : ''}
+        days={sheetDays}
+        pkg={pkg}
         saving={saveSchedule.isPending}
         onClose={() => setDraft(null)}
         onSave={(d) =>
           saveSchedule.mutate(
-            { id: d.id, roomId, dayIndex: d.dayIndex, startTime: d.startTime, title: d.title, includes: d.includes, optional: d.optional, estAmount: d.estAmount },
+            {
+              id: d.id,
+              roomId,
+              dayIndex: d.dayIndex,
+              startTime: d.startTime || null,
+              title: d.title,
+              includes: d.includes,
+              optional: d.optional,
+              estAmount: d.estAmount,
+              position: d.position,
+            },
             {
               onSuccess: () => {
                 setDraft(null);
@@ -543,14 +631,6 @@ export default function RoomHome() {
               },
             },
           )
-        }
-        onDelete={(id) =>
-          deleteSchedule.mutate(id, {
-            onSuccess: () => {
-              setDraft(null);
-              toast('일정을 삭제했어요. 연결된 지출은 그 외 지출로 옮겼어요');
-            },
-          })
         }
       />
       <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
@@ -592,16 +672,6 @@ export default function RoomHome() {
         onClose={() => setPeopleAt(null)}
       />
       <MenuPopover
-        at={pdayAt}
-        width={250}
-        items={days.map((d) => ({ key: d.key, label: d.label, sub: d.sub, selected: d.key === day }))}
-        onPick={(key) => {
-          setDay(key);
-          setPdayAt(null);
-        }}
-        onClose={() => setPdayAt(null)}
-      />
-      <MenuPopover
         at={catAt}
         width={200}
         items={[{ code: null as CategoryCode | null, label: '전체' }, ...CATEGORIES].map((c) => ({
@@ -616,45 +686,50 @@ export default function RoomHome() {
         }}
         onClose={() => setCatAt(null)}
       />
+      {/* 일정 '…' 메뉴(노션 9번). 순서 변경 권한은 참여자 전원(질문 사항의 기본값) */}
+      <MenuPopover
+        at={moreAt ? { top: moreAt.top, right: 20 } : null}
+        width={180}
+        items={[
+          { key: 'edit', label: '일정 수정', selected: false },
+          { key: 'above', label: '위에 일정 추가', selected: false },
+          { key: 'below', label: '아래에 일정 추가', selected: false },
+          { key: 'delete', label: '일정 삭제', selected: false, danger: true },
+        ]}
+        onPick={(key) => {
+          const it = moreAt?.item;
+          setMoreAt(null);
+          if (!it) return;
+          if (key === 'delete') {
+            deleteSchedule.mutate(it.id, { onSuccess: () => toast('일정을 삭제했어요. 연결된 지출은 그 외 지출로 옮겼어요') });
+            return;
+          }
+          const next = key === 'edit' ? draftOf(it) : newDraft(it.dayIndex, it.position + (key === 'below' ? 1 : 0));
+          setTimeout(() => setDraft(next), AFTER_POPOVER_MS);
+        }}
+        onClose={() => setMoreAt(null)}
+      />
     </View>
   );
 }
 
-type ActionProps = {
+type SegmentProps = {
   label: string;
   icon: ComponentType<SvgProps>;
   iconColor: string;
   onPress: () => void;
 };
 
-// 액션 3칸 한 칸: 높이 42, 라운드 12, 테두리 1.5, 아이콘 19 + 14/600.
-function Action({ label, icon, iconColor, onPress }: ActionProps) {
+// 요약 카드 버튼 묶음 한 칸: 높이 36 · 13/600 · 아이콘 16 · 아이콘↔글자 5.
+function Segment({ label, icon, iconColor, onPress }: SegmentProps) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="h-[42px] flex-1 flex-row items-center justify-center gap-1.5 rounded-chip border-[1.5px] border-line active:opacity-70"
+      className="h-9 flex-1 flex-row items-center justify-center gap-[5px] active:bg-app"
     >
-      <Icon as={icon} size={19} color={iconColor} />
-      <Text className="font-semibold text-sm text-ink">{label}</Text>
-    </Pressable>
-  );
-}
-
-type ViewTabProps = { label: string; icon: ComponentType<SvgProps>; on: boolean; onPress: () => void };
-
-// 일정표 | 지출 내역 토글. 배경 없이 굵기·색만 바뀐다(시안 08).
-function ViewTab({ label, icon, on, onPress }: ViewTabProps) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: on }}
-      onPress={onPress}
-      hitSlop={6}
-      className="flex-row items-center gap-1 active:opacity-70"
-    >
-      <Icon as={icon} size={15} color={on ? colors.ink.DEFAULT : colors.ink[300]} />
-      <Text className={`text-sm ${on ? 'font-semibold text-ink' : 'font-medium text-ink-300'}`}>{label}</Text>
+      <Icon as={icon} size={16} color={iconColor} />
+      <Text className="font-semibold text-[13px] text-ink">{label}</Text>
     </Pressable>
   );
 }
@@ -671,7 +746,7 @@ function Banner({ text, onPress, warning, disabled }: BannerProps) {
         warning ? 'border border-warning-line bg-warning-banner' : 'border-[1.5px] border-line bg-white'
       }`}
     >
-      <Text className={`flex-1 font-semibold text-base ${warning ? 'text-warning' : 'text-primary-text'}`}>{text}</Text>
+      <Text className={`flex-1 font-semibold text-base ${warning ? 'text-warning-text' : 'text-primary-text'}`}>{text}</Text>
       <Icon as={NavArrowRight} size={18} color={warning ? colors.warning.DEFAULT : colors.ink[300]} />
     </Pressable>
   );
@@ -685,7 +760,7 @@ type PeoplePopoverProps = {
   onClose: () => void;
 };
 
-// 아바타 스택 아래에 붙는 참여자 목록 카드. at은 스택을 누른 순간 잰 화면 좌표다.
+// 아바타 스택 아래에 붙는 참여자 목록 카드(폭 200, 노션 15번). 내보내기는 여행 방 설정 > 참여자에서만.
 function PeoplePopover({ at, members, colorIndex, myId, onClose }: PeoplePopoverProps) {
   return (
     <Modal visible={!!at} transparent animationType="fade" onRequestClose={onClose}>
@@ -693,13 +768,12 @@ function PeoplePopover({ at, members, colorIndex, myId, onClose }: PeoplePopover
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="닫기" onPress={onClose} />
         {at && (
           <View
-            className="rounded-card bg-white px-4 pb-2 pt-3"
+            className="rounded-box bg-white px-4 pb-2 pt-3"
             style={{
               position: 'absolute',
               top: at.top,
               right: at.right,
-              minWidth: 212,
-              maxWidth: 280,
+              width: 200,
               boxShadow: '0 12px 28px -8px rgba(19,25,39,.22)',
             }}
           >
@@ -713,11 +787,13 @@ function PeoplePopover({ at, members, colorIndex, myId, onClose }: PeoplePopover
               {members.map((m) => (
                 <View key={m.id} className="flex-row items-center gap-2.5 py-2">
                   <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={28} />
-                  <Text className="flex-1 text-[15px] text-ink" numberOfLines={1}>
+                  <Text className="min-w-0 flex-1 text-[15px] text-ink" numberOfLines={1}>
                     {m.name}
                   </Text>
                   {(m.userId === myId || m.kind === 'guest') && (
-                    <Text className="text-[13px] text-ink-300">{m.userId === myId ? '나' : '게스트'}</Text>
+                    <Text className="shrink-0 text-[13px] text-ink-300" numberOfLines={1}>
+                      {m.userId === myId ? '나' : '게스트'}
+                    </Text>
                   )}
                 </View>
               ))}

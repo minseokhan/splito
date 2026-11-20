@@ -342,7 +342,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
   );
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="공금 지갑" align="center" />
       <ScrollView
         contentContainerClassName="gap-[22px] px-5 pt-2"
@@ -369,7 +369,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
         {!enabled && form}
       </ScrollView>
       {!enabled && (
-        <BottomBar bg={colors.app} fade>
+        <BottomBar fade>
           <PrimaryButton title="공금 켜기" disabled={busy || !chosenOwner} onPress={onSave} />
         </BottomBar>
       )}

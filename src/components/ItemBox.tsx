@@ -60,7 +60,7 @@ export function ItemBox(p: Props) {
           onPress={p.onRemove}
           // 24px 원이라 hitSlop 10으로 터치 영역을 44 이상으로 맞춘다.
           hitSlop={10}
-          style={{ boxShadow: '0 2px 6px -2px rgba(14,27,61,.18)' }}
+          style={{ boxShadow: '0 2px 6px -2px rgba(23,32,58,.18)' }}
           className="absolute -right-2 -top-2 z-10 h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-line bg-white"
         >
           <Icon as={Xmark} size={14} color={colors.ink[400]} />

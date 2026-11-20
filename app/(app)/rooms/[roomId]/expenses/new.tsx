@@ -355,7 +355,7 @@ const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typ
 // 시안 10: 지출 올리기 방법 선택(전체 화면).
 const CHIP_TONE = {
   free: { box: 'bg-muted', fg: colors.ink[500], text: 'text-ink-500', icon: Sparks },
-  out: { box: 'bg-warning-badge', fg: colors.warning.DEFAULT, text: 'text-warning', icon: Lock },
+  out: { box: 'bg-warning-badge', fg: colors.warning.DEFAULT, text: 'text-warning-text', icon: Lock },
   pass: { box: 'bg-sky-100', fg: colors.primary.text, text: 'text-primary-text', icon: Sparks },
 } as const;
 
@@ -400,7 +400,7 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
           onPress={() => select('photo')}
           className="flex-row items-center gap-4 rounded-card-lg bg-primary p-[22px] active:bg-primary-press"
         >
-          <View className="h-14 w-14 items-center justify-center rounded-[18px] bg-white">
+          <View className="h-14 w-14 items-center justify-center rounded-box bg-white">
             <Icon as={Camera} size={28} color={colors.primary.text} />
           </View>
           <View className="flex-1">

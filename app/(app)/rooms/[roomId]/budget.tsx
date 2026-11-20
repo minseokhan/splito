@@ -104,7 +104,7 @@ export default function Budget() {
           <View className="gap-2">
             <Text className="font-semibold text-[13px] text-ink-500">전체 예산</Text>
             <View
-              style={{ borderWidth: 1.5, borderColor: colors.primary.DEFAULT, boxShadow: '0 0 0 4px rgba(29,60,143,.16)' }}
+              style={{ borderWidth: 1.5, borderColor: colors.primary.DEFAULT, boxShadow: '0 0 0 4px rgba(26,143,230,.16)' }}
               className="h-14 flex-row items-center gap-1.5 rounded-input px-4"
             >
               <TextInput
@@ -136,7 +136,7 @@ export default function Budget() {
                     accessibilityState={{ selected: on }}
                     onPress={() => pickMode(m.key)}
                     style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
-                    className={`h-[38px] flex-1 items-center justify-center rounded-[10px] ${on ? 'bg-white' : ''}`}
+                    className={`h-[38px] flex-1 items-center justify-center rounded-toggle ${on ? 'bg-white' : ''}`}
                   >
                     <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{m.label}</Text>
                   </Pressable>
@@ -165,7 +165,7 @@ export default function Budget() {
                 ))}
                 {/* 합계가 달라도 막지 않고 안내만 한다(명세 §4). */}
                 {mismatch && (
-                  <Text className="text-[13px] text-warning">
+                  <Text className="text-[13px] text-warning-text">
                     배분 합계 {formatKrw(manualSum)}이 전체 예산과 {formatKrw(Math.abs(manualSum - total))} 달라요
                   </Text>
                 )}

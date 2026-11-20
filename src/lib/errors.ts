@@ -52,6 +52,7 @@ const MESSAGES = {
   GUEST_IN_USE: { message: '지출에 포함된 게스트는 삭제할 수 없어요', action: '이름·대표자만 변경' },
   INVALID_INPUT: { message: '입력값을 확인해 주세요', action: '수정' },
   FORBIDDEN: { message: '이 작업을 할 권한이 없어요' },
+  SPOT_SENT: { message: '이 자리 정산을 보낸 지출은 삭제할 수 없어요' },
   CURRENCY_LOCKED: { message: '지출이 있어 기본 통화를 바꿀 수 없어요' },
   INVALID_PAYER: { message: '결제자를 다시 선택해 주세요', action: '선택' },
   ALREADY_CONFIRMED: { message: '이미 받은 분이 확인한 송금이에요', action: '새로고침' },

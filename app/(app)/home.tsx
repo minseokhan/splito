@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { Camera, EditPencil, MessageText, Microphone, NavArrowDown, NavArrowRight, Plus } from 'iconoir-react-native';
+import { NavArrowDown, NavArrowRight, Plus } from 'iconoir-react-native';
 import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { CategoryCircle } from '@/components/CategoryCircle';
 import { Icon } from '@/components/Icon';
 import { InvitePasteBox } from '@/components/InvitePasteBox';
 import { Wordmark } from '@/components/Logo';
@@ -20,7 +21,6 @@ import { isActiveTrip } from '@/lib/roomList';
 import { colors } from '@/theme/tokens';
 import type { MyRoom } from '@/types/domain';
 
-const SOURCE_ICON = { receipt: Camera, card_image: Camera, card_text: MessageText, voice: Microphone, manual: EditPencil } as const;
 const CARD_STEP = 260 + 12; // 카드 폭(RoomCard w-[260px]) + gap
 
 const goRoom = (roomId: string) => router.push({ pathname: '/rooms/[roomId]', params: { roomId } });
@@ -34,7 +34,7 @@ const PlusGlyph = () => (
 );
 
 const MeGlyph = () => (
-  <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#4A4D55" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round">
+  <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.ink[700]} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round">
     <Circle cx={12} cy={8} r={4} />
     <Path d="M4.5 20.5c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6z" />
   </Svg>
@@ -162,9 +162,7 @@ export default function Home() {
                     onPress={() => goRoom(e.roomId)}
                     className="flex-row items-center gap-3 py-2.5"
                   >
-                    <View className="h-11 w-11 items-center justify-center rounded-input bg-muted">
-                      <Icon as={SOURCE_ICON[e.source as keyof typeof SOURCE_ICON] ?? EditPencil} size={21} color={colors.primary.text} />
-                    </View>
+                    <CategoryCircle code={e.category} size={40} />
                     <View className="flex-1 gap-[3px]">
                       <Text className="font-semibold text-base text-ink" numberOfLines={1}>
                         {e.merchant ?? '지출'}
@@ -173,9 +171,23 @@ export default function Home() {
                         {e.payerName} 결제 · {e.roomName}
                       </Text>
                     </View>
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
-                      {e.krwAmount !== null ? formatKrw(e.krwAmount) : formatForeign(e.amountOriginal, e.currency)}
-                    </Text>
+                    {/* 금액 표시 규칙(17번): 외화는 현지 통화 크게 + 원화 작게, 원화 결제는 원화만. */}
+                    {e.currency === 'KRW' ? (
+                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
+                        {e.krwAmount !== null ? formatKrw(e.krwAmount) : formatForeign(e.amountOriginal, e.currency)}
+                      </Text>
+                    ) : (
+                      <View className="items-end gap-0.5">
+                        <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-local">
+                          {formatForeign(e.amountOriginal, e.currency)}
+                        </Text>
+                        {e.krwAmount !== null && (
+                          <Text style={{ fontVariant: ['tabular-nums'] }} className="text-xs text-ink-300">
+                            {formatKrw(e.krwAmount)}
+                          </Text>
+                        )}
+                      </View>
+                    )}
                   </Pressable>
                 ))}
               </View>

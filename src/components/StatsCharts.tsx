@@ -7,7 +7,7 @@ import type { CategoryCode } from '@/lib/category';
 import { colors } from '@/theme/tokens';
 import type { Krw } from '@/types/domain';
 
-import { CATEGORY_ICON } from './categoryIcon';
+import { CategoryCircle } from './CategoryCircle';
 import { Icon } from './Icon';
 import { formatKrw } from './Money';
 
@@ -83,12 +83,12 @@ export function CompareCard({ top, bottom, daily, baseline, d, selected, locked 
                 style={{
                   height: future ? BAR_MAX / 3 : h(v),
                   maxWidth: 44,
-                  backgroundColor: future ? 'transparent' : on ? colors.primary.DEFAULT : colors.sky[200],
+                  backgroundColor: future ? 'transparent' : on ? colors.primary.text : colors.sky[200],
                   borderWidth: future ? 1.5 : 0,
                   borderColor: colors.line.DEFAULT,
                   borderStyle: 'dashed',
                 }}
-                className="w-full rounded-t-[8px]"
+                className="w-full rounded-t-badge"
               />
               <Text style={{ height: LABEL_H }} className={`text-xs ${on ? 'font-semibold text-ink' : 'text-ink-400'}`}>
                 {i + 1}일차
@@ -131,9 +131,7 @@ export function CategoryCard({
           onPress={() => (locked ? onLocked?.() : onPick(r.code))}
           className={`flex-row items-center gap-3 py-2.5 ${i < rows.length - 1 ? 'border-b border-line-row' : ''}`}
         >
-          <View className="h-9 w-9 items-center justify-center rounded-chip bg-muted">
-            <Icon as={CATEGORY_ICON[r.code]} size={18} color={colors.primary.text} />
-          </View>
+          <CategoryCircle code={r.code} size={40} />
           <View className={`min-w-0 flex-1 ${locked ? 'gap-1.5' : 'gap-[5px]'}`}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-baseline gap-1.5">
@@ -149,8 +147,8 @@ export function CategoryCard({
                 <Text className="font-semibold text-[15px] text-ink">{formatKrw(r.amount)}</Text>
               )}
             </View>
-            <View className="h-1.5 rounded-full bg-[#EEF0F3]">
-              <View style={{ width: `${Math.round(r.ratio * 100)}%` }} className="h-full rounded-full bg-primary" />
+            <View className="h-1.5 rounded-full bg-muted">
+              <View style={{ width: `${Math.round(r.ratio * 100)}%`, backgroundColor: colors.cat[r.code].chart }} className="h-full rounded-full" />
             </View>
           </View>
           <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
@@ -190,11 +188,11 @@ export function MatesCard({ rows, onLocked }: { rows: MateRow[]; onLocked?: () =
       <Text className="font-semibold text-base text-ink">동행별 지출</Text>
       <View className="flex-row gap-3.5">
         {[
-          { label: '결제한 돈', color: colors.primary.DEFAULT },
+          { label: '결제한 돈', color: colors.primary.text },
           { label: '쓴 돈', color: colors.sky[200] },
         ].map((l) => (
           <View key={l.label} className="flex-row items-center gap-1.5">
-            <View style={{ backgroundColor: l.color }} className="h-2.5 w-2.5 rounded-[3px]" />
+            <View style={{ backgroundColor: l.color }} className="h-2.5 w-2.5 rounded-full" />
             <Text className="text-xs text-ink-500">{l.label}</Text>
           </View>
         ))}
@@ -214,10 +212,10 @@ export function MatesCard({ rows, onLocked }: { rows: MateRow[]; onLocked?: () =
           <View className="min-w-0 flex-1 gap-1">
             <View className="flex-row items-center gap-2">
               {r.masked ? (
-                <BlurBar width={w(r.paid)} color={colors.primary.DEFAULT} />
+                <BlurBar width={w(r.paid)} color={colors.primary.text} />
               ) : (
                 <View className="h-2 flex-1 rounded-full bg-app">
-                  <View style={{ width: w(r.paid) }} className="h-full rounded-full bg-primary" />
+                  <View style={{ width: w(r.paid) }} className="h-full rounded-full bg-primary-text" />
                 </View>
               )}
               <Text className={`w-[76px] text-right font-semibold text-xs ${r.masked ? 'text-ink-300' : 'text-ink'}`}>

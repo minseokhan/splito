@@ -1,5 +1,5 @@
 // 패키지 일정 표시 로직. 정산·순잔액과 무관한 표시용 메타데이터다(ADR-006: 계산의 정답은 서버).
-import { dateTitle } from './feed';
+import { weekday } from './feed';
 
 export const PRE_TRIP = 'pre-trip';
 
@@ -15,7 +15,8 @@ const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 export type ScheduleItem = {
   id: string;
   dayIndex: number; // 0 = 여행 전
-  startTime: string; // HH:MM
+  startTime: string | null; // HH:MM. 자유여행 일정은 시간이 없다
+  position: number; // 날짜 안 순서(위→아래). 시간순 자리는 서버가 저장할 때 맞춘다
   title: string;
   includes: string[];
   excludes: string[];
@@ -24,11 +25,13 @@ export type ScheduleItem = {
   edited: boolean; // '직접 수정' 배지
 };
 
-// 일정 영역이 지출에서 보는 것은 이 셋뿐이다. 화면은 더 넓은 행을 그대로 넘긴다.
+// 일정 영역이 지출에서 보는 것은 이것뿐이다. 화면은 더 넓은 행을 그대로 넘긴다.
 export type SchedulableExpense = {
   id: string;
   scheduleId: string | null;
   paidLocalDate: string;
+  paidLocalTime: string | null;
+  createdAt: string;
   krwAmount: number | null;
 };
 
@@ -42,7 +45,7 @@ export type ScheduleCard<E> = {
 export type ScheduleDay<E> = {
   key: string; // 'pre-trip' | 'YYYY-MM-DD' — 기간 탭의 키와 같다
   dayIndex: number;
-  header: string; // 일반 여행 상세의 섹션 제목과 같은 형식('11월 2일 (월)' / '여행 전')
+  header: string; // '1일차 · 10.20 (월)' / '여행 전'
   cards: ScheduleCard<E>[];
   hiddenCount: number;
   extraLabel: string;
@@ -75,13 +78,17 @@ export function dayIndexOfDate(date: string, startDate: string | null, endDate: 
   return Math.floor((utc(date) - utc(startDate)) / DAY_MS) + 1;
 }
 
-// 날짜 제목은 일반 여행 상세(groupFeed)와 같은 헬퍼를 쓴다 — 두 화면이 갈라지면 안 된다.
 function header(dayIndex: number, startDate: string | null): string {
   if (dayIndex === 0) return '여행 전';
   const key = dayKeyOfIndex(dayIndex, startDate);
   // 기간이 없으면 날짜를 못 만든다. 그때만 일차로 떨어진다.
-  return key === PRE_TRIP ? `${dayIndex}일차` : dateTitle(key);
+  if (key === PRE_TRIP) return `${dayIndex}일차`;
+  const [, m, d] = key.split('-').map(Number);
+  return `${dayIndex}일차 · ${m}.${d} (${weekday(key)})`;
 }
+
+// 결제 시각 오름차순(노션 11번). 시각을 모르면 기록 시각으로 잇는다.
+const paidOrder = (e: SchedulableExpense) => `${e.paidLocalDate} ${e.paidLocalTime ?? ''} ${e.createdAt}`;
 
 type Args<E extends SchedulableExpense> = {
   items: ScheduleItem[];
@@ -102,7 +109,8 @@ export function buildScheduleDays<E extends SchedulableExpense>({
   const byItem = new Map<string, E[]>(items.map((i) => [i.id, []]));
   const loose: E[] = [];
   // 사라진 일정을 가리키는 지출은 연결이 없는 것으로 본다(연동 해제 후 schedule_id를 보관하므로 생긴다).
-  for (const e of expenses) {
+  const sorted = [...expenses].sort((a, b) => paidOrder(a).localeCompare(paidOrder(b)));
+  for (const e of sorted) {
     const bucket = e.scheduleId ? byItem.get(e.scheduleId) : undefined;
     if (bucket) bucket.push(e);
     else loose.push(e);
@@ -113,8 +121,7 @@ export function buildScheduleDays<E extends SchedulableExpense>({
 
   const out: ScheduleDay<E>[] = [];
   for (let d = 0; d <= maxDay; d += 1) {
-    // 같은 시간이면 입력 순서를 지킨다 — sort는 안정 정렬이다.
-    const dayItems = items.filter((i) => i.dayIndex === d).sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const dayItems = items.filter((i) => i.dayIndex === d).sort((a, b) => a.position - b.position);
     const cards: ScheduleCard<E>[] = [];
     let hiddenCount = 0;
     for (const it of dayItems) {

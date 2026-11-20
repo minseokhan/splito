@@ -16,7 +16,8 @@ export function useDeleteExpense() {
   return useMutation({
     mutationFn: (v: { roomId: RoomId; id: ExpenseId; expectedVersion: number }) => api.deleteExpense(v.id, v.expectedVersion),
     onSuccess: (_, v) => {
-      for (const queryKey of [['room', v.roomId, 'feed'], ['room', v.roomId, 'balances'], ['expense', v.id], ['rooms']]) {
+      // 일정표·지출 내역·총 지출·정산·이 자리 정산이 모두 ['room', id] 아래라 통째로 무효화한다.
+      for (const queryKey of [['room', v.roomId], ['expense', v.id], ['rooms']]) {
         qc.invalidateQueries({ queryKey });
       }
     },

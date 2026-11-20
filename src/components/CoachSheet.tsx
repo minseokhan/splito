@@ -84,7 +84,7 @@ export function CoachSheet({ visible, onClose, n, per, plans, loading, onRefresh
                 accessibilityState={{ selected: on }}
                 onPress={() => setPickedId(plan.id)}
                 style={{ borderWidth: 1.5, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
-                className={`gap-2.5 rounded-[18px] px-4 py-3.5 ${on ? 'bg-sky-50' : 'bg-white'}`}
+                className={`gap-2.5 rounded-box px-4 py-3.5 ${on ? 'bg-sky-50' : 'bg-white'}`}
               >
                 <View className="flex-row items-center gap-2.5">
                   <View
@@ -103,7 +103,7 @@ export function CoachSheet({ visible, onClose, n, per, plans, loading, onRefresh
                     // 높이는 내용에 맡기지 않고 고정한다 — 금액 자릿수가 달라도 타일 5개가 같은 크기로 선다.
                     <View
                       key={code}
-                      className={`h-[64px] flex-1 items-center justify-center gap-1 rounded-[10px] ${on ? 'bg-sky-100' : 'bg-muted'}`}
+                      className={`h-[64px] flex-1 items-center justify-center gap-1 rounded-toggle ${on ? 'bg-sky-100' : 'bg-muted'}`}
                     >
                       <Text className="text-[11px] text-ink-400">{categoryLabel(code)}</Text>
                       <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink'}`}>
