@@ -4,6 +4,7 @@ import { type CategoryCode, toCategory } from '@/lib/category';
 import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
+import type { VoiceParseItem } from '@/lib/voice';
 import type { RoomEvent } from '@/lib/activity';
 import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
@@ -335,6 +336,17 @@ export const api = {
     });
     if (error) throw signal?.aborted ? error : await functionError(error);
     return data!;
+  },
+
+  // 말로 입력: 한 발화 → 가게·사람·품목·금액 여러 건(parse-expense kind 'voice'). names = 사람 인식에 쓸 참여자 이름,
+  // stores = 화면에 이미 있는 가게(같은 가게를 같은 이름으로 묶게).
+  async parseVoice(req: { roomId: RoomId; text: string; names: string[]; stores: string[]; baseCurrency: string }): Promise<VoiceParseItem[]> {
+    const { data, error } = await supabase.functions.invoke<{ items: VoiceParseItem[] }>('parse-expense', {
+      body: { room_id: req.roomId, kind: 'voice', text: req.text, names: req.names, stores: req.stores, base_currency: req.baseCurrency },
+      timeout: PARSE_TIMEOUT_MS,
+    });
+    if (error) throw await functionError(error);
+    return data!.items;
   },
 
   // AI 예산 코칭(내 통계). kind='alloc'이면 카테고리 배분 비율, 'plans'면 조정안 2~3개.

@@ -75,3 +75,43 @@ export const parsedExpenseJsonSchema = {
     confidence: conf,
   },
 } as const;
+
+// kind 'voice' 응답: 한 발화를 가게·사람·품목·금액 여러 건으로 나눈 것. who는 그 품목을 나눠 쓴 참여자 이름들(빈 배열 = 말한 사람 본인).
+// store는 가게 이름, 어느 가게인지 판단이 안 되면 null(화면이 '어디서 쓴 건지 모르는 품목'으로 따로 보여 준다).
+export const ParsedVoice = z.object({
+  items: z.array(z.object({
+    store: z.string().max(80).nullable(),
+    who: z.array(z.string()),
+    title: z.string().max(80),
+    amount: z.number(),
+    currency: z.string().regex(/^[A-Z]{3}$/).nullable().catch(null),
+    category: z.enum(CATEGORIES).catch('other'),
+    part: z.string().max(200),
+  })),
+});
+export type ParsedVoice = z.infer<typeof ParsedVoice>;
+
+export const parsedVoiceJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['items'],
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['store', 'who', 'title', 'amount', 'currency', 'category', 'part'],
+        properties: {
+          store: nullable(str('가게 이름. 80자 이하. <stores>에 같은 가게가 있으면 그 이름 그대로. 어느 가게인지 판단이 안 되면 null')),
+          who: { type: 'array', items: { type: 'string' }, description: '이 품목을 먹거나 쓴 사람들. <names>의 이름 그대로. 모두·다 같이면 <names> 전부. 말한 사람 본인만이거나 사람을 말하지 않았으면 빈 배열' },
+          title: str('품목 이름, 짧게. 80자 이하'),
+          amount: { type: 'number', description: '말한 금액을 숫자로. 못 들었으면 0' },
+          currency: nullable(str('쓰지 않는다. 항상 null(앱이 방 기본 통화로 채운다)')),
+          category: { type: 'string', enum: [...CATEGORIES] },
+          part: str('이 건에 해당하는 원문 부분 그대로'),
+        },
+      },
+    },
+  },
+} as const;

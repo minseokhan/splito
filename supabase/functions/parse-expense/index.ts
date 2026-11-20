@@ -1,7 +1,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { requireUser } from '../_shared/auth.ts';
 import { errorResponse, json } from '../_shared/http.ts';
-import { parseExpense } from './parse.ts';
+import { parseExpense, parseVoice } from './parse.ts';
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   const { client } = auth; // 사용자 JWT 클라이언트: RPC·Storage 모두 RLS가 적용된다
 
   const body = await req.json().catch(() => null);
-  const result = await parseExpense({
+  const parse = (body as { kind?: unknown } | null)?.kind === 'voice' ? parseVoice : parseExpense;
+  const result = await parse({
     now: new Date(),
     model: Deno.env.get('CLAUDE_MODEL')!,
     consumeQuota: async (roomId) => {
