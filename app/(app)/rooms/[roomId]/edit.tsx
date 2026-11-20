@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Link as LinkIcon, RefreshDouble, Sparks, Trash, XmarkCircle } from 'iconoir-react-native';
+import { Download, Link as LinkIcon, Page, RefreshDouble, Sparks, Trash, XmarkCircle } from 'iconoir-react-native';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar, GuestChip } from '@/components/Avatar';
@@ -19,6 +19,7 @@ import { useSettlePlan } from '@/hooks/useSettlement';
 import { toUserError } from '@/lib/errors';
 import { DEMO_AI_USED, passRow } from '@/lib/pass';
 import { formatKrw } from '@/lib/money';
+import { exportExpenses, type ExportFormat } from '@/services/exportExpenses';
 import { lookupBooking } from '@/services/hanatour';
 import { colors } from '@/theme/tokens';
 import type { RoomMember } from '@/types/domain';
@@ -226,6 +227,8 @@ export default function EditRoom() {
             </View>
           )}
 
+          <ExportCard roomId={roomId} />
+
           {/* 여행 수정·삭제는 방장만 — 서버도 update_room·delete_room에서 같은 조건을 다시 본다 */}
           {isOwner ? (
             <Pressable
@@ -344,5 +347,51 @@ export default function EditRoom() {
         onRequest={() => setPassOpen(false)}
       />
     </SafeAreaView>
+  );
+}
+
+const EXPORTS: { format: ExportFormat; label: string; done: string; color: string }[] = [
+  { format: 'xlsx', label: 'Excel로 내보내기', done: 'Excel 파일을 만들었어요', color: colors.success.DEFAULT },
+  { format: 'pdf', label: 'PDF로 내보내기', done: 'PDF 파일을 만들었어요', color: colors.danger.DEFAULT },
+];
+
+// 지출 내역 내보내기: 여행 멤버 누구나, 패스 없이. 파일은 서버(export-expenses)가 만들고, 받은 뒤 OS 공유 시트를 연다.
+function ExportCard({ roomId }: { roomId: string }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState<ExportFormat | null>(null);
+  const run = async (e: (typeof EXPORTS)[number]) => {
+    setBusy(e.format);
+    try {
+      const url = await exportExpenses(roomId, e.format);
+      toast(e.done);
+      await Share.share({ url });
+    } catch (err) {
+      // 400 = 아직 올린 지출이 없음(NO_EXPENSE)
+      toast(err instanceof Error && err.message === 'EXPORT_400' ? '아직 올린 지출이 없어요' : '파일을 만들지 못했어요. 다시 시도해 주세요.');
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <View className="gap-2.5">
+      <Text className="px-1 font-semibold text-[13px] text-ink-500">지출 내역 내보내기</Text>
+      <View className="rounded-card border border-card-line bg-white px-5">
+        {EXPORTS.map((e, i) => (
+          <Pressable
+            key={e.format}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !!busy, busy: busy === e.format }}
+            disabled={!!busy}
+            onPress={() => run(e)}
+            className={`flex-row items-center gap-3 py-[18px] ${i > 0 ? 'border-t border-line-row' : ''}`}
+          >
+            <Icon as={Page} size={22} color={e.color} />
+            <Text className="flex-1 font-semibold text-base text-ink">{e.label}</Text>
+            {busy === e.format ? <ActivityIndicator color={colors.ink[400]} /> : <Icon as={Download} size={18} color={colors.ink[300]} />}
+          </Pressable>
+        ))}
+      </View>
+      <Text className="px-1 text-xs text-ink-400">지금까지 올린 지출을 파일로 받아요. 여행 멤버 누구나 받을 수 있어요.</Text>
+    </View>
   );
 }

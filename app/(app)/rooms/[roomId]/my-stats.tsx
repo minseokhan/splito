@@ -1,20 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Download, Page } from 'iconoir-react-native';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { BudgetCard } from '@/components/BudgetCard';
 import { CoachCard, CoachSheet } from '@/components/CoachSheet';
-import { Icon } from '@/components/Icon';
 import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { BudgetExplainerSheet, PassLockBar, PassLockCard, PassSheet } from '@/components/PassSheets';
 import { CategoryCard, CompareCard, MatesCard, type MateRow } from '@/components/StatsCharts';
 import { useToast } from '@/components/Toast';
 import { api } from '@/services/api';
-import { exportExpenses, type ExportFormat } from '@/services/exportExpenses';
 import { useApplyBudgetPlan, useMyBudget, useMyShares } from '@/hooks/useBudget';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyRooms, useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
@@ -35,7 +32,7 @@ import {
 } from '@/lib/budget';
 import { categoryLabel, type CategoryCode } from '@/lib/category';
 import { hiddenCount, maskWon, type PassReason } from '@/lib/pass';
-import { colors, memberColor } from '@/theme/tokens';
+import { memberColor } from '@/theme/tokens';
 import type { BudgetPlan, Krw, MyShare } from '@/types/domain';
 
 // TODO(확인 필요): 명세 §10은 '오늘'을 여행지 현지 시간으로 나눈다고 했지만 방에 시간대 정보가 없다.
@@ -227,7 +224,6 @@ export default function MyStats() {
         />
         <CategoryCard rows={catRows} onPick={setCatSheet} locked={locked} onLocked={openPass} />
         {mates.length > 0 && <MatesCard rows={mates} onLocked={openPass} />}
-        <ExportCard roomId={roomId} empty={!shares.length && !room?.totalKrw} />
       </ScrollView>
 
       {locked && (
@@ -324,50 +320,5 @@ function CategorySheet({ code, onClose, shares, memberName }: CatSheetProps) {
         {rows.length === 0 && <Text className="py-4 text-center text-sm text-ink-400">이 기간에는 지출이 없어요</Text>}
       </View>
     </BottomSheet>
-  );
-}
-
-const EXPORTS: { format: ExportFormat; label: string; done: string; color: string }[] = [
-  { format: 'xlsx', label: 'Excel로 내보내기', done: 'Excel 파일을 만들었어요', color: colors.success.DEFAULT },
-  { format: 'pdf', label: 'PDF로 내보내기', done: 'PDF 파일을 만들었어요', color: colors.danger.DEFAULT },
-];
-
-// 지출 내역 내보내기(명세 export). 파일은 서버가 만들고, 받은 뒤 OS 공유 시트를 연다.
-function ExportCard({ roomId, empty }: { roomId: string; empty: boolean }) {
-  const toast = useToast();
-  const [busy, setBusy] = useState<ExportFormat | null>(null);
-  const run = async (e: (typeof EXPORTS)[number]) => {
-    setBusy(e.format);
-    try {
-      const url = await exportExpenses(roomId, e.format);
-      toast(e.done);
-      await Share.share({ url });
-    } catch {
-      toast('파일을 만들지 못했어요. 다시 시도해 주세요.');
-    } finally {
-      setBusy(null);
-    }
-  };
-  return (
-    <View className="gap-2.5 pt-3">
-      <Text className="px-1 font-semibold text-[13px] text-ink-500">지출 내역 내보내기</Text>
-      <View style={{ boxShadow: '0 2px 8px -2px rgba(19,25,39,.06)' }} className="rounded-card bg-white px-5">
-        {EXPORTS.map((e, i) => (
-          <Pressable
-            key={e.format}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: empty || !!busy, busy: busy === e.format }}
-            disabled={empty || !!busy}
-            onPress={() => run(e)}
-            className={`flex-row items-center gap-3 py-[18px] ${i > 0 ? 'border-t border-line-row' : ''}`}
-          >
-            <Icon as={Page} size={22} color={empty ? colors.ink[300] : e.color} />
-            <Text className={`flex-1 font-semibold text-base ${empty ? 'text-ink-300' : 'text-ink'}`}>{e.label}</Text>
-            {busy === e.format ? <ActivityIndicator color={colors.ink[400]} /> : <Icon as={Download} size={18} color={colors.ink[300]} />}
-          </Pressable>
-        ))}
-      </View>
-      {empty && <Text className="px-1 text-[13px] text-ink-400">아직 올린 지출이 없어요</Text>}
-    </View>
   );
 }
