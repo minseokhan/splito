@@ -13,6 +13,7 @@ export type MenuItem = {
   sub?: string;
   icon?: ComponentType<SvgProps>;
   selected: boolean;
+  danger?: boolean; // [일정 삭제] 같은 빨간 행
 };
 
 // 누른 요소 바로 아래에 붙으므로 좌표는 호출부가 measureInWindow로 잰다(PeoplePopover와 같은 방식).
@@ -26,7 +27,7 @@ type Props = {
   onClose: () => void;
 };
 
-// 기간 선택·카테고리 선택 드롭다운. 행 높이 40, 선택한 행만 바탕색 + 체크.
+// 카테고리 드롭다운·일정 '…' 메뉴. 행 위아래 9 · 둥글기 8 · 14px, 선택한 행만 바탕 app + 600 + 체크, 누르면 바탕 app. 팝업 둥글기 16(노션 19번 ⑤).
 export function MenuPopover({ at, width, items, onPick, onClose }: Props) {
   return (
     <Modal visible={!!at} transparent animationType="fade" onRequestClose={onClose}>
@@ -34,14 +35,14 @@ export function MenuPopover({ at, width, items, onPick, onClose }: Props) {
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="닫기" onPress={onClose} />
         {at && (
           <View
-            className="rounded-button border border-card-line bg-white p-1.5"
+            className="rounded-box border border-card-line bg-white p-1.5"
             style={{
               position: 'absolute',
               top: at.top,
               left: at.left,
               right: at.right,
               width,
-              boxShadow: '0 10px 32px -4px rgba(14,27,61,.16)',
+              boxShadow: '0 10px 32px -4px rgba(23,32,58,.16), 0 6px 14px -6px rgba(23,32,58,.12)',
             }}
           >
             {items.map((it) => (
@@ -50,18 +51,17 @@ export function MenuPopover({ at, width, items, onPick, onClose }: Props) {
                 accessibilityRole="menuitem"
                 accessibilityState={{ selected: it.selected }}
                 onPress={() => onPick(it.key)}
-                // 메뉴 행 라운드 10은 토큰에 없다(프로토타입 실측).
-                className={`flex-row items-center gap-2.5 rounded-[10px] px-3 py-2.5 ${it.selected ? 'bg-muted' : ''}`}
+                className={`flex-row items-center gap-2.5 rounded-badge px-3 py-[9px] active:bg-app ${it.selected ? 'bg-app' : ''}`}
               >
-                {it.icon && <Icon as={it.icon} size={18} color={colors.primary.text} />}
+                {it.icon && <Icon as={it.icon} size={17} color={colors.primary.text} />}
                 <Text
-                  className={`min-w-0 flex-1 text-[15px] ${it.selected ? 'font-semibold text-ink' : 'font-medium text-ink'}`}
+                  className={`min-w-0 flex-1 text-sm ${it.selected ? 'font-semibold' : 'font-medium'} ${it.danger ? 'text-danger' : 'text-ink'}`}
                   numberOfLines={1}
                 >
                   {it.label}
                 </Text>
                 {!!it.sub && <Text className="text-xs text-ink-400">{it.sub}</Text>}
-                {it.selected && <Icon as={Check} size={18} color={colors.primary.text} />}
+                {it.selected && <Icon as={Check} size={17} color={colors.primary.text} />}
               </Pressable>
             ))}
           </View>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -22,7 +22,8 @@ export const INCLUDE_OPTIONS = [
 export type ScheduleDraft = {
   id?: string;
   dayIndex: number;
-  startTime: string;
+  startTime: string; // '' = 시간 없음
+  position?: number; // 새 일정을 넣을 자리([위에/아래에 일정 추가]). 없으면 그날 맨 아래
   title: string;
   includes: string[];
   optional: boolean;
@@ -31,17 +32,19 @@ export type ScheduleDraft = {
 
 type Props = {
   draft: ScheduleDraft | null;
-  dayLabel: string;
+  /** 날짜 칩(수정)·제목 옆 날짜 표시용. 여행 전은 넣지 않는다. */
+  days: { dayIndex: number; label: string }[];
+  /** 패키지 방: 수정에서 시간·포함 사항·선택관광까지. 자유여행은 이름·날짜만. */
+  pkg: boolean;
   saving?: boolean;
   onClose: () => void;
   onSave: (draft: ScheduleDraft) => void;
-  onDelete: (id: string) => void;
 };
 
 export const draftOf = (item: ScheduleItem): ScheduleDraft => ({
   id: item.id,
   dayIndex: item.dayIndex,
-  startTime: item.startTime,
+  startTime: item.startTime ?? '',
   title: item.title,
   includes: item.includes,
   optional: item.optional,
@@ -65,68 +68,92 @@ function Toggle({ on, onPress }: { on: boolean; onPress: () => void }) {
 }
 
 // 입력칸 초기값은 draft에서 온다. 시트를 다시 열면 key로 통째로 갈아 끼워 effect 없이 초기화한다.
-export function ScheduleSheet({ draft, dayLabel, saving, onClose, onSave, onDelete }: Props) {
+export function ScheduleSheet({ draft, onClose, ...rest }: Props) {
   return (
     <BottomSheet visible={!!draft} onClose={onClose}>
-      {draft && (
-        <Form
-          key={draft.id ?? `new-${draft.dayIndex}`}
-          draft={draft}
-          dayLabel={dayLabel}
-          saving={saving}
-          onSave={onSave}
-          onDelete={onDelete}
-        />
-      )}
+      {draft && <Form key={draft.id ?? `new-${draft.dayIndex}-${draft.position ?? 'end'}`} draft={draft} {...rest} />}
     </BottomSheet>
   );
 }
 
-function Form({ draft, dayLabel, saving, onSave, onDelete }: Omit<Props, 'onClose' | 'draft'> & { draft: ScheduleDraft }) {
+// [+ 일정 추가]·위/아래에 추가는 이름만 받는다. 수정은 이름 / 날짜 칩 / (패키지) 시간·포함 사항·선택관광(노션 9번).
+function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'draft'> & { draft: ScheduleDraft }) {
+  const editing = !!draft.id;
+  const [dayIndex, setDayIndex] = useState(draft.dayIndex);
   const [time, setTime] = useState(draft.startTime);
   const [title, setTitle] = useState(draft.title);
   const [includes, setIncludes] = useState<string[]>(draft.includes);
   const [optional, setOptional] = useState(draft.optional);
   const [est, setEst] = useState(withCommas(draft.estAmount));
 
+  // 시간은 선택이다. 비우면 시간 없는 일정.
   const timeInvalid = time.length > 0 && !isValidScheduleTime(time);
-  const canSave = isValidScheduleTime(time) && title.trim().length > 0;
+  const canSave = !timeInvalid && title.trim().length > 0;
+  const full = editing && pkg;
 
   return (
     <View className="gap-4">
         <View className="flex-row items-baseline justify-between">
-          <Text className="font-semibold text-xl text-ink">{draft.id ? '일정 수정' : '일정 추가'}</Text>
-          <Text className="text-[13px] text-ink-400">{dayLabel}</Text>
+          <Text className="font-semibold text-xl text-ink">{editing ? '일정 수정' : '일정 추가'}</Text>
+          {!editing && <Text className="text-13 text-ink-400">{days.find((d) => d.dayIndex === dayIndex)?.label ?? ''}</Text>}
         </View>
 
-        <View className="flex-row gap-2">
-          <View className="w-24 gap-1.5">
-            <Text className="font-semibold text-[13px] text-ink-500">시간</Text>
-            <TextField
-              value={time}
-              onChangeText={setTime}
-              onBlur={() => setTime((t) => normalizeScheduleTime(t))}
-              placeholder="09:00"
-              keyboardType="numbers-and-punctuation"
-              invalid={timeInvalid}
-              accessibilityLabel="시간"
-            />
-          </View>
-          <View className="flex-1 gap-1.5">
-            <Text className="font-semibold text-[13px] text-ink-500">일정 이름</Text>
-            <TextField
-              value={title}
-              onChangeText={setTitle}
-              placeholder="예: 오사카성 공원"
-              maxLength={60}
-              accessibilityLabel="일정 이름"
-            />
-          </View>
+        <View className="gap-1.5">
+          <Text className="font-semibold text-13 text-ink-500">일정 이름</Text>
+          <TextField
+            value={title}
+            onChangeText={setTitle}
+            placeholder="예: 오사카성 공원"
+            maxLength={60}
+            autoFocus={!editing}
+            accessibilityLabel="일정 이름"
+          />
         </View>
-        {timeInvalid && <Text className="text-[13px] text-danger">시간은 0:00~23:59로 적어주세요.</Text>}
 
+        {editing && (
+          <View className="gap-2">
+            <Text className="font-semibold text-13 text-ink-500">날짜</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              {days.map((d) => {
+                const on = d.dayIndex === dayIndex;
+                return (
+                  <Pressable
+                    key={d.dayIndex}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    onPress={() => setDayIndex(d.dayIndex)}
+                    className={`h-8 justify-center rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-white'}`}
+                    style={{ borderWidth: 1, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
+                  >
+                    <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink-500'}`}>{d.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {full && (
+          <View className="gap-1.5">
+            <Text className="font-semibold text-13 text-ink-500">시간 (선택)</Text>
+            <View className="w-28">
+              <TextField
+                value={time}
+                onChangeText={setTime}
+                onBlur={() => setTime((t) => normalizeScheduleTime(t))}
+                placeholder="9:00"
+                keyboardType="numbers-and-punctuation"
+                invalid={timeInvalid}
+                accessibilityLabel="시간"
+              />
+            </View>
+            {timeInvalid && <Text className="text-13 text-danger">시간은 0:00~23:59로 적어주세요.</Text>}
+          </View>
+        )}
+
+        {full && (
         <View className="gap-2">
-          <Text className="font-semibold text-[13px] text-ink-500">포함 사항</Text>
+          <Text className="font-semibold text-13 text-ink-500">포함 사항</Text>
           <View className="flex-row flex-wrap gap-1.5">
             {INCLUDE_OPTIONS.map((l) => {
               const on = includes.includes(l);
@@ -137,31 +164,34 @@ function Form({ draft, dayLabel, saving, onSave, onDelete }: Omit<Props, 'onClos
                   accessibilityState={{ checked: on }}
                   onPress={() => setIncludes((v) => (on ? v.filter((x) => x !== l) : [...v, l]))}
                   className={`h-8 justify-center rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-white'}`}
-                  style={{ borderWidth: 1.5, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
+                  style={{ borderWidth: 1, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
                 >
-                  <Text className={`font-semibold text-[13px] ${on ? 'text-primary-text' : 'text-ink-500'}`}>{l}</Text>
+                  <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink-500'}`}>{l}</Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
+        )}
 
+        {full && (
         <Pressable
           accessibilityRole="button"
           onPress={() => setOptional((v) => !v)}
           className="flex-row items-center justify-between rounded-input bg-app px-3.5 py-3"
         >
           <View>
-            <Text className="font-semibold text-[15px] text-ink">선택관광</Text>
+            <Text className="font-semibold text-15 text-ink">선택관광</Text>
             <Text className="text-xs text-ink-400">현지에서 따로 결제하는 일정이에요</Text>
           </View>
           <Toggle on={optional} onPress={() => setOptional((v) => !v)} />
         </Pressable>
+        )}
 
-        {optional && (
+        {full && optional && (
           <View className="flex-row items-center gap-2.5">
             <Text className="flex-1 text-sm text-ink-500">예정 금액</Text>
-            <View className="h-11 w-40 flex-row items-center gap-1 rounded-chip border-[1.5px] border-line px-3">
+            <View className="h-11 w-40 flex-row items-center gap-1 rounded-chip border border-line px-3">
               <TextInput
                 value={est}
                 onChangeText={(t) => setEst(withCommas(Number(t.replace(/[^0-9]/g, '')) || 0))}
@@ -169,24 +199,23 @@ function Form({ draft, dayLabel, saving, onSave, onDelete }: Omit<Props, 'onClos
                 placeholderTextColor={colors.ink[300]}
                 keyboardType="number-pad"
                 accessibilityLabel="예정 금액"
-                className="min-w-0 flex-1 text-right font-semibold text-[15px] text-ink"
+                className="min-w-0 flex-1 text-right font-semibold text-input-15 text-ink"
               />
-              <Text className="font-semibold text-[15px] text-ink">원</Text>
+              <Text className="font-semibold text-15 text-ink">원</Text>
             </View>
           </View>
         )}
 
         <View className="flex-row gap-2">
-          {!!draft.id && <PrimaryButton title="삭제" variant="danger" onPress={() => onDelete(draft.id!)} />}
           <PrimaryButton
             title="저장"
-            variant="dark"
             grow
             loading={saving}
             disabled={!canSave}
             onPress={() =>
               onSave({
                 ...draft,
+                dayIndex,
                 startTime: normalizeScheduleTime(time),
                 title: title.trim(),
                 includes,

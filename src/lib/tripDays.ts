@@ -1,4 +1,4 @@
-import type { FeedSection } from './feed';
+import { weekday, type FeedSection } from './feed';
 
 // 기간 선택 pill·드롭다운 한 칸. label='전체 기간'·'여행 전'·'N일차', sub=날짜(없으면 빈 문자열).
 export type TripDay = { key: string; label: string; sub: string };
@@ -36,7 +36,8 @@ export function buildTripDays({ startDate, endDate, sectionKeys }: Args): TripDa
       sub: !startDate ? '' : last === startDate ? md(startDate) : `${md(startDate)} – ${md(last!)}`,
     },
   ];
-  if (sectionKeys.includes(PRE_TRIP)) days.push({ key: PRE_TRIP, label: '여행 전', sub: '' });
+  // 기간이 있으면 [전체][여행 전]은 늘 고정이다(지출이 없어도).
+  if (startDate || sectionKeys.includes(PRE_TRIP)) days.push({ key: PRE_TRIP, label: '여행 전', sub: '' });
   if (!startDate) return days;
   let n = 1;
   for (let t = utc(startDate); t <= utc(last!); t += DAY_MS, n += 1) {
@@ -46,9 +47,25 @@ export function buildTripDays({ startDate, endDate, sectionKeys }: Args): TripDa
   return days;
 }
 
-// pill과 메뉴 행에 쓰는 한 줄 문구. '전체 기간 · 10.20 – 10.23' / '여행 전'
-export function tripDayText(day: TripDay): string {
-  return day.sub ? `${day.label} · ${day.sub}` : day.label;
+// 날짜 탭 한 칸(노션 19번 ②): [전체] [여행 전] [월/20] …
+export function dateTab(day: TripDay): { top: string; label: string } {
+  if (day.key === 'all') return { top: '', label: '전체' };
+  if (!DATE_RE.test(day.key)) return { top: '', label: day.label };
+  return { top: weekday(day.key), label: String(Number(day.key.slice(8))) };
+}
+
+// 지출 없는 날을 누르면 가장 가까운(같은 거리면 앞) 지출 있는 날로 보낸다. keys는 탭 순서.
+export function nearestDay(keys: string[], has: Set<string>, target: string): string | null {
+  const at = keys.indexOf(target);
+  let best: string | null = null;
+  let dist = Infinity;
+  keys.forEach((k, i) => {
+    if (has.has(k) && Math.abs(i - at) < dist) {
+      best = k;
+      dist = Math.abs(i - at);
+    }
+  });
+  return best;
 }
 
 // 고른 기간을 문장으로 푼다. 내 통계 화면(my-stats)이 카드 캡션으로 쓴다.
@@ -60,10 +77,6 @@ export function dayCaption(day: string, startDate: string | null, endDate: strin
   }
   if (!startDate) return '';
   return endDate ? `${md(startDate)} – ${md(endDate)}` : md(startDate);
-}
-
-export function filterSections<T>(sections: FeedSection<T>[], day: string): FeedSection<T>[] {
-  return day === 'all' ? sections : sections.filter((s) => s.key === day);
 }
 
 // 카테고리 필터가 켜지면 카테고리가 없는 활동 이벤트 행은 함께 빠진다. 비는 섹션은 통째로 뺀다.

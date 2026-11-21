@@ -88,7 +88,7 @@ export function Wordmark({ size, variant = 'ink' }: { size: number; variant?: 'i
       accessibilityRole="header"
       accessibilityLabel="스플리토"
     >
-      <Path d={WORDMARK} fill={variant === 'white' ? '#FFFFFF' : '#0E2A47'} />
+      <Path d={WORDMARK} fill={variant === 'white' ? '#FFFFFF' : colors.ink.DEFAULT} />
     </Svg>
   );
 }

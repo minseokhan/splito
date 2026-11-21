@@ -1,30 +1,37 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { EditPencil, SendDiagonal, Trash, Xmark } from 'iconoir-react-native';
+import { InfoCircle, SendDiagonal, Trash, WarningCircle, Xmark } from 'iconoir-react-native';
 import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvatarStack, type AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { BottomSheet } from '@/components/BottomSheet';
+import { CategoryCircle } from '@/components/CategoryCircle';
 import { Icon } from '@/components/Icon';
 import { ItemBox } from '@/components/ItemBox';
 import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
+import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useScheduleItems } from '@/hooks/useBooking';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useAddComment, useComments, useDeleteComment } from '@/hooks/useComments';
 import { useDeleteExpense, useExpense, useExpenseHistory, useSetItemAssignees } from '@/hooks/useExpense';
 import { useReconfirmPendingFx } from '@/hooks/useFeed';
-import { useRoomMembers } from '@/hooks/useRooms';
+import { useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { useTransfers } from '@/hooks/useSettlement';
+import { useRoomSpotSettles } from '@/hooks/useSpotSettle';
 import { commentSchema } from '@/lib/activity';
+import { toCategory } from '@/lib/category';
 import { toUserError, type UserError } from '@/lib/errors';
 import { perPersonOriginal, splitLabel, toggleWho } from '@/lib/expenseForm';
-import { payerRecorderLabel } from '@/lib/feed';
 import { diffSnapshots, historyStamp } from '@/lib/history';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
+import { dayIndexOfDate } from '@/lib/schedule';
+import { md } from '@/lib/tripDays';
 import { uuidV4 } from '@/lib/uuid';
 import { signedUrl } from '@/services/storage';
 import { colors } from '@/theme/tokens';
@@ -46,6 +53,11 @@ export default function ExpenseDetailScreen() {
   const { data: members = [] } = useRoomMembers(roomId);
   const reconfirm = useReconfirmPendingFx(roomId);
   const del = useDeleteExpense();
+  const toast = useToast();
+  const { data: room } = useRoom(roomId);
+  const { data: schedule = [] } = useScheduleItems(roomId);
+  const { data: transfers = [] } = useTransfers(roomId);
+  const { data: spots = [] } = useRoomSpotSettles(roomId);
   const myId = useAuth().session?.user.id;
   const { data: comments = [] } = useComments(expenseId);
   const addComment = useAddComment();
@@ -99,7 +111,28 @@ export default function ExpenseDetailScreen() {
   const scopePeople = e.expense_scope.flatMap((s) => people.get(s.member_id) ?? []);
   const fxSource = e.fx_source as FxSource;
   const amountOriginal = Number(e.amount_original);
-  const [, mm, dd] = e.paid_local_date.split('-');
+  const isKrw = e.currency === 'KRW';
+
+  // 메타 줄: '2일차 · 10.21 (화) 12:40 · 민지 결제 · 도톤보리 먹방' / '여행 전 21:10 · 서연 결제'
+  const day = dayIndexOfDate(e.paid_local_date, room?.start_date ?? null, room?.end_date ?? null);
+  const dow = '일월화수목금토'[new Date(`${e.paid_local_date}T00:00:00Z`).getUTCDay()];
+  const dateText = `${md(e.paid_local_date)} (${dow})`;
+  const when = [
+    !room?.start_date ? dateText : day === 0 ? '여행 전' : `${day}일차 · ${dateText}`,
+    e.paid_local_time?.slice(0, 5),
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const scheduleTitle = schedule.find((s) => s.id === e.schedule_id)?.title;
+  const meta = [when, `${payerName} 결제`, scheduleTitle].filter(Boolean).join(' · ');
+
+  // 삭제 규칙(노션 12번). 올린 사람이나 결제자 본인만 지울 수 있다.
+  const payerUserId = members.find((m) => m.id === e.payer_member_id)?.userId;
+  const canDelete = !!myId && (e.created_by === myId || (e.payer_kind !== 'pool' && payerUserId === myId));
+  const spotSent = spots.some((s) => s.sentAt && s.expenses.some((x) => x.id === e.id && x.selected));
+  // ponytail: 송금은 지출과 직접 묶여 있지 않다. 이 지출이 올라온 뒤 완료된 송금이 있으면 '정산에 포함'으로 본다.
+  const settled = transfers.some((t) => t.confirmedAt && !t.voidedAt && t.createdAt >= e.created_at);
+  const deletable = canDelete && !spotSent;
 
   const onDelete = () => {
     setConfirmDelete(false);
@@ -107,7 +140,10 @@ export default function ExpenseDetailScreen() {
     del.mutate(
       { roomId, id: e.id, expectedVersion: e.version },
       {
-        onSuccess: () => router.back(),
+        onSuccess: () => {
+          toast('지출을 삭제했어요');
+          router.back();
+        },
         onError: (err) => {
           setError(asUserError(err).message);
           void qc.invalidateQueries({ queryKey: ['expense', expenseId] });
@@ -140,78 +176,87 @@ export default function ExpenseDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      <NavBar
-        title="지출 상세"
-        align="center"
-        right={
-          <>
-            <Pressable accessibilityRole="button" accessibilityLabel="수정" onPress={onEdit} hitSlop={4} className="p-2">
-              <Icon as={EditPencil} size={22} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="삭제"
-              onPress={() => setConfirmDelete(true)}
-              disabled={del.isPending}
-              hitSlop={4}
-              className="p-2"
-            >
-              <Icon as={Trash} size={22} color={colors.danger.text} />
-            </Pressable>
-          </>
-        }
-      />
+      <NavBar title="지출 상세" align="center" />
       {/* 댓글 입력창이 키보드와 함께 올라온다. Android는 adjustResize가 처리한다. */}
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-3.5 px-5 pb-6 pt-1">
-          {error && <Text className="px-1 text-[13px] text-danger-text">{error}</Text>}
+          {error && <Text className="px-1 text-13 text-danger-text">{error}</Text>}
 
-          <View className="flex-row items-center gap-3.5 rounded-card bg-white p-[18px]">
-            <Pressable
-              disabled={!photoUrls?.[0]}
-              accessibilityRole="imagebutton"
-              accessibilityLabel="원본 사진 1 크게 보기"
-              onPress={() => photoUrls?.[0] && setZoomUrl(photoUrls[0])}
-            >
-              <ReceiptThumb uri={photoUrls?.[0]} />
-            </Pressable>
-            <View className="flex-1 gap-[3px]">
-              <View className="flex-row items-center gap-1.5">
-                <Text className="flex-shrink font-semibold text-[17px] text-ink">{e.merchant ?? '가맹점 없음'}</Text>
-                {e.needs_review && <Badge kind="review" />}
+          <View className="gap-3.5 rounded-card bg-white p-[18px]">
+            <View className="flex-row items-center gap-3">
+              <CategoryCircle code={toCategory(e.category)} size={40} />
+              <View className="flex-1 gap-[3px]">
+                <View className="flex-row items-center gap-1.5">
+                  <Text className="flex-shrink font-bold text-17 text-ink">{e.merchant ?? '가맹점 없음'}</Text>
+                  {e.needs_review && <Badge kind="review" />}
+                </View>
+                <Text className="text-13 text-ink-500">{meta}</Text>
               </View>
-              <View className="flex-row flex-wrap items-center gap-1.5">
-                <Text className="text-sm text-ink-500">
-                  {Number(mm)}월 {Number(dd)}일 · {e.currency === 'KRW' ? '' : formatForeign(amountOriginal, e.currency)}
-                  {e.krw_amount !== null && (
-                    <>
-                      {e.currency === 'KRW' ? '' : ' → '}
-                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-ink">
-                        {formatKrw(e.krw_amount)}
-                      </Text>
-                    </>
-                  )}
+            </View>
+
+            {/* 금액 규칙(노션 11번): 외화는 결제 통화 크게(강조색) + 원화 작게 회색, 원화 결제는 원화만 */}
+            <View className="gap-1 rounded-box bg-app px-4 py-[18px]">
+              <View className="flex-row items-center justify-between gap-2">
+                <Text style={{ fontVariant: ['tabular-nums'] }} className={`font-bold text-2xl ${isKrw ? 'text-ink' : 'text-primary-text'}`}>
+                  {isKrw ? formatKrw(e.krw_amount ?? amountOriginal) : formatForeign(amountOriginal, e.currency)}
                 </Text>
-                {e.krw_amount === null && <Badge kind="pending" />}
+                {!isKrw &&
+                  (e.krw_amount === null ? (
+                    <Badge kind="pending" />
+                  ) : (
+                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-15 text-ink-500">
+                      {formatKrw(e.krw_amount)}
+                    </Text>
+                  ))}
               </View>
-              <Text className="text-xs text-primary-text">
-                {fxBasisLabel({
-                  source: fxSource,
-                  baseDate: e.fx_base_date ?? undefined,
-                  rate: e.fx_rate === null ? undefined : Number(e.fx_rate),
-                  currency: e.currency,
-                })}
-              </Text>
-              <Text className="text-xs text-ink-400">
-                {payerRecorderLabel(payerName, userName.get(e.created_by ?? '') ?? '탈퇴한 사용자')}
-              </Text>
+              {!isKrw && (
+                <Text className="text-xs text-ink-400">
+                  {fxBasisLabel({
+                    source: fxSource,
+                    baseDate: e.fx_base_date ?? undefined,
+                    rate: e.fx_rate === null ? undefined : Number(e.fx_rate),
+                    currency: e.currency,
+                  })}
+                </Text>
+              )}
+            </View>
+
+            {(!deletable || settled) && (
+              <View className={`flex-row gap-2 rounded-input px-3.5 py-3 ${deletable ? 'bg-warning-bg' : 'bg-muted'}`}>
+                <Icon
+                  as={deletable ? WarningCircle : InfoCircle}
+                  size={18}
+                  color={deletable ? colors.warning.DEFAULT : colors.ink[500]}
+                />
+                <Text className="flex-1 text-13 leading-5 text-ink-700">
+                  {!canDelete
+                    ? '올린 사람(결제자)만 삭제할 수 있어요.'
+                    : spotSent
+                      ? '이 자리 정산(QR)을 보낸 지출이라 삭제할 수 없어요.'
+                      : '송금이 끝난 정산에 포함된 지출이에요. 삭제하면 정산 금액이 다시 계산돼요.'}
+                </Text>
+              </View>
+            )}
+
+            <View className="flex-row gap-2">
+              <PrimaryButton title="수정" variant="muted" size="md" grow onPress={onEdit} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !deletable || del.isPending }}
+                disabled={!deletable || del.isPending}
+                onPress={() => setConfirmDelete(true)}
+                className={`h-[52px] flex-1 flex-row items-center justify-center gap-1.5 rounded-input ${deletable ? 'bg-danger-bg' : 'bg-muted'}`}
+              >
+                <Icon as={Trash} size={20} color={deletable ? colors.danger.text : colors.ink[300]} />
+                <Text className={`font-semibold text-base ${deletable ? 'text-danger-text' : 'text-ink-300'}`}>삭제</Text>
+              </Pressable>
             </View>
           </View>
 
-          {photoUrls && photoUrls.length > 1 && (
+          {photoUrls && photoUrls.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-              {photoUrls.slice(1).map((url, i) => (
-                <Pressable key={url} accessibilityRole="imagebutton" accessibilityLabel={`원본 사진 ${i + 2} 크게 보기`} onPress={() => setZoomUrl(url)}>
+              {photoUrls.map((url, i) => (
+                <Pressable key={url} accessibilityRole="imagebutton" accessibilityLabel={`원본 사진 ${i + 1} 크게 보기`} onPress={() => setZoomUrl(url)}>
                   <ReceiptThumb uri={url} />
                 </Pressable>
               ))}
@@ -219,7 +264,7 @@ export default function ExpenseDetailScreen() {
           )}
 
           <View className="gap-2.5 rounded-card bg-white p-4">
-            <Text className="font-semibold text-[13px] text-ink-500">함께한 사람</Text>
+            <Text className="font-semibold text-13 text-ink-500">함께한 사람</Text>
             <View className="flex-row items-center gap-2.5">
               <AvatarStack people={scopePeople} size={28} ring="#FFFFFF" />
               <Text className="flex-1 text-sm text-ink-700">{scopePeople.map((p) => p.name).join(', ')}</Text>
@@ -269,7 +314,7 @@ export default function ExpenseDetailScreen() {
 
           <View className="gap-3 rounded-card bg-white p-4">
             <Text className="font-semibold text-base text-ink">댓글</Text>
-            {comments.length === 0 && <Text className="text-[13px] text-ink-400">궁금한 점을 댓글로 남겨보세요</Text>}
+            {comments.length === 0 && <Text className="text-13 text-ink-400">궁금한 점을 댓글로 남겨보세요</Text>}
             {comments.map((c) => (
               <View key={c.id} className="gap-0.5">
                 <View className="flex-row items-center justify-between">
@@ -320,7 +365,7 @@ export default function ExpenseDetailScreen() {
           {/* 품목에서 사람을 고치면 그때만 저장 줄이 뜬다. 금액은 안 바뀌고 '누가 먹었는지'만 바뀐다 */}
           {pick && (
             <View className="gap-2 pb-1">
-              {pickError && <Text className="text-[13px] text-danger-text">{pickError}</Text>}
+              {pickError && <Text className="text-13 text-danger-text">{pickError}</Text>}
               <View className="flex-row gap-2">
                 <PrimaryButton
                   title="되돌리기"
@@ -346,7 +391,7 @@ export default function ExpenseDetailScreen() {
               </View>
             </View>
           )}
-          {commentError && <Text className="text-[13px] text-danger-text">{commentError}</Text>}
+          {commentError && <Text className="text-13 text-danger-text">{commentError}</Text>}
           <View className="flex-row items-center gap-2">
             <TextInput
               accessibilityLabel="댓글 입력"
@@ -355,7 +400,7 @@ export default function ExpenseDetailScreen() {
               value={draft}
               onChangeText={setDraft}
               maxLength={500}
-              className="h-[54px] flex-1 rounded-input border-[1.5px] border-line bg-white px-4 text-base text-ink focus:border-primary"
+              className="h-[54px] flex-1 rounded-input border border-line bg-white px-4 text-input-16 text-ink focus:border-primary"
             />
             <Pressable
               accessibilityRole="button"
@@ -370,8 +415,32 @@ export default function ExpenseDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <BottomSheet visible={confirmDelete} onClose={() => setConfirmDelete(false)} title="이 지출을 삭제할까요?" subtitle="삭제 기록은 수정 이력에 남아요.">
-        <PrimaryButton title="삭제" variant="danger" onPress={onDelete} />
+      <BottomSheet
+        visible={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="이 지출을 삭제할까요?"
+        subtitle={`‘${e.merchant ?? '가맹점 없음'}’ ${e.krw_amount === null ? '' : `${formatKrw(e.krw_amount)} · `}정산 금액이 다시 계산돼요.`}
+      >
+        <View className="gap-3">
+          {settled && (
+            <View className="flex-row gap-2 rounded-input bg-warning-bg px-3.5 py-3">
+              <Icon as={WarningCircle} size={18} color={colors.warning.DEFAULT} />
+              <Text className="flex-1 text-13 leading-5 text-ink-700">
+                송금이 끝난 정산에 포함된 지출이에요. 삭제하면 이미 주고받은 금액과 달라질 수 있어요. 동행에게 먼저 알려 주세요.
+              </Text>
+            </View>
+          )}
+          <View className="flex-row gap-2">
+            <PrimaryButton title="취소" variant="muted" size="md" grow onPress={() => setConfirmDelete(false)} />
+            <Pressable
+              accessibilityRole="button"
+              onPress={onDelete}
+              className="h-[52px] flex-1 items-center justify-center rounded-input bg-danger active:opacity-90"
+            >
+              <Text className="font-semibold text-base text-white">삭제</Text>
+            </Pressable>
+          </View>
+        </View>
       </BottomSheet>
 
       <Modal visible={!!zoomUrl} onRequestClose={() => setZoomUrl(null)} animationType="fade">

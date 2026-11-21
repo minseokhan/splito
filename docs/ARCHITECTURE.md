@@ -255,7 +255,7 @@ create index on room_members (user_id) where left_at is null;
 | `remove_guest(member_id)` | 장부에서 참조되지 않는 게스트만 삭제 | `GUEST_IN_USE` |
 | `leave_room(room_id)` | 확인된 송금 기준 잔액 0(대표하는 게스트 합산 포함), 환율 대기 없음, 통장 주인 아님, 대표하는 게스트 없음 → 탈퇴. 방장이면 가장 먼저 합류한 활성 멤버에게 위임한다. 마지막 활성 멤버면 `rooms.deleted_at = now()`(사진 삭제는 P1 정리 작업) | `BALANCE_NOT_ZERO`, `FX_PENDING_EXISTS`, `POOL_OWNER`, `GUEST_REPRESENTATIVE` |
 | `save_expense(payload, expected_version?, request_id)` | payload에 `manual_rate?`(값이 있으면 fx_source='manual'). 검증 → 환율 확정(**`fx_rates` 캐시만 읽는다**. 결제일부터 10일 거슬러 찾기도 SQL로 하고, 캐시가 없으면 pending) → 박스 원화 최대 잔여 배분 → upsert(지출·박스·지정·대상 인원·사진 경로) → 이력 스냅샷 → version+1 | `VERSION_CONFLICT`, `AMOUNT_INVALID`, `DATE_IN_FUTURE`, `MEMBER_LEFT`, `INVALID_PAYER`, `SCOPE_EMPTY` |
-| `delete_expense(id, expected_version)` (P0) / `restore_expense(id)` (P1) | 소프트 삭제·복구 + 이력 | `VERSION_CONFLICT` |
+| `delete_expense(id, expected_version)` (P0) / `restore_expense(id)` (P1) | 소프트 삭제·복구 + 이력. 삭제는 올린 사람이나 결제자 본인만(공금 결제는 올린 사람만), 보낸 이 자리 정산에 포함된 지출은 거부 | `VERSION_CONFLICT`, `FORBIDDEN`, `SPOT_SENT` |
 | `reconfirm_pending_fx(room_id)` | 환율 대기 지출을 캐시로 다시 확정 + 이력 + version+1. 정산·상세 화면을 열 때 `fx-rate`로 캐시를 채운 뒤 호출 | |
 | `merge_expenses(keep_id, drop_id, keep_version, drop_version)` (P1, 피드에서 저장된 두 건을 합칠 때) | drop의 사진을 keep으로 옮기고 drop을 소프트 삭제(drop의 박스·지정은 버린다) + 양쪽 이력 | `VERSION_CONFLICT` |
 | `add_member_to_expenses(room_id, member_id, expense_ids[])` (P1) | 대상 인원에 추가 + 각 지출 이력 + version+1 | |
@@ -381,6 +381,7 @@ room_balances(room_id, false) → 사람별 net(화면용, 확인 대기 송금 
 | `GUEST_IN_USE` | 장부에 쓰인 게스트 삭제 | 지출에 포함된 게스트는 삭제할 수 없어요 | 이름·대표자만 변경 |
 | `INVALID_INPUT` | 형식 오류 | 입력값을 확인해 주세요 | 수정 |
 | `FORBIDDEN` | 권한 없음 | 이 작업을 할 권한이 없어요 | — |
+| `SPOT_SENT` | 보낸 이 자리 정산에 포함된 지출 삭제 | 이 자리 정산을 보낸 지출은 삭제할 수 없어요 | — |
 | `CURRENCY_LOCKED` | 지출 있는 방의 통화 변경 | 지출이 있어 기본 통화를 바꿀 수 없어요 | — |
 | `INVALID_PAYER` | 결제자 오류(공금 꺼짐 등) | 결제자를 다시 선택해 주세요 | 선택 |
 | `ALREADY_CONFIRMED` | 확인된 송금 취소 시도 | 이미 받은 분이 확인한 송금이에요 | 새로고침 |

@@ -147,19 +147,19 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
                   accessibilityLabel={`${e.merchant} ${formatKrw(e.krwAmount)}`}
                   onPress={() => toggleExpense(e.id)}
                   style={{ opacity: other ? 0.5 : 1 }}
-                  className={`flex-row items-center gap-2.5 rounded-button border-[1.5px] px-3 py-2.5 ${on ? 'border-primary bg-sky-50' : 'border-card-line bg-white'}`}
+                  className={`flex-row items-center gap-2.5 rounded-button border px-3 py-2.5 ${on ? 'border-primary bg-sky-50' : 'border-card-line bg-white'}`}
                 >
                   <Icon as={on ? CheckSquareSolid : Square} size={20} color={on ? colors.primary.DEFAULT : colors.line.off} />
                   <View className="min-w-0 flex-1">
-                    <Text className="font-semibold text-[15px] text-ink" numberOfLines={1}>
+                    <Text className="font-semibold text-15 text-ink" numberOfLines={1}>
                       {e.merchant}
                     </Text>
                     <Text className="text-xs text-ink-400">{who} 결제</Text>
-                    {other && <Text className="text-xs text-warning">결제한 사람이 달라 따로 정산해요</Text>}
+                    {other && <Text className="text-xs text-warning-text">결제한 사람이 달라 따로 정산해요</Text>}
                   </View>
                   <View className="shrink-0 items-end">
                     {e.currency !== 'KRW' && (
-                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[15px] text-local">
+                      <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-15 text-local">
                         {formatForeign(e.amountOriginal, e.currency)}
                       </Text>
                     )}
@@ -176,7 +176,7 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
         {/* 요약 */}
         <View className="gap-1 rounded-button bg-app px-4 py-3.5">
           <View className="flex-row items-center justify-between gap-2">
-            <Text className="min-w-0 flex-1 text-[13px] text-ink-400" numberOfLines={1}>
+            <Text className="min-w-0 flex-1 text-13 text-ink-400" numberOfLines={1}>
               {selectedExpenses.map((e) => e.merchant).join(' · ') || '지출'}
             </Text>
             <View className="shrink-0 rounded-full bg-white px-2.5 py-1">
@@ -191,12 +191,12 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
         {/* QR — 보내기 전에만. 처음 만난 사람이 스캔해서 이 정산에만 들어온다 */}
         {!sent && (
           <View className="flex-row items-center gap-3.5 rounded-button border border-card-line bg-white p-3.5">
-            <View className="rounded-[10px] bg-white p-1" accessibilityLabel="이 자리 정산 QR 코드">
+            <View className="rounded-toggle bg-white p-1" accessibilityLabel="이 자리 정산 QR 코드">
               <QRCode value={buildSpotUrl(LINK_DOMAIN, spot.token)} size={76} color={colors.ink.DEFAULT} />
             </View>
             <View className="min-w-0 flex-1 gap-1">
               <Text className="font-semibold text-base text-ink">이 QR을 보여주세요</Text>
-              <Text className="text-[13px] text-ink-400">처음 만난 사람도 스캔하면 이 자리 정산에만 들어와요</Text>
+              <Text className="text-13 text-ink-400">처음 만난 사람도 스캔하면 이 자리 정산에만 들어와요</Text>
             </View>
           </View>
         )}
@@ -205,7 +205,7 @@ export function SpotSettleSheet({ spot, members, myMemberId, busy, onClose, onSe
         <View className="gap-0.5">
           <View className="flex-row items-end justify-between pb-1">
             <Text className="font-semibold text-base text-ink">함께한 사람 {chosen.length}명</Text>
-            <Text className="text-[13px] text-ink-500">
+            <Text className="text-13 text-ink-500">
               1인 <Text className="font-semibold text-ink">{formatKrw(totals.share)}</Text>
             </Text>
           </View>
@@ -289,18 +289,18 @@ function MemberRow({
         guest={row.member.kind === 'guest' && !row.isQr}
         ring={row.isQr ? colors.success.DEFAULT : undefined}
       />
-      <Text className="font-semibold text-[15px] text-ink" numberOfLines={1}>
+      <Text className="font-semibold text-15 text-ink" numberOfLines={1}>
         {row.member.name}
       </Text>
       <View className={`shrink-0 rounded-badge px-1.5 py-px ${row.isQr ? 'bg-success-bg' : 'bg-muted'}`}>
-        <Text className={`font-semibold text-[11px] ${row.isQr ? 'text-success' : 'text-ink-500'}`}>{row.tag}</Text>
+        <Text className={`font-semibold text-11 ${row.isQr ? 'text-success' : 'text-ink-500'}`}>{row.tag}</Text>
       </View>
       <View className="flex-1" />
       {sent ? (
         <StatusBadge row={row} share={share} payerIsMe={payerIsMe} onConfirm={onConfirm} />
       ) : (
         on && (
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="shrink-0 font-semibold text-[15px] text-ink">
+          <Text style={{ fontVariant: ['tabular-nums'] }} className="shrink-0 font-semibold text-15 text-ink">
             {formatKrw(share)}
           </Text>
         )
@@ -336,7 +336,7 @@ function StatusBadge({
       accessibilityRole="button"
       accessibilityLabel={`${row.member.name} ${formatKrw(share)} 받았어요`}
       onPress={() => onConfirm(true)}
-      className="h-8 shrink-0 justify-center rounded-badge bg-ink px-2.5 active:opacity-80"
+      className="h-8 shrink-0 justify-center rounded-badge bg-primary-text px-2.5 active:opacity-80"
     >
       <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-xs text-white">
         {formatKrw(share)} · 받았어요
@@ -347,7 +347,7 @@ function StatusBadge({
 
 function Pill({ label, tone }: { label: string; tone?: 'warning' | 'success' }) {
   const box = tone === 'warning' ? 'bg-warning-badge' : tone === 'success' ? 'bg-success-bg' : 'bg-muted';
-  const text = tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : 'text-ink-500';
+  const text = tone === 'warning' ? 'text-warning-text' : tone === 'success' ? 'text-success' : 'text-ink-500';
   return (
     <View className={`h-8 shrink-0 justify-center rounded-badge px-2.5 ${box}`}>
       <Text className={`font-semibold text-xs ${text}`}>{label}</Text>
@@ -362,7 +362,7 @@ export function SpotStatusRow({ text, done, onPress }: { text: string; done: boo
       accessibilityRole="button"
       accessibilityLabel={text}
       onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-[10px] px-2.5 py-[7px] ${done ? 'bg-success-bg' : 'bg-warning-spot'}`}
+      className={`flex-row items-center gap-2 rounded-toggle px-2.5 py-[7px] ${done ? 'bg-success-bg' : 'bg-warning-spot'}`}
     >
       <Icon as={Check} size={15} color={done ? colors.success.DEFAULT : colors.warning['spot-text']} />
       <Text className={`min-w-0 flex-1 font-semibold text-xs ${done ? 'text-success' : 'text-warning-spot-text'}`}>{text}</Text>

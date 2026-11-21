@@ -26,12 +26,11 @@ export function AiStar({ size = 18 }: { size?: number }) {
 function SheetFooter({ cta, onCta, close, onClose }: { cta: string; onCta: () => void; close: string; onClose: () => void }) {
   return (
     <View className="gap-2">
-      {/* 공용 PrimaryButton(56)보다 조금 높게(시트 하단 CTA 전용) */}
-      <Pressable accessibilityRole="button" onPress={onCta} className="h-[60px] items-center justify-center rounded-2xl bg-ink active:bg-black">
-        <Text className="font-semibold text-[17px] text-white">{cta}</Text>
+      <Pressable accessibilityRole="button" onPress={onCta} className="h-14 items-center justify-center rounded-button bg-primary active:bg-primary-press">
+        <Text className="font-semibold text-17 text-white">{cta}</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" onPress={onClose} className="h-11 items-center justify-center">
-        <Text className="font-semibold text-[15px] text-ink-400">{close}</Text>
+      <Pressable accessibilityRole="button" onPress={onClose} hitSlop={4} className="h-10 items-center justify-center">
+        <Text className="font-semibold text-sm text-ink-400">{close}</Text>
       </Pressable>
     </View>
   );
@@ -58,23 +57,24 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
   const [method, setMethod] = useState<PayMethod>('토스페이');
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-      <ScrollView style={{ maxHeight: 560 }} contentContainerClassName="gap-5">
-        <View className="gap-2.5">
+      <ScrollView style={{ maxHeight: 560 }} contentContainerClassName="gap-[18px]">
+        <View className="gap-2">
           {!!reason && (
-            <Text className="self-start rounded-[6px] bg-warning-badge px-2 py-1 font-semibold text-[13px] text-warning">{PASS_REASON[reason]}</Text>
+            <Text className="self-start overflow-hidden rounded-badge bg-warning-badge px-2 py-[3px] font-semibold text-xs text-warning-accent">{PASS_REASON[reason]}</Text>
           )}
-          <Text className="font-semibold text-2xl leading-[29px] text-ink">{'여행 패스로\n이번 여행을 더 편하게'}</Text>
+          <Text className="font-semibold text-22 leading-[31px] text-ink">{'여행 패스로\n이번 여행을 더 편하게'}</Text>
         </View>
 
-        <View className="gap-4 overflow-hidden rounded-[22px] px-5 py-[22px]">
+        <View className="gap-3.5 overflow-hidden rounded-chip p-5">
           {/* Svg 자체에 absolute를 주면 기본 크기로 그려져 카드가 잘린다. 감싼 View가 카드 크기를 받는다. */}
           <View style={StyleSheet.absoluteFill}>
             <Svg width="100%" height="100%">
               <Defs>
+                {/* 시안: linear-gradient(160deg, #1272BF 0%, #1272BF 55%, #17203A 100%) */}
                 <LinearGradient id="pass" x1="0" y1="0" x2="0.35" y2="1">
-                  <Stop offset="0" stopColor={colors.pass.from} />
-                  <Stop offset="0.55" stopColor={colors.primary.DEFAULT} />
-                  <Stop offset="1" stopColor={colors.pass.to} />
+                  <Stop offset="0" stopColor={colors.primary.text} />
+                  <Stop offset="0.55" stopColor={colors.primary.text} />
+                  <Stop offset="1" stopColor={colors.ink.DEFAULT} />
                 </LinearGradient>
               </Defs>
               <Rect width="100%" height="100%" fill="url(#pass)" />
@@ -82,16 +82,16 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
           </View>
           <View className="gap-1">
             <View className="flex-row items-baseline gap-1.5">
-              <Text className="font-semibold text-[30px] text-white">{formatKrw(PASS_PRICE)}</Text>
-              <Text className="font-semibold text-base text-pass-sub">/ 여행 1회</Text>
+              <Text className="font-semibold text-30 text-white">{formatKrw(PASS_PRICE)}</Text>
+              <Text className="font-semibold text-base text-sky-200">/ 여행 1회</Text>
             </View>
-            <Text className="text-sm text-pass-sub">인원 · 기간 상관없이 균일가</Text>
+            <Text className="text-13 text-sky-200">인원 · 기간 상관없이 균일가</Text>
           </View>
           <View className="h-px bg-white/20" />
           {BENEFITS.map((b) => (
             <View key={b} className="flex-row items-center gap-2.5">
               <View className="h-[7px] w-[7px] rounded-full bg-pass-star" />
-              <Text className="text-base text-white">{b}</Text>
+              <Text className="text-15 text-white">{b}</Text>
             </View>
           ))}
         </View>
@@ -102,18 +102,18 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
               accessibilityRole="checkbox"
               accessibilityState={{ checked: split }}
               onPress={() => setSplit((v) => !v)}
-              className={`flex-row items-center gap-3 rounded-2xl border-[1.5px] px-4 py-[18px] ${split ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+              className={`flex-row items-center gap-3 rounded-card border px-4 py-3.5 ${split ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
             >
-              <Icon as={split ? CheckCircleSolid : Circle} size={24} color={split ? colors.primary.DEFAULT : colors.line.off} />
-              <View className="min-w-0 flex-1 gap-0.5">
-                <Text className="font-semibold text-base text-ink">동행과 1/N로 나누기</Text>
-                <Text className="text-[13px] text-ink-400">
+              <Icon as={split ? CheckCircleSolid : Circle} size={22} color={split ? colors.primary.DEFAULT : colors.line.off} />
+              <View className="min-w-0 flex-1">
+                <Text className="font-semibold text-15 text-ink">동행과 1/N로 나누기</Text>
+                <Text className="text-xs text-ink-400">
                   {split ? `지출로 등록돼 정산에 포함 · 1인 ${formatKrw(splitShare(memberCount))}` : '내가 전액 부담해요'}
                 </Text>
               </View>
             </Pressable>
-            <View className="gap-2.5">
-              <Text className="font-semibold text-sm text-ink-500">결제 수단</Text>
+            <View className="gap-2">
+              <Text className="font-semibold text-13 text-ink-500">결제 수단</Text>
               <View className="flex-row gap-2">
                 {METHODS.map((m) => {
                   const on = m === method;
@@ -123,9 +123,9 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
                       accessibilityRole="radio"
                       accessibilityState={{ selected: on }}
                       onPress={() => setMethod(m)}
-                      className={`h-[50px] flex-1 items-center justify-center rounded-xl border-[1.5px] ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                      className={`h-12 flex-1 items-center justify-center rounded-chip border ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
                     >
-                      <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink'}`}>{m}</Text>
+                      <Text className={`font-semibold text-sm ${on ? 'text-primary-text' : 'text-ink'}`}>{m}</Text>
                     </Pressable>
                   );
                 })}
@@ -133,9 +133,11 @@ export function PassSheet({ visible, onClose, reason, owner, memberCount, onPay,
             </View>
           </>
         ) : (
-          <View className="flex-row items-start gap-2 rounded-xl bg-sky-50 px-3.5 py-3">
-            <Icon as={InfoCircle} size={16} color={colors.primary.text} />
-            <Text className="flex-1 text-sm text-ink-alt">여행 패스는 방장이 대표로 결제해요. 방장에게 요청을 보내면 알림이 가요.</Text>
+          <View className="flex-row items-start gap-2 rounded-chip bg-app px-3.5 py-3">
+            <View className="mt-0.5">
+              <Icon as={InfoCircle} size={16} color={colors.primary.text} />
+            </View>
+            <Text className="flex-1 text-13 text-ink">여행 패스는 방장이 대표로 결제해요. 방장에게 요청을 보내면 알림이 가요.</Text>
           </View>
         )}
       </ScrollView>
@@ -160,8 +162,8 @@ const DEMO_CATS = ['식비', '교통', '쇼핑', '관광', '기타'];
 function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <View className="gap-2.5">
-      <Text className="font-semibold text-[15px] text-ink-500">
-        {n}. {title}
+      <Text className="font-semibold text-13 text-ink-400">
+        {n} · {title}
       </Text>
       {children}
     </View>
@@ -182,52 +184,52 @@ export function BudgetExplainerSheet({
 }) {
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-      <ScrollView style={{ maxHeight: 520 }} contentContainerClassName="gap-6">
+      <ScrollView style={{ maxHeight: 520 }} contentContainerClassName="gap-4">
         <View className="gap-1.5">
           <View className="flex-row items-center gap-1.5">
             <AiStar size={15} />
-            <Text className="font-semibold text-[13px] text-primary-text">AI 예산 관리</Text>
+            <Text className="font-semibold text-13 text-primary-text">AI 예산 관리</Text>
           </View>
-          <Text className="font-semibold text-[22px] leading-[31px] text-ink">{'예산만 정하면\n남은 여행을 AI가 같이 챙겨요'}</Text>
+          <Text className="font-semibold text-22 leading-[31px] text-ink">{'예산만 정하면\n남은 여행을 AI가 같이 챙겨요'}</Text>
         </View>
         <Step n={1} title="지금 얼마나 썼는지 한눈에">
-          <View className="gap-2.5 rounded-[18px] bg-app p-4">
+          <View className="gap-2.5 rounded-input bg-app p-4">
             <View className="flex-row justify-between">
-              <Text className="text-[13px] text-ink-400">예산 500,000원 중</Text>
-              <Text className="text-[13px] text-ink-400">남은 281,300원</Text>
+              <Text className="text-13 text-ink-400">예산 500,000원 중</Text>
+              <Text className="text-13 text-ink-400">남은 281,300원</Text>
             </View>
-            <Text className="font-semibold text-[22px] text-ink">218,700원 썼어요</Text>
+            <Text className="font-semibold text-22 text-ink">218,700원 썼어요</Text>
             <View className="h-2 rounded-full bg-line">
-              <View style={{ width: '44%' }} className="h-full rounded-full bg-primary" />
+              <View style={{ width: '44%' }} className="h-full rounded-full bg-primary-text" />
             </View>
           </View>
         </Step>
         <Step n={2} title="오늘 써도 되는 금액">
-          <View className="flex-row items-center gap-3 rounded-[18px] bg-app p-4">
-            <View className="h-10 w-10 items-center justify-center rounded-xl bg-warning-badge">
+          <View className="flex-row items-center gap-3 rounded-input bg-app p-4">
+            <View className="h-10 w-10 items-center justify-center rounded-chip bg-warning-badge">
               <Icon as={Coins} size={20} color={colors.warning.accent} />
             </View>
             <View className="flex-1">
-              <Text className="text-[13px] text-ink-400">오늘 남은 금액</Text>
+              <Text className="text-13 text-ink-400">오늘 남은 금액</Text>
               <Text className="font-semibold text-lg text-warning-accent">
-                26,000원 <Text className="font-medium text-[13px] text-ink-300">/ 하루 권장 117,700원</Text>
+                26,000원 <Text className="font-medium text-13 text-ink-300">/ 하루 권장 117,700원</Text>
               </Text>
             </View>
           </View>
         </Step>
         <Step n={3} title="빠르게 쓰고 있으면 조정안 추천">
-          <View className="gap-2.5 rounded-[18px] border border-stats-line bg-sky-50 p-4">
+          <View className="gap-2.5 rounded-card border border-stats-line bg-app p-4">
             <View className="gap-0.5">
-              <Text className="font-semibold text-[15px] text-ink">남은 2일 조정안</Text>
+              <Text className="font-semibold text-15 text-ink">남은 2일 조정안</Text>
               <Text className="text-xs text-ink-500">하루 101,500원이면 예산 안이에요. 하나를 골라 주세요.</Text>
             </View>
             {DEMO_PLANS.map((p, i) => (
-              <View key={p.title} className={`gap-2 rounded-[14px] border-[1.5px] bg-white p-3 ${i === 0 ? 'border-primary' : 'border-card-line'}`}>
+              <View key={p.title} className={`gap-2 rounded-badge border bg-white p-3 ${i === 0 ? 'border-primary-text' : 'border-card-line'}`}>
                 <View className="flex-row items-center gap-2">
                   <View
-                    className={`h-[18px] w-[18px] items-center justify-center rounded-full border-2 ${i === 0 ? 'border-primary' : 'border-line-off'}`}
+                    className={`h-[18px] w-[18px] items-center justify-center rounded-full border ${i === 0 ? 'border-primary-text' : 'border-line-off'}`}
                   >
-                    {i === 0 && <View className="h-2 w-2 rounded-full bg-primary" />}
+                    {i === 0 && <View className="h-2 w-2 rounded-full bg-primary-text" />}
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text className="font-semibold text-sm text-ink">{p.title}</Text>
@@ -236,22 +238,22 @@ export function BudgetExplainerSheet({
                 </View>
                 <View className="flex-row gap-[3px]">
                   {DEMO_CATS.map((c, k) => (
-                    <View key={c} className={`flex-1 items-center rounded-lg py-[5px] ${c === p.keep ? 'bg-sky-100' : 'bg-app'}`}>
-                      <Text className="text-[10px] text-ink-400">{c}</Text>
+                    <View key={c} className={`flex-1 items-center rounded-badge py-[5px] ${c === p.keep ? 'bg-sky-100' : 'bg-app'}`}>
+                      <Text className="text-10 text-ink-400">{c}</Text>
                       <Text className={`font-semibold text-xs ${c === p.keep ? 'text-primary-text' : 'text-ink'}`}>{p.v[k]}</Text>
                     </View>
                   ))}
                 </View>
               </View>
             ))}
-            <Text className="text-[11px] text-ink-400">금액은 카테고리별 하루 금액이에요</Text>
+            <Text className="text-11 text-ink-400">금액은 카테고리별 하루 금액이에요</Text>
             <View className="flex-row gap-1.5">
-              <View className="h-10 flex-row items-center gap-1 rounded-xl bg-white px-3">
+              <View className="h-10 flex-row items-center gap-1 rounded-chip bg-white px-3">
                 <Icon as={RefreshDouble} size={15} color={colors.ink.DEFAULT} />
-                <Text className="font-semibold text-[13px] text-ink">다시 분석</Text>
+                <Text className="font-semibold text-13 text-ink">다시 분석</Text>
               </View>
-              <View className="h-10 flex-1 items-center justify-center rounded-xl bg-ink">
-                <Text className="font-semibold text-[13px] text-white">이 안으로 적용</Text>
+              <View className="h-10 flex-1 items-center justify-center rounded-chip bg-primary-text">
+                <Text className="font-semibold text-13 text-white">이 안으로 적용</Text>
               </View>
             </View>
           </View>
@@ -266,27 +268,27 @@ export function BudgetExplainerSheet({
 /** 내 통계 맨 위: 예산 현황 + AI 코칭 자리를 대신하는 잠금 카드(블러 없이 1장). */
 export function PassLockCard({ owner, onStart, onExplain }: { owner: boolean; onStart: () => void; onExplain: () => void }) {
   return (
-    <View style={CARD} className="items-center gap-3.5 rounded-[22px] bg-white px-5 pb-[18px] pt-6">
-      <View className="h-[52px] w-[52px] items-center justify-center rounded-2xl bg-sky-100">
+    <View style={CARD} className="items-center gap-3.5 rounded-card bg-white px-5 pb-[18px] pt-6">
+      <View className="h-[52px] w-[52px] items-center justify-center rounded-chip bg-sky-100">
         <Icon as={Lock} size={26} color={colors.primary.text} />
       </View>
       <View className="items-center gap-1">
         <View className="flex-row items-center gap-1.5">
           <AiStar />
-          <Text className="font-semibold text-[19px] text-ink">AI 예산 관리</Text>
+          <Text className="font-semibold text-19 text-ink">AI 예산 관리</Text>
         </View>
         <Text className="text-center text-sm text-ink-500">예산을 설정하고 내 여행 경비를 효과적으로 관리해요.</Text>
       </View>
       <Pressable
         accessibilityRole="button"
         onPress={onStart}
-        className="h-[52px] self-stretch items-center justify-center rounded-[14px] bg-ink active:bg-black"
+        className="h-[52px] self-stretch items-center justify-center rounded-button bg-primary active:bg-primary-press"
       >
-        <Text className="font-semibold text-[17px] text-white">{owner ? '여행 패스로 시작하기' : '방장에게 요청하기'}</Text>
+        <Text className="font-semibold text-base text-white">{owner ? '여행 패스로 시작하기' : '방장에게 요청하기'}</Text>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={onExplain} className="flex-row items-center gap-1 px-1.5 py-0.5">
         <Icon as={HelpCircle} size={15} color={colors.ink[400]} />
-        <Text className="font-semibold text-[13px] text-ink-400">AI 예산 관리가 무엇인가요?</Text>
+        <Text className="font-semibold text-13 text-ink-400">AI 예산 관리가 무엇인가요?</Text>
       </Pressable>
     </View>
   );
@@ -297,15 +299,15 @@ export function PassLockBar({ count, owner, onPress }: { count: number; owner: b
   return (
     <View
       style={{ boxShadow: '0 10px 32px -4px rgba(19,25,39,.35)' }}
-      className="absolute bottom-7 left-4 right-4 flex-row items-center gap-3 rounded-[20px] bg-ink py-3.5 pl-[18px] pr-3.5"
+      className="absolute bottom-7 left-4 right-4 flex-row items-center gap-3 rounded-button bg-ink py-3 pl-4 pr-3"
     >
-      <Icon as={Lock} size={22} color={colors.pass.star} />
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text className="font-semibold text-base text-white">숨겨진 금액이 {count}개 있어요</Text>
-        <Text className="text-sm text-on-dark-sub">여행 패스로 전부 볼 수 있어요</Text>
+      <Icon as={Lock} size={20} color={colors.pass.star} />
+      <View className="min-w-0 flex-1">
+        <Text className="font-semibold text-sm text-white">숨겨진 금액이 {count}개 있어요</Text>
+        <Text className="text-xs text-on-dark-sub">여행 패스로 전부 볼 수 있어요</Text>
       </View>
-      <Pressable accessibilityRole="button" onPress={onPress} className="h-11 justify-center rounded-xl bg-white px-4 active:bg-muted">
-        <Text className="font-semibold text-[15px] text-ink">{owner ? '패스 보기' : '요청하기'}</Text>
+      <Pressable accessibilityRole="button" onPress={onPress} hitSlop={4} className="h-[38px] justify-center rounded-chip bg-white px-3.5 active:bg-muted">
+        <Text className="font-semibold text-sm text-ink">{owner ? '패스 보기' : '요청하기'}</Text>
       </Pressable>
     </View>
   );

@@ -10,8 +10,9 @@ import {
 const START = '2025-10-20';
 const END = '2025-10-23';
 
-const item = (over: Partial<ScheduleItem> & { id: string; dayIndex: number; startTime: string }): ScheduleItem => ({
+const item = (over: Partial<ScheduleItem> & { id: string; dayIndex: number; startTime: string | null }): ScheduleItem => ({
   title: '일정',
+  position: 0,
   includes: [],
   excludes: [],
   optional: false,
@@ -20,11 +21,20 @@ const item = (over: Partial<ScheduleItem> & { id: string; dayIndex: number; star
   ...over,
 });
 
-const exp = (id: string, paidLocalDate: string, krwAmount: number | null, scheduleId: string | null = null) => ({
+const exp = (
+  id: string,
+  paidLocalDate: string,
+  krwAmount: number | null,
+  scheduleId: string | null = null,
+  paidLocalTime: string | null = null,
+  createdAt = '2025-10-01T00:00:00Z',
+) => ({
   id,
   paidLocalDate,
   krwAmount,
   scheduleId,
+  paidLocalTime,
+  createdAt,
 });
 
 describe('normalizeScheduleTime / isValidScheduleTime', () => {
@@ -74,15 +84,24 @@ describe('dayIndexOfDate', () => {
 
 describe('buildScheduleDays', () => {
   const items = [
-    item({ id: 's12', dayIndex: 1, startTime: '13:00', title: '오사카성 공원' }),
-    item({ id: 's11', dayIndex: 1, startTime: '09:30', title: '인천 → 간사이' }),
+    item({ id: 's12', dayIndex: 1, startTime: '13:00', title: '오사카성 공원', position: 1 }),
+    item({ id: 's11', dayIndex: 1, startTime: '09:30', title: '인천 → 간사이', position: 0 }),
     item({ id: 's23', dayIndex: 2, startTime: '11:00', title: '익스프레스 패스 4', optional: true, estAmount: 180_000 }),
   ];
 
-  it('일차별로 묶고 시간순으로 정렬한다', () => {
-    const days = buildScheduleDays({ items, expenses: [], hiddenIds: [], startDate: START, endDate: END });
-    const day1 = days.find((d) => d.dayIndex === 1)!;
-    expect(day1.cards.map((c) => c.item.title)).toEqual(['인천 → 간사이', '오사카성 공원']);
+  it('일차별로 묶고 날짜 안 순서(position)대로 놓는다 — 시간은 보지 않는다(노션 9번)', () => {
+    const days = buildScheduleDays({
+      items: [
+        item({ id: 'a', dayIndex: 1, startTime: null, title: '시부야', position: 2 }),
+        item({ id: 'b', dayIndex: 1, startTime: '23:00', title: '하라주쿠', position: 0 }),
+        item({ id: 'c', dayIndex: 1, startTime: null, title: '신주쿠', position: 1 }),
+      ],
+      expenses: [],
+      hiddenIds: [],
+      startDate: START,
+      endDate: END,
+    });
+    expect(days.find((d) => d.dayIndex === 1)!.cards.map((c) => c.item.title)).toEqual(['하라주쿠', '신주쿠', '시부야']);
   });
 
   it('여행 기간만큼 일차 칸을 만든다(일정이 없는 날도)', () => {
@@ -90,11 +109,11 @@ describe('buildScheduleDays', () => {
     expect(days.map((d) => d.dayIndex)).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it('날짜 제목은 일반 여행 상세와 같은 형식이다', () => {
+  it("날짜 제목은 'N일차 · M.D (요일)', 여행 전은 '여행 전'", () => {
     const days = buildScheduleDays({ items, expenses: [], hiddenIds: [], startDate: START, endDate: END });
-    expect(days.find((d) => d.dayIndex === 1)!.header).toBe('10월 20일 (월)');
+    expect(days.find((d) => d.dayIndex === 1)!.header).toBe('1일차 · 10.20 (월)');
     expect(days.find((d) => d.dayIndex === 0)!.header).toBe('여행 전');
-    expect(days.find((d) => d.dayIndex === 3)!.header).toBe('10월 22일 (수)');
+    expect(days.find((d) => d.dayIndex === 3)!.header).toBe('3일차 · 10.22 (수)');
   });
 
   it('기간이 없으면 날짜를 못 만들어 일차로 떨어진다', () => {
@@ -137,6 +156,24 @@ describe('buildScheduleDays', () => {
     const card = days.find((d) => d.dayIndex === 1)!.cards.find((c) => c.item.id === 's12')!;
     expect(card.expenses.map((e) => e.id)).toEqual(['e1', 'e2']);
     expect(card.sum).toBe(100_000);
+  });
+
+  it('일정 안·그 외 지출은 결제 시각 오름차순이다(노션 11번)', () => {
+    const days = buildScheduleDays({
+      items,
+      expenses: [
+        exp('late', '2025-10-20', 1, 's12', '19:10'),
+        exp('early', '2025-10-20', 1, 's12', '12:05'),
+        exp('x2', '2025-10-20', 1, null, null, '2025-10-20T09:00:00Z'),
+        exp('x1', '2025-10-20', 1, null, null, '2025-10-20T08:00:00Z'),
+      ],
+      hiddenIds: [],
+      startDate: START,
+      endDate: END,
+    });
+    const day1 = days.find((d) => d.dayIndex === 1)!;
+    expect(day1.cards.find((c) => c.item.id === 's12')!.expenses.map((e) => e.id)).toEqual(['early', 'late']);
+    expect(day1.extra.map((e) => e.id)).toEqual(['x1', 'x2']);
   });
 
   it('일정에 연결되지 않은 지출은 결제일의 그 외 지출로 간다', () => {

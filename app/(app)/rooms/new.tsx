@@ -27,9 +27,9 @@ export default function NewRoom() {
           router.replace({ pathname: '/rooms/[roomId]', params: { roomId } });
         }}
       >
-        <View className="flex-row items-center gap-2 rounded-chip bg-sky-100 px-3.5 py-3.5">
+        <View className="flex-row items-center gap-2 rounded-chip bg-sky-100 px-3 py-2">
           <SplitoMark size={24} />
-          <Text className="flex-1 text-sm text-ink">생성 후 함께하는 동행을 초대할 수 있어요!</Text>
+          <Text className="flex-1 text-13 leading-[21px] text-ink">생성 후 함께하는 동행을 초대할 수 있어요!</Text>
         </View>
       </RoomForm>
     </SafeAreaView>

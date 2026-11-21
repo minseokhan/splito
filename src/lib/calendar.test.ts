@@ -1,4 +1,4 @@
-import { addDays, dateLabel, monthGrid, monthTitle, shiftMonth, WEEKDAYS } from './calendar';
+import { addDays, dateLabel, monthGrid, monthTitle, shiftMonth, shortDate, tripDayTag, WEEKDAYS } from './calendar';
 
 describe('monthGrid', () => {
   it('일요일부터 시작하는 7열 격자, 1일 앞은 빈칸', () => {
@@ -75,5 +75,19 @@ describe('addDays', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
     expect(addDays('2026-10-22', 0)).toBe('2026-10-22');
+  });
+});
+
+describe('shortDate · tripDayTag', () => {
+  it("'10.21 (수)' 형식", () => {
+    expect(shortDate('2026-10-21')).toBe('10.21 (수)');
+  });
+  it('여행 기간 안은 n일차, 앞은 여행 전, 뒤는 여행 후', () => {
+    expect(tripDayTag('2026-10-21', '2026-10-20', '2026-10-23')).toBe('2일차');
+    expect(tripDayTag('2026-10-19', '2026-10-20', '2026-10-23')).toBe('여행 전');
+    expect(tripDayTag('2026-10-24', '2026-10-20', '2026-10-23')).toBe('여행 후');
+  });
+  it('기간이 없으면 빈 문자열', () => {
+    expect(tripDayTag('2026-10-21', null, null)).toBe('');
   });
 });

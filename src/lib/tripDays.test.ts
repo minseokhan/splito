@@ -1,5 +1,5 @@
 import type { FeedSection } from './feed';
-import { buildTripDays, dayCaption, filterByCategory, filterSections, md, tripDayText } from './tripDays';
+import { buildTripDays, dateTab, dayCaption, filterByCategory, md, nearestDay } from './tripDays';
 
 describe('buildTripDays', () => {
   it('전체 기간 + 여행 전 + 기간의 각 날짜, 날짜 칸은 N일차 · M.D', () => {
@@ -14,9 +14,9 @@ describe('buildTripDays', () => {
     ]);
   });
 
-  it('여행 전 지출이 없으면 "여행 전" 칸을 만들지 않는다', () => {
+  it('기간이 있으면 여행 전 지출이 없어도 "여행 전" 칸은 늘 있다(전체·여행 전 고정)', () => {
     const days = buildTripDays({ startDate: '2025-10-20', endDate: '2025-10-21', sectionKeys: ['2025-10-20'] });
-    expect(days.map((d) => d.key)).toEqual(['all', '2025-10-20', '2025-10-21']);
+    expect(days.map((d) => d.key)).toEqual(['all', 'pre-trip', '2025-10-20', '2025-10-21']);
   });
 
   it('기간 미설정이면 전체 기간만, 기간 문구도 비운다', () => {
@@ -27,48 +27,47 @@ describe('buildTripDays', () => {
 
   it('종료일이 없으면 시작일 하루만', () => {
     const days = buildTripDays({ startDate: '2025-10-20', endDate: null, sectionKeys: [] });
-    expect(days.map((d) => d.key)).toEqual(['all', '2025-10-20']);
+    expect(days.map((d) => d.key)).toEqual(['all', 'pre-trip', '2025-10-20']);
     expect(days[0].sub).toBe('10.20');
   });
 
   it('종료일이 시작일보다 앞서면 시작일 하루만', () => {
     expect(
       buildTripDays({ startDate: '2025-10-20', endDate: '2025-10-18', sectionKeys: [] }).map((d) => d.key),
-    ).toEqual(['all', '2025-10-20']);
+    ).toEqual(['all', 'pre-trip', '2025-10-20']);
   });
 
   it('달과 해를 넘어가도 이어서 만든다', () => {
     const days = buildTripDays({ startDate: '2025-12-30', endDate: '2026-01-02', sectionKeys: [] });
-    expect(days.map((d) => d.key)).toEqual(['all', '2025-12-30', '2025-12-31', '2026-01-01', '2026-01-02']);
-    expect(days.map((d) => d.label)).toEqual(['전체 기간', '1일차', '2일차', '3일차', '4일차']);
-    expect(days.map((d) => d.sub)).toEqual(['12.30 – 1.2', '12.30', '12.31', '1.1', '1.2']);
+    expect(days.map((d) => d.key)).toEqual(['all', 'pre-trip', '2025-12-30', '2025-12-31', '2026-01-01', '2026-01-02']);
+    expect(days.map((d) => d.label)).toEqual(['전체 기간', '여행 전', '1일차', '2일차', '3일차', '4일차']);
+    expect(days.map((d) => d.sub)).toEqual(['12.30 – 1.2', '', '12.30', '12.31', '1.1', '1.2']);
   });
 
   it('30일 여행도 전부 만든다', () => {
-    expect(buildTripDays({ startDate: '2025-10-01', endDate: '2025-10-30', sectionKeys: [] })).toHaveLength(31);
+    expect(buildTripDays({ startDate: '2025-10-01', endDate: '2025-10-30', sectionKeys: [] })).toHaveLength(32);
   });
 });
 
-describe('tripDayText', () => {
-  it('날짜가 있으면 가운뎃점으로 잇고, 없으면 라벨만', () => {
-    expect(tripDayText({ key: 'all', label: '전체 기간', sub: '10.20 – 10.23' })).toBe('전체 기간 · 10.20 – 10.23');
-    expect(tripDayText({ key: 'pre-trip', label: '여행 전', sub: '' })).toBe('여행 전');
+describe('dateTab', () => {
+  it('전체·여행 전은 글자만, 날짜는 요일 + 날짜 숫자', () => {
+    expect(dateTab({ key: 'all', label: '전체 기간', sub: '' })).toEqual({ top: '', label: '전체' });
+    expect(dateTab({ key: 'pre-trip', label: '여행 전', sub: '' })).toEqual({ top: '', label: '여행 전' });
+    expect(dateTab({ key: '2025-10-20', label: '1일차', sub: '10.20' })).toEqual({ top: '월', label: '20' });
   });
 });
 
-describe('filterSections', () => {
-  const sections = [
-    { key: '2025-10-21', title: '', data: [] },
-    { key: 'pre-trip', title: '', data: [] },
-  ];
-
-  it('all이면 전부', () => {
-    expect(filterSections(sections, 'all')).toEqual(sections);
+describe('nearestDay', () => {
+  const keys = ['2025-10-20', '2025-10-21', '2025-10-22', '2025-10-23'];
+  it('그 날에 지출이 있으면 그대로', () => {
+    expect(nearestDay(keys, new Set(['2025-10-21']), '2025-10-21')).toBe('2025-10-21');
   });
-
-  it('그 키의 섹션만', () => {
-    expect(filterSections(sections, 'pre-trip')).toEqual([sections[1]]);
-    expect(filterSections(sections, '2025-10-20')).toEqual([]);
+  it('없으면 가장 가까운 날, 같은 거리면 앞날', () => {
+    expect(nearestDay(keys, new Set(['2025-10-20', '2025-10-23']), '2025-10-22')).toBe('2025-10-23');
+    expect(nearestDay(keys, new Set(['2025-10-20', '2025-10-22']), '2025-10-21')).toBe('2025-10-20');
+  });
+  it('지출이 하나도 없으면 null', () => {
+    expect(nearestDay(keys, new Set(), '2025-10-21')).toBeNull();
   });
 });
 

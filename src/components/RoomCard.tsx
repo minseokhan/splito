@@ -44,7 +44,7 @@ export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
           )}
         </View>
         <View className="mt-2 flex-row items-center gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-input border-[1.5px] border-white/90 bg-white/50">
+          <View className="h-11 w-11 items-center justify-center rounded-input border border-white/90 bg-white/50">
             {/* 통화로 국가를 특정 못 하거나 기기가 국기 이모지를 못 그리면 비행기로 돌아간다. */}
             {flag ? <Text className="text-2xl">{flag}</Text> : <FlightIcon size={22} />}
           </View>
@@ -63,10 +63,10 @@ export function RoomCard({ room, featured, onPress, onPressAmount }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`내 지출 금액 ${formatKrw(spent)}`}
         onPress={onPressAmount}
-        className="flex-row items-center justify-between rounded-[18px] bg-white p-3.5"
+        className="flex-row items-center justify-between rounded-box bg-white p-3.5"
       >
-        <Text className="text-[13px] text-ink-500">내 지출 금액</Text>
-        <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[18px] text-ink-alt">
+        <Text className="text-13 text-ink-500">내 지출 금액</Text>
+        <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-lg text-ink-alt">
           {formatKrw(spent)}
         </Text>
       </Pressable>

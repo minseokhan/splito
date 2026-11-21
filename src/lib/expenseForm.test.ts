@@ -1,5 +1,7 @@
 import {
   addItem,
+  defaultScheduleId,
+  scheduleMatchesCategory,
   draftFromExpense,
   draftFromParse,
   emptyDraft,
@@ -478,5 +480,35 @@ describe('splitLabel', () => {
   });
   it('고를 수 있는 사람을 모두 고르면 전원을 붙인다', () => {
     expect(splitLabel(4, 4, '3,755원')).toBe('전원 4명 · 1인 3,755원');
+  });
+});
+
+describe('defaultScheduleId', () => {
+  const s = (id: string, startTime: string | null) => ({ id, startTime, title: id });
+  it('일정 상세에서 들어오면 그 일정', () => {
+    expect(defaultScheduleId({ dayItems: [s('a', '09:00')], entryId: 'x', isPackage: false, paidTime: null })).toBe('x');
+  });
+  it('그날 일정이 없으면 일정 없음', () => {
+    expect(defaultScheduleId({ dayItems: [], entryId: null, isPackage: true, paidTime: '10:00' })).toBeNull();
+  });
+  it('패키지는 결제 시각과 가장 가까운 일정', () => {
+    const items = [s('a', '09:00'), s('b', '12:00'), s('c', '18:30')];
+    expect(defaultScheduleId({ dayItems: items, entryId: null, isPackage: true, paidTime: '13:10' })).toBe('b');
+    expect(defaultScheduleId({ dayItems: items, entryId: null, isPackage: true, paidTime: '17:00' })).toBe('c');
+    expect(defaultScheduleId({ dayItems: items, entryId: null, isPackage: true, paidTime: null })).toBe('a');
+    expect(defaultScheduleId({ dayItems: [s('x', null), s('b', '12:00')], entryId: null, isPackage: true, paidTime: '09:00' })).toBe('b');
+  });
+  it('자유여행은 일정 없음, 그날 일정이 1개면 그 일정', () => {
+    expect(defaultScheduleId({ dayItems: [s('a', '09:00'), s('b', '12:00')], entryId: null, isPackage: false, paidTime: '12:00' })).toBeNull();
+    expect(defaultScheduleId({ dayItems: [s('a', '09:00')], entryId: null, isPackage: false, paidTime: null })).toBe('a');
+  });
+});
+
+describe('scheduleMatchesCategory', () => {
+  it('카테고리와 일정 이름이 맞으면 추천', () => {
+    expect(scheduleMatchesCategory('food', '도톤보리 먹방')).toBe(true);
+    expect(scheduleMatchesCategory('sightseeing', 'USJ 입장')).toBe(true);
+    expect(scheduleMatchesCategory('food', '오사카성 공원')).toBe(false);
+    expect(scheduleMatchesCategory('other', '도톤보리 먹방')).toBe(false);
   });
 });

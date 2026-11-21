@@ -158,7 +158,7 @@ export default function Settle() {
       <NavBar title="정산" align="center" />
       {fxPending > 0 && (
         <View className="flex-row items-center justify-between border-b border-warning-line bg-warning-banner px-5 py-2">
-          <Text className="flex-1 font-semibold text-[13px] text-warning-deep">
+          <Text className="flex-1 font-semibold text-13 text-warning-deep">
             환율 대기 {fxPending}건 제외 · 잠정 정산이에요
           </Text>
           <Pressable
@@ -166,13 +166,13 @@ export default function Settle() {
             onPress={() => router.navigate({ pathname: '/rooms/[roomId]', params: { roomId } })}
             className="h-11 justify-center pl-3"
           >
-            <Text className="font-semibold text-[13px] text-primary-text">확인하기</Text>
+            <Text className="font-semibold text-13 text-primary-text">확인하기</Text>
           </Pressable>
         </View>
       )}
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 16 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
-          <SplitoMark size={64} />
+          <SplitoMark size={48} />
           <View className="flex-1 gap-1">
             <Text className="font-semibold text-xl text-ink">{head.title}</Text>
             <Text className="text-sm text-ink-500">{head.sub}</Text>
@@ -181,7 +181,7 @@ export default function Settle() {
 
         {changed && (
           <View className="rounded-input bg-sky-100 px-4 py-3">
-            <Text className="font-semibold text-[13px] text-primary-text">정산 후 장부가 변경되어 송금안이 갱신되었어요</Text>
+            <Text className="font-semibold text-13 text-primary-text">정산 후 장부가 변경되어 송금안이 갱신되었어요</Text>
           </View>
         )}
 
@@ -254,8 +254,8 @@ function Tab({ label, count, on, onPress }: { label: string; count: number; on: 
       accessibilityState={{ selected: on }}
       accessibilityLabel={`${label} ${count}건`}
       onPress={onPress}
-      style={on ? { boxShadow: '0 2px 8px -2px rgba(8,116,187,.18)' } : undefined}
-      className={`h-[42px] flex-1 flex-row items-center justify-center gap-1.5 rounded-chip ${on ? 'bg-white' : ''}`}
+      style={on ? { boxShadow: '0 2px 8px -2px rgba(18,114,191,.18)' } : undefined}
+      className={`h-[42px] flex-1 flex-row items-center justify-center gap-1.5 rounded-toggle ${on ? 'bg-white' : ''}`}
     >
       <Text className={`font-semibold text-base ${on ? 'text-ink' : 'text-ink-400'}`}>{label}</Text>
       <Text className={`font-semibold text-base ${on ? 'text-tab-num' : 'text-tab-num-off'}`}>({count})</Text>
@@ -365,7 +365,7 @@ function SendSheet({ item, toName, busy, onClose, onSubmit }: SendSheetProps) {
         value={amount ? amount.toLocaleString('ko-KR') : ''}
         onChangeText={setText}
         style={{ fontVariant: ['tabular-nums'] }}
-        className="h-[54px] rounded-input border-[1.5px] border-line bg-white px-4 font-semibold text-[17px] text-ink focus:border-primary focus:bg-sky-50"
+        className="h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-input-17 text-ink focus:border-primary focus:bg-sky-50"
       />
       <PrimaryButton title="기록하기" variant="dark" loading={busy} disabled={amount <= 0} onPress={() => onSubmit(id, amount)} />
     </BottomSheet>
@@ -405,11 +405,11 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-white">
       <NavBar title="정산" align="center" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 12 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
-          <SplitoMark size={64} />
+          <SplitoMark size={48} />
           <Text className="flex-1 font-semibold text-xl text-ink">
             나만 보기로 저장된 지출 {rows.length}건 중 동행과 함께한 건 없나요?
           </Text>
@@ -421,7 +421,7 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
                 <Text className="font-semibold text-base text-ink" numberOfLines={1}>
                   {r.merchant ?? '이름 없는 지출'}
                 </Text>
-                <Text className="text-[13px] text-ink-400">{dateTitle(r.paidLocalDate)}</Text>
+                <Text className="text-13 text-ink-400">{dateTitle(r.paidLocalDate)}</Text>
               </View>
               <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
                 {r.krwAmount === null ? formatForeign(r.amountOriginal, r.currency) : formatKrw(r.krwAmount)}
@@ -448,7 +448,7 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
             </View>
           </View>
         ))}
-        <Text className="px-1 text-[13px] text-ink-400">
+        <Text className="px-1 text-13 text-ink-400">
           동행을 고르면 그 지출은 공동 지출이 되어 정산에 들어가요.
         </Text>
       </ScrollView>

@@ -15,7 +15,7 @@ export function Avatar({ name, colorIndex, guest, size = 36, ring }: Props) {
         height: size,
         borderRadius: size / 2,
         backgroundColor: c.tint,
-        borderWidth: ring ? 2.5 : guest ? 1.5 : 0,
+        borderWidth: ring ? 2 : guest ? 1.5 : 0,
         borderStyle: guest && !ring ? 'dashed' : 'solid',
         borderColor: ring ?? c.fg,
       }}

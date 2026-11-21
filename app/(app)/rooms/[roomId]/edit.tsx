@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Download, Link as LinkIcon, Page, RefreshDouble, Sparks, Trash, XmarkCircle } from 'iconoir-react-native';
+import { Download, InfoCircle, Link as LinkIcon, NavArrowRight, Page, Plus, RefreshDouble, Sparks, Trash, XmarkCircle } from 'iconoir-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, GuestChip } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
+import { InviteSheet } from '@/components/InviteSheet';
 import { NavBar } from '@/components/NavBar';
 import { PassSheet } from '@/components/PassSheets';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -61,6 +62,7 @@ export default function EditRoom() {
     splitDone: passRec?.split,
   });
   const [passOpen, setPassOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   // 멤버 화면과 같은 기준: QR로만 들어온 사람은 동행이 아니다
   const active = members.filter((m) => !m.leftAt && !m.spotOnly);
   const colorIndex = new Map(members.map((m, i) => [m.id, i]));
@@ -94,7 +96,7 @@ export default function EditRoom() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top']} className="flex-1 bg-muted">
       <NavBar title="여행 방 설정" />
       {!!room && (
         <RoomForm
@@ -119,10 +121,11 @@ export default function EditRoom() {
           }}
         >
           {/* 여행 패스: room_passes에 행이 있으면 이용 중. AI 사용 건수는 아직 시안 값이다(src/lib/pass.ts). */}
-          <View className="gap-2.5">
-            <Text className="px-1 font-semibold text-[13px] text-ink-500">여행 패스</Text>
-            <View className="flex-row items-center gap-3 rounded-[22px] bg-white px-5 py-[18px]" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
-              <View className={`h-10 w-10 items-center justify-center rounded-xl ${passRec ? 'bg-primary' : 'bg-muted'}`}>
+          {/* 시안: 섹션 라벨은 위 10·좌우 4, 라벨↔카드 12. 카드는 흰 바탕 radius 20, 테두리·그림자 없음 */}
+          <View className="gap-3">
+            <Text className="px-1 pt-2.5 font-semibold text-13 text-ink-500">여행 패스</Text>
+            <View className="flex-row items-center gap-3 rounded-card bg-white px-5 py-[18px]">
+              <View className={`h-10 w-10 items-center justify-center rounded-chip ${passRec ? 'bg-primary' : 'bg-muted'}`}>
                 <Icon as={Sparks} size={20} color={passRec ? colors.primary.on : colors.ink[400]} />
               </View>
               <View className="min-w-0 flex-1">
@@ -133,36 +136,39 @@ export default function EditRoom() {
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => (isOwner ? setPassOpen(true) : toast('방장에게 결제 요청을 보냈어요'))}
-                  className="h-[34px] justify-center rounded-[10px] bg-ink px-3 active:bg-black"
+                  className="h-[34px] justify-center rounded-chip bg-primary-text px-3 active:opacity-80"
                 >
-                  <Text className="font-semibold text-[13px] text-white">{passInfo.button}</Text>
+                  <Text className="font-semibold text-13 text-white">{passInfo.button}</Text>
                 </Pressable>
               )}
             </View>
           </View>
-          <View className="gap-2.5">
-            <Text className="px-1 font-semibold text-[13px] text-ink-500">참여자 {active.length}명</Text>
-            <View className="rounded-card bg-white px-4 py-1" style={{ boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' }}>
+          <View className="gap-3">
+            <View className="flex-row items-center justify-between px-1 pt-2.5">
+              <Text className="font-semibold text-13 text-ink-500">참여자 {active.length}명</Text>
+              {!isOwner && <Text className="text-xs text-ink-500">방을 만든 사람만 내보낼 수 있어요</Text>}
+            </View>
+            <View className="rounded-card bg-white py-1.5">
               {active.map((m, i) => {
                 const mine = m.userId === myId;
                 const pending = mine ? null : settleLabel(m);
                 return (
-                  <View key={m.id} className={`min-h-11 flex-row items-center gap-3 py-3.5 ${i > 0 ? 'border-t border-muted' : ''}`}>
-                    <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={36} />
-                    <View className="flex-1 gap-0.5">
-                      <View className="flex-row items-center gap-2">
-                        <Text className="shrink font-semibold text-base text-ink" numberOfLines={1}>
+                  <View key={m.id} className={`min-h-11 flex-row items-center gap-3 px-5 py-3 ${i > 0 ? 'border-t border-muted' : ''}`}>
+                    <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={38} />
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-1.5">
+                        <Text className="shrink font-semibold text-15 leading-6 text-ink" numberOfLines={1}>
                           {mine ? `${m.name} (나)` : m.name}
                         </Text>
                         {m.userId === room.owner_id && (
-                          <View className="rounded-badge bg-sky-100 px-1.5 py-0.5">
-                            <Text className="font-semibold text-xs text-primary-text">방장</Text>
+                          <View className="rounded-badge bg-sky-100 px-1.5 py-px">
+                            <Text className="font-semibold text-11 text-primary-text">방장</Text>
                           </View>
                         )}
                         {m.kind === 'guest' && <GuestChip />}
                       </View>
                       {!mine && (
-                        <Text className={`text-xs ${pending ? 'text-warning' : 'text-ink-400'}`} numberOfLines={1}>
+                        <Text className={`text-xs ${pending ? 'text-warning-text' : 'text-ink-400'}`} numberOfLines={1}>
                           {pending ?? '정산 완료'}
                         </Text>
                       )}
@@ -172,24 +178,38 @@ export default function EditRoom() {
                         accessibilityRole="button"
                         accessibilityLabel={`${m.name} 내보내기`}
                         onPress={() => setKickTarget(m)}
-                        className="rounded-chip border-[1.5px] border-line bg-white px-3.5 py-2 active:bg-muted"
+                        // 시안 hover: 테두리 #F5A3B8 · 글자 danger. TODO(token): #F5A3B8 → 가장 가까운 danger-soft
+                        className="h-8 justify-center rounded-chip border border-line bg-white px-3 active:border-danger-soft"
                       >
-                        <Text className="font-semibold text-[13px] text-ink-700">내보내기</Text>
+                        {({ pressed }) => (
+                          <Text className={`font-semibold text-13 ${pressed ? 'text-danger' : 'text-ink-500'}`}>내보내기</Text>
+                        )}
                       </Pressable>
                     )}
                   </View>
                 );
               })}
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setInviteOpen(true)}
+                className="flex-row items-center gap-3 border-t border-muted px-5 py-3 active:bg-app"
+              >
+                <View className="h-[38px] w-[38px] items-center justify-center rounded-full border border-sky-200">
+                  <Icon as={Plus} size={18} color={colors.primary.text} />
+                </View>
+                <Text className="flex-1 font-semibold text-15 text-primary-text">초대하기</Text>
+                <Icon as={NavArrowRight} size={18} color={colors.ink[300]} />
+              </Pressable>
             </View>
           </View>
 
           {!!booking && (
-            <View className="gap-2.5">
-              <Text className="font-semibold text-[13px] text-ink-500">패키지 예약</Text>
-              <View className="gap-1 rounded-card border border-card-line bg-white px-[18px] py-4">
+            <View className="gap-3">
+              <Text className="px-1 pt-2.5 font-semibold text-13 text-ink-500">패키지 예약</Text>
+              <View className="gap-1 rounded-card bg-white px-5 py-[18px]">
                 <View className="flex-row items-center gap-1.5">
-                  <View className="rounded-[6px] bg-sky-100 px-[7px] py-px">
-                    <Text className="font-semibold text-[11px] text-primary-text">하나투어</Text>
+                  <View className="rounded-badge bg-sky-100 px-[7px] py-px">
+                    <Text className="font-semibold text-11 text-primary-text">하나투어</Text>
                   </View>
                   <View className="flex-row items-center gap-[3px]">
                     <Icon as={LinkIcon} size={13} color={colors.success.DEFAULT} />
@@ -197,19 +217,19 @@ export default function EditRoom() {
                   </View>
                 </View>
                 <Text className="mt-1 font-semibold text-base text-ink">{booking.product_name}</Text>
-                <Text className="text-[13px] text-ink-500">
+                <Text className="text-13 text-ink-500">
                   예약번호 {booking.booking_no} · 성인 {booking.pax}명
                 </Text>
                 <Text className="text-xs text-ink-400">마지막으로 불러온 시각 {fetchedLabel(booking.last_fetched_at)}</Text>
-                </View>
+              </View>
 
-                <View className="rounded-card border border-card-line bg-white">
+              <View className="rounded-card bg-white py-1">
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ busy }}
                   disabled={busy}
                   onPress={doRefetch}
-                  className="flex-row items-center gap-3 border-b border-muted px-[18px] py-4"
+                  className="flex-row items-center gap-3 border-b border-muted px-5 py-4 active:bg-app"
                 >
                   <Icon as={RefreshDouble} size={22} color={colors.ink[500]} />
                   <Text className="flex-1 font-semibold text-base text-ink">예약 정보 다시 불러오기</Text>
@@ -217,13 +237,16 @@ export default function EditRoom() {
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => setConfirmUnlink(true)}
-                  className="flex-row items-center gap-3 px-[18px] py-4"
+                  className="flex-row items-center gap-3 px-5 py-4 active:bg-app"
                 >
-                  <Icon as={XmarkCircle} size={22} color={colors.danger.text} />
-                  <Text className="flex-1 font-semibold text-base text-danger-text">연동 해제</Text>
+                  <Icon as={XmarkCircle} size={22} color={colors.warning.DEFAULT} />
+                  <Text className="flex-1 font-semibold text-base text-warning">연동 해제</Text>
                 </Pressable>
-                </View>
-              <Text className="px-1 text-xs text-ink-400">연동을 해제해도 지금까지 올린 지출은 그대로 남아요.</Text>
+              </View>
+              <View className="flex-row items-center gap-1 px-1">
+                <Icon as={InfoCircle} size={14} color={colors.ink[500]} />
+                <Text className="flex-1 text-xs text-ink-500">연동을 해제해도 지금까지 올린 지출은 그대로 남아요.</Text>
+              </View>
             </View>
           )}
 
@@ -234,13 +257,13 @@ export default function EditRoom() {
             <Pressable
               accessibilityRole="button"
               onPress={() => setConfirmDelete(true)}
-              className="flex-row items-center justify-center gap-2 rounded-card border border-card-line bg-white py-4"
+              className="mt-3 flex-row items-center gap-3 rounded-card bg-white px-5 py-5 active:bg-app"
             >
-              <Icon as={Trash} size={20} color={colors.danger.text} />
-              <Text className="font-semibold text-base text-danger-text">여행 삭제하기</Text>
+              <Icon as={Trash} size={22} color={colors.danger.text} />
+              <Text className="flex-1 font-semibold text-base text-danger-text">여행 삭제하기</Text>
             </Pressable>
           ) : (
-            <Text className="px-1 text-[13px] text-ink-400">여행 정보 수정과 삭제는 방장만 할 수 있어요</Text>
+            <Text className="px-1 text-13 text-ink-400">여행 정보 수정과 삭제는 방장만 할 수 있어요</Text>
           )}
         </RoomForm>
       )}
@@ -335,6 +358,7 @@ export default function EditRoom() {
           />
         </View>
       </BottomSheet>
+      <InviteSheet roomId={roomId} visible={inviteOpen} onClose={() => setInviteOpen(false)} />
       <PassSheet
         visible={passOpen}
         owner={isOwner}
@@ -373,9 +397,9 @@ function ExportCard({ roomId }: { roomId: string }) {
     }
   };
   return (
-    <View className="gap-2.5">
-      <Text className="px-1 font-semibold text-[13px] text-ink-500">지출 내역 내보내기</Text>
-      <View className="rounded-card border border-card-line bg-white px-5">
+    <View className="gap-3">
+      <Text className="px-1 pt-2.5 font-semibold text-13 text-ink-500">지출 내역 내보내기</Text>
+      <View className="rounded-card bg-white px-5 py-1">
         {EXPORTS.map((e, i) => (
           <Pressable
             key={e.format}
@@ -383,11 +407,11 @@ function ExportCard({ roomId }: { roomId: string }) {
             accessibilityState={{ disabled: !!busy, busy: busy === e.format }}
             disabled={!!busy}
             onPress={() => run(e)}
-            className={`flex-row items-center gap-3 py-[18px] ${i > 0 ? 'border-t border-line-row' : ''}`}
+            className={`flex-row items-center gap-3 py-4 ${i > 0 ? 'border-t border-line-row' : ''}`}
           >
             <Icon as={Page} size={22} color={e.color} />
             <Text className="flex-1 font-semibold text-base text-ink">{e.label}</Text>
-            {busy === e.format ? <ActivityIndicator color={colors.ink[400]} /> : <Icon as={Download} size={18} color={colors.ink[300]} />}
+            {busy === e.format ? <ActivityIndicator color={colors.ink[400]} /> : <Icon as={Download} size={20} color={colors.ink[300]} />}
           </Pressable>
         ))}
       </View>

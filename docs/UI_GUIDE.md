@@ -3,7 +3,7 @@
 확정 디자인은 `docs/design/`(핸드오프)이 정답이다. 화면별 수치는 `docs/design/HANDOFF.md`, 원본 프로토타입은 `docs/design/splito-app.dc.html`(같은 폴더의 `support.js`와 함께 `npx serve docs/design`로 연다), 토큰은 `docs/design/splito-tokens.json`. 이 문서는 구현용 요약이다. 기준 폭 390pt, 좌우 패딩 20 고정, 라이트 모드·세로 화면.
 
 ## 디자인 원칙
-1. **여행처럼 가볍게, 장부처럼 또렷하게.** 네이비(primary)는 대표 행동과 강조, 숫자와 근거는 진한 잉크색.
+1. **여행처럼 가볍게, 장부처럼 또렷하게.** 스카이(primary)는 대표 행동과 강조, 숫자와 근거는 진한 잉크색.
 2. **숫자에는 항상 근거가 붙는다.** 원화 옆에 외화 원본, 결제자·기록자, 환율 근거, '확인필요'를 붙인다.
 3. **한 화면, 한 가지 행동.** 주요 버튼은 하단 고정 CTA 하나.
 4. **엄지로 쓴다.** 터치 영역 최소 44×44.
@@ -11,7 +11,7 @@
 ## 하지 마라
 | 금지 | 이유 |
 |------|------|
-| 네이비(`primary`) 배경 위에 `primary-text`(같은 네이비) | 글자가 묻힌다. 네이비 배경 위 글자는 `primary-on`(#FFFFFF) |
+| 스카이(`primary`) 배경 위에 `primary-text`(같은 계열) | 글자가 묻힌다. primary 배경 위 글자는 `primary-on`(#FFFFFF) |
 | 틴트 배경(`sky-*`) 위 흰 글자 | 대비 부족. 틴트 위 글자는 `ink` 또는 `primary-text` |
 | 비활성 버튼에 투명도 | 회색 배경(`line`)+`ink-300` 글자로 표시 |
 | 반투명 블러 카드, 그라데이션 텍스트, 글로우·네온 | 장부 앱의 신뢰감을 해친다(하단 CTA 위 흰색 페이드만 예외) |
@@ -22,43 +22,35 @@
 
 브랜드 마크는 `SplitoMark`(S + 출발 삼각형 + 금색 별, `assets/logo/svg/splito-mark.svg`) 하나다. 구 '반짝 지갑' 심볼은 폐기했다.
 
-## 색상 (Tailwind 클래스 = `src/theme/tokens.ts`)
+## 색상 (Tailwind 클래스 = `src/theme/tokens.ts`, 값의 단일 출처)
+2026-11-20 스카이 & 민트 팔레트(디자인 `handoff/2026-11-20-color/CHANGES.md`, 노션 UI 업데이트 20번). 색 비율 목표: 흰색 55 · 잉크 25 · 스카이 12 · 민트 8.
+
 | 토큰 | 값 | 용도 |
 |------|------|------|
-| `primary` | `#1D3C8F` | 기본 CTA, 탭바 FAB, 선택 상태, 외화 금액 |
-| `primary-text` | `#1D3C8F` | 흰 배경 위 링크·강조·아이콘, 받을 돈(+) |
-| `primary-on` | `#FFFFFF` | 네이비 배경 위 글자·아이콘 |
-| `primary-press` | `#16306F` | primary 버튼 눌림(토큰에 없는 값 — 네이비에서 한 단계 어둡게) |
-| `sky-50/100/200/300` | `#F3F6FB #E8EEF8 #C2CFE8 #DCE4F3` | 틴트 배경, 선택 칩·카드 배경, 테두리, 중간 틴트 (이름만 하늘색, 값은 네이비 틴트) |
-| `ink` | `#0E1B3D` | 기본 글자·금액, 하단 CTA 배경(흰 글자) |
-| `ink-700` | `#353A47` | 헤더 아이콘, 미선택 칩 글자 |
-| `ink-500` | `#535764` | 부제·본문 보조, 그룹 헤더 |
-| `ink-400` | `#6B7080` | 캡션·근거·보조 텍스트 |
-| `ink-300` | `#A0A4AE` | 비활성 글자, 화살표, 선택 태그 |
-| `app` | `#F6F8FA` | 회색 화면 배경(상세·정산·내 정보), 입력 보조 박스 |
-| `muted` | `#F0F3F7` | 아이콘 타일, 구분선, 보조 버튼 |
-| `line` / `line-off` | `#E4E7EC` / `#D0D5DD` | 테두리·비활성 버튼 / 꺼진 체크 |
-| `danger` / `danger-text` | `#D92D20` / `#C4320A` | 줄 돈(−)·에러 / 회원 탈퇴 등 위험 행 |
-| `success` / `success-bg` / `success-badge` | `#0B7D6C` / `#E3F8F2` / `#DDF8F1` | 민트 — 받았어요·정산 완료·기록 중 / 기록 중 카드 배경 / 배지 배경 |
-| `success-icon` | `#7CF0D8` | 토스트 체크 아이콘 |
-| `warning` / `warning-bg` / `warning-badge` | `#A35A00` / `#FFF4D6` / `#FFF1CC` | 옐로 — 확인필요·확인 대기 / 틴트 배경 / 배지 배경 |
-| `warning-accent` / `warning-bar` | `#C98A00` / `#F5B400` | 내 통계 — 오늘 남은 금액 숫자 / 예산 진행 바 |
-| `warning-banner` / `warning-line` / `warning-deep` | `#FFF8E1` / `#FFD873` / `#5A3A00` | 중복 배너 배경 / 확인필요 박스 테두리 / 배너 본문 |
-| `local` | `#1D3C8F` | **외화 금액(현지 통화)** — 크게 표시. 원화는 작게 `ink-300` |
-| `tagline` | `#4E6378` | 로그인 서브카피 |
-| `alert` | `#F04452` | 안내 박스 앞 빨간 원 "!" |
-| `kakao` / `kakao-text`, `naver` | `#FEE500` / `#191600`, `#03C75A` | 소셜 로그인·카카오톡 공유(브랜드 색 유지) |
-| `tab-bg` / `tab-num` / `tab-num-off` | `#EEF2F9` / `#1D3C8F` / `#9CADD9` | 정산 세그먼트 탭 |
-| `stats-bg` / `stats-box` / `stats-line` | `#F5F7FB` / `#F7F8FB` / `#D2DCEF` | 내 통계 화면 배경 / 오늘 금액 박스 / 코칭 카드 테두리 |
+| `primary` | `#1A8FE6` (스카이 600) | 주요 버튼(저장하기·지출 올리기 등, 높이 50px+) 배경, 흰 글자 |
+| `primary-text` / `sky-700` | `#1272BF` | 링크·강조·활성 화살표·날짜 탭 밑줄·외화 금액, 작은 흰 글씨 버튼·배지 배경 |
+| `primary-on` | `#FFFFFF` | primary 배경 위 글자 |
+| `sky-50/100/200/500` | `#EEF8FF #D8EFFF #B0DFFF #33ABFF` | 요약 카드·틴트 / 연한 강조 칩 / 호버 테두리·막대 / 일정 점 |
+| `mint-50/600/700`, `success` | `#EAFBF6 / #10A587 / #0C846D` | 받을 돈·완료·공금 잔액(600), 기록 중 배경(50) |
+| `ink` | `#17203A` | 본문 글자, 보낼 돈 금액, 선택 칩, 공금 지갑 진한 카드·토스트 |
+| `ink-700` / `ink-500`·`ink-400` / `ink-300` | `#3D465C` / `#5B6478` / `#8A92A3` | 진한 보조 / 보조 글자 / 비활성·placeholder·원화 환산 |
+| `line` / `line-off` / `card-line`·`muted` | `#E4E7ED` / `#C9CED8` / `#F1F3F6` | 구분선 / 비활성 테두리·아이콘 / 카드 테두리·줄 구분 |
+| `app` | `#F8F9FB` | 회색 박스·입력칸. 화면 배경은 흰색(확인하고 나누기·말로 입력만 `app`, 여행 방 설정 `muted`) |
+| `warning` / `warning-text` / `warning-bg` | `#E89400` / `#B87400` / `#FFF5DC` | 확인필요·경고. 글자는 대비 때문에 `warning-text`(#B87400), 아이콘·막대는 `warning` |
+| `danger` / `danger-bg` | `#D92148` / `#FDE8EF` | 삭제·오류에만(보낼 돈에 빨강 금지) |
+| `info` / `info-bg` | `#12A877` / `#E6F7F0` | 환율 툴팁 등 안내 |
+| `cat-<code>-bg/icon/chart` | `src/theme/tokens.ts` | 카테고리 아이콘 원·아이콘·내 통계 그래프(글자에는 쓰지 않음). `CategoryCircle` 컴포넌트 |
+| `kakao`·`naver` | 브랜드 색 | 소셜 로그인 |
 
-멤버 아바타 색(합류 순서 순환, `MEMBER_COLORS`): `#E8EEF8/#1D3C8F`, `#FFE7BF/#8A5300`, `#E6E3FF/#4B3FB5`, `#FFE2E8/#A8324F` (tint/fg).
+멤버 아바타 색(합류 순서 순환, `MEMBER_COLORS`): `#D8EFFF/#1272BF`, `#FFE7BF/#8A5300`, `#E6E3FF/#4B3FB5`, `#FFE2E8/#A8324F` (tint/fg).
 
 > 색만으로 상태를 전달하지 않는다. 금액에는 `+`/`−` 부호와 "받을 돈/줄 돈" 라벨을 붙인다.
 
 ## 타이포그래피
 Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **굵기는 SemiBold 600 / Medium 500 / Regular 400 만 쓴다 — 700·800 금지.** 행간 160%, 자간 0, 한국어 `word-break: keep-all`. 시스템 글꼴 크기는 최대 1.3배.
 
-크기 스케일: H1 28 · H2 24 · H3 20 · H4 18 · B1 17 · B2 16 · B3 14 · B4 13 · C1 12. **이 9개 밖의 값(26·32·22·15)은 쓰지 않는다.**
+크기 스케일: H1 28 · H2 24 · H3 20 · H4 18 · B1 17 · B2 16 · B3 14 · B4 13 · C1 12. 1a 원본이 쓰는 22·15·11은 원본을 따른다.
+**글자 크기는 이름 클래스만 쓴다**: `text-10/11/xs(12)/13/sm(14)/15/base(16)/17/lg(18)/19/xl(20)/22/2xl(24)/26/28/30` — `tailwind.config.js`가 각 크기에 행간 1.6(원본 body `line-height:1.6`)을 박아 둔다. `text-[13px]` 같은 임의 값은 행간이 빠지므로 금지. 다른 행간이 필요하면 `leading-*`.
 
 | 용도 | 스타일 |
 |------|--------|
@@ -76,7 +68,7 @@ Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **�
 **외화 금액은 현지 통화를 크게 `local`(#1668E3), 원화를 작게 회색 `ink-300`** 으로 둔다(순서를 뒤집지 않는다).
 
 ## 반경·크기·간격
-- 반경: 배지 8(`rounded-badge`), 칩 12(`rounded-chip`), 입력 14(`rounded-input`), 버튼 16(`rounded-button`), 카드 20(`rounded-card`), 큰 카드 24, 히어로·시트 28(`rounded-hero`), 원형 pill.
+- 반경(2026-11-20, 노션 UI 업데이트 14번): 태그·배지·썸네일 8(`rounded-badge`), 토글 안 선택 칸 10(`rounded-toggle`), 버튼·입력 12(`rounded-button`·`rounded-input`·`rounded-chip`), 요약 카드·날짜 묶음 카드·회색 박스 16(`rounded-box`), 바텀시트 위쪽·일반 큰 카드 20(`rounded-card`·`rounded-t-sheet`), 홈 여행 카드 28(`rounded-hero`), 칩·아바타·카테고리 원 pill(`rounded-full`). 중첩: 안쪽 = 바깥 − 안쪽 여백에 가장 가까운 토큰.
 - 크기: 버튼 56, 보조 버튼 52, 입력 54, 칩 34, 아이콘 타일 44, 아바타 32/36/38, 상태바 50, 내비 52.
 - 간격: 화면 패딩 20, 섹션 22~28, 카드 내부 14.
 
@@ -88,10 +80,13 @@ Pretendard 하나만(Regular·Medium·SemiBold 3종만 expo-font로 번들). **�
 - **Badge**: '확인필요' 12/600 `warning` on `warning-badge`, radius 6, 2×6. 누르면 해제.
 - **StatusChip**: 12/600, 흰 배경 radius 8, 패딩 4×8. 정산 중 `primary-text`, 기록 중·정산 완료 `success`.
 - **아이콘 타일**: 44, radius 14, `muted` 배경, 아이콘 `primary-text` 21 — 입력 방식(사진=camera, 문자=message-text, 음성=microphone, 직접=edit-pencil).
-- **BottomSheet**: 스크림 `rgba(19,25,39,.45)`, 상단 radius 28, 핸들 40×5, 제목 20/600 + 부제 14.
+- **BottomSheet**: 스크림 `rgba(23,32,58,.45)`, 상단 `rounded-t-sheet`(원본 24, 토큰 20 유지), 핸들 40×5 `line`, 320ms `cubic-bezier(0.2,0.8,0.2,1)`, 제목 20/600 + 부제 14.
 - **Toast**: 하단 120 위, `ink` pill, check-circle `success-icon`(민트), 14/600, 1.8초.
-- **입력 필드**: 54h, radius 14, 테두리 1.5 `line`, 포커스 시 테두리 `primary` + `0 0 0 4px rgba(94,196,255,.18)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
+- **입력 필드**: 54h, radius 12, 테두리 1 `line`, 포커스 시 테두리 `primary-text` + `0 0 0 4px rgba(18,114,191,.16)`. 라벨 13/600 `ink-500`. 에러는 테두리 `danger` + 아래 13 `danger` 문구.
 - **로고**: `SplitoSymbol`(그라데이션 지갑, `variant` color/white/navy), `Wordmark`(아웃라인 SVG, `variant` ink #0E2A47 / white). 핸드오프 `assets/logo/svg/` 의 도형을 그대로 재현한 것이며 텍스트로 그리지 않는다.
+
+- **눌림 상태**: 원본 `hover=`/`active=` 값을 `Pressable` pressed로 옮긴다. 선택 카드·옵션 행 = `active:bg-app active:border-sky-200`(배경을 하늘색으로 칠하지 않는다), 카드 = `active:scale-[0.98]`, 버튼 = 1px 아래. 선택(selected) 표시는 별개다.
+- 홈에는 하단 탭바를 두지 않는다(2026-11-20 사용자 결정). 여행 상세의 '지출 올리기'는 오른쪽 아래 떠 있는 알약(52h).
 
 ## 아이콘
 Iconoir(outline 1.5), `iconoir-react-native` + `Icon` 래퍼(크기를 숫자로 넘긴다). 아이콘 버튼에는 `accessibilityLabel`을 단다.

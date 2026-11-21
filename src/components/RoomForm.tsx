@@ -33,7 +33,7 @@ export type RoomFormValues = z.infer<typeof schema>;
 
 type DateField = 'startDate' | 'endDate';
 
-const FOCUS_RING = { boxShadow: '0 0 0 4px rgba(94,196,255,.18)' };
+const FOCUS_RING = { boxShadow: '0 0 0 4px rgba(18,114,191,.16)' };
 
 // 'YYYY-MM-DD' → '10월 20일'
 const prettyDate = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${Number(v.slice(5, 7))}월 ${Number(v.slice(8, 10))}일` : v);
@@ -44,18 +44,16 @@ type Props = {
   defaultValues: RoomFormValues;
   onSubmit: (v: RoomFormValues) => Promise<void>;
   children?: ReactNode; // 폼 아래 칸(새 여행 안내, 여행 방 설정의 참여자·삭제)
-  cards?: boolean; // 회색 배경 위 흰 카드 하나에 담는다(여행 방 설정). 화면 배경은 호출하는 쪽이 bg-app으로 깐다
+  cards?: boolean; // 회색 배경 위 흰 카드 하나에 담는다(여행 방 설정). 화면 배경은 호출하는 쪽이 bg-muted로 깐다
 };
 
 // 통화 고르기에서는 유로도 깃발이 있어야 줄이 맞는다. currencyFlag는 홈 카드용이라 EUR을 비워 둔다(비행기로 대체).
 const flagOf = (code: string) => (code === 'EUR' ? '🇪🇺' : currencyFlag(code));
 
-const CARD_SHADOW = { boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' };
-
 // 여행 이름·기본 통화·기간 폼. 새 여행과 여행 수정이 같이 쓴다.
 export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, children, cards }: Props) {
   // 카드 모드에서는 이름·통화·기간을 흰 카드 하나에 담는다
-  const group = cards ? 'gap-6 rounded-card bg-white p-5' : 'gap-7';
+  const group = cards ? 'gap-7 rounded-card bg-white px-5 py-[22px]' : 'gap-7';
   const [error, setError] = useState<string>();
   const [nameFocus, setNameFocus] = useState(false);
   const [dateSheet, setDateSheet] = useState<DateField>();
@@ -87,12 +85,16 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
 
   return (
     <>
-      <ScrollView contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: 140, gap: 28 }} keyboardShouldPersistTaps="handled">
-        {!!heading && <Text className="font-semibold text-2xl text-ink">{heading}</Text>}
+      {/* 시안: 새 여행은 위 12·사이 28, 여행 방 설정(카드)은 위 8·사이 12 */}
+      <ScrollView
+        contentContainerStyle={{ paddingTop: cards ? 8 : 12, paddingHorizontal: 20, paddingBottom: 140, gap: cards ? 12 : 28 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {!!heading && <Text className="font-semibold text-2xl leading-[38px] text-ink">{heading}</Text>}
 
-        <View className={group} style={cards ? CARD_SHADOW : undefined}>
+        <View className={group}>
           <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">여행 이름</Text>
+            <Text className="font-semibold text-13 leading-[21px] text-ink-500">여행 이름</Text>
             <Controller
               control={control}
               name="name"
@@ -107,8 +109,8 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
                   placeholder="예: 오사카 먹방 여행"
                   placeholderTextColor={colors.ink[300]}
                   style={nameFocus ? FOCUS_RING : undefined}
-                  className={`h-[54px] rounded-input border-[1.5px] bg-white px-4 font-semibold text-[17px] text-ink ${
-                    nameFocus ? 'border-primary' : errs.name && field.value ? 'border-danger' : 'border-line'
+                  className={`h-[54px] rounded-input border bg-white px-4 font-semibold text-input-17 text-ink ${
+                    nameFocus ? 'border-primary-text' : errs.name && field.value ? 'border-danger' : 'border-line'
                   }`}
                 />
               )}
@@ -116,7 +118,7 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
           </View>
 
           <View className="gap-2.5">
-            <Text className="font-semibold text-[13px] text-ink-500">기본 통화</Text>
+            <Text className="font-semibold text-13 leading-[21px] text-ink-500">기본 통화</Text>
             <Controller
               control={control}
               name="baseCurrency"
@@ -128,13 +130,13 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
                       accessibilityRole="button"
                       accessibilityLabel="기본 통화 고르기"
                       onPress={() => setCurrencyOpen(true)}
-                      className={`h-[54px] flex-row items-center gap-2 rounded-input border-[1.5px] bg-app px-4 active:bg-sky-100 ${
-                        currencyOpen ? 'border-primary' : 'border-app'
+                      className={`h-[54px] flex-row items-center gap-2 rounded-input border bg-app px-4 active:border-sky-200 ${
+                        currencyOpen ? 'border-primary-text' : 'border-app'
                       }`}
                     >
                       {cur && <Text className="text-xl">{flagOf(cur.code)}</Text>}
                       <Text className="font-semibold text-base text-ink">{cur?.code}</Text>
-                      <Text className="flex-1 font-medium text-[15px] text-ink-500">{cur && unitName(cur.code, cur.label)}</Text>
+                      <Text className="flex-1 font-medium text-15 text-ink-500">{cur && unitName(cur.code, cur.label)}</Text>
                       <Icon as={NavArrowDown} size={18} color={colors.ink[400]} />
                     </Pressable>
                     <BottomSheet visible={currencyOpen} onClose={() => setCurrencyOpen(false)} title="기본 통화">
@@ -151,11 +153,14 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
                                 field.onChange(c.code);
                                 setCurrencyOpen(false);
                               }}
-                              className={`h-[52px] flex-row items-center gap-3 rounded-input px-3 ${selected ? 'bg-sky-100' : 'active:bg-app'}`}
+                              // 선택(on)은 시안 로직값(테두리 primary-text + sky-100), 눌림은 시안 hover(회색 배경 + sky-200 테두리)
+                              className={`h-[52px] flex-row items-center gap-3 rounded-input border px-3 ${
+                                selected ? 'border-primary-text bg-sky-100' : 'border-transparent active:border-sky-200 active:bg-app'
+                              }`}
                             >
                               <Text className="text-xl">{flagOf(c.code)}</Text>
                               <Text className={`w-12 font-semibold text-base ${selected ? 'text-primary-text' : 'text-ink'}`}>{c.code}</Text>
-                              <Text className={`flex-1 text-[15px] ${selected ? 'text-primary-text' : 'text-ink-500'}`}>{c.label}</Text>
+                              <Text className={`flex-1 text-15 ${selected ? 'text-primary-text' : 'text-ink-500'}`}>{c.label}</Text>
                               {selected && <Icon as={Check} size={20} color={colors.primary.text} />}
                             </Pressable>
                           );
@@ -169,7 +174,7 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
           </View>
 
           <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">
+            <Text className="font-semibold text-13 leading-[21px] text-ink-500">
               기간 <Text className="font-medium text-ink-300">선택</Text>
             </Text>
             <View className="flex-row items-center gap-2">
@@ -183,8 +188,8 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
                       accessibilityRole="button"
                       accessibilityLabel={`${label} 고르기`}
                       onPress={() => setDateSheet(n)}
-                      className={`h-[54px] flex-1 flex-row items-center gap-2 rounded-input border-[1.5px] bg-app px-3.5 active:bg-sky-100 ${
-                        dateSheet === n ? 'border-primary' : 'border-app'
+                      className={`h-[54px] flex-1 flex-row items-center gap-2 rounded-input border bg-app px-3.5 active:border-sky-200 ${
+                        dateSheet === n ? 'border-primary-text' : 'border-app'
                       }`}
                     >
                       <Icon as={Calendar} size={18} color={colors.primary.text} />
@@ -201,8 +206,9 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
 
         {children}
       </ScrollView>
-      <BottomBar bg={cards ? colors.app : undefined} fade={cards}>
-        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+      {/* 시안: 여행 방 설정 하단 바는 #F8F9FB(app), 페이드 없음 */}
+      <BottomBar bg={cards ? colors.app : undefined}>
+        {error && <Text className="text-13 text-danger">{error}</Text>}
         <PrimaryButton title={submitLabel} loading={formState.isSubmitting} disabled={!formState.isValid} onPress={submit} />
       </BottomBar>
       <DateSheet

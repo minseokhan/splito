@@ -373,7 +373,7 @@ export default function VoiceInput() {
         >
           <Pressable accessible={false} onPress={closeEdit} className="gap-3.5">
           <View className="gap-1">
-            <Text style={{ lineHeight: 32 }} className="font-semibold text-[22px] text-ink">
+            <Text style={{ lineHeight: 32 }} className="font-semibold text-22 text-ink">
               {'누가 얼마 썼는지\n말해 주세요'}
             </Text>
             <Text className="text-sm text-ink-500">같은 가게에서 쓴 건 AI가 한 건으로 묶어 드려요</Text>
@@ -391,7 +391,7 @@ export default function VoiceInput() {
           )}
 
           {!items.length && !rec && (
-            <View className="items-center gap-1.5 rounded-[20px] border-[1.5px] border-dashed border-line-off px-4 py-7">
+            <View className="items-center gap-1.5 rounded-card border border-dashed border-line-off px-4 py-7">
               <Icon as={Microphone} size={24} color={colors.ink[300]} />
               <Text className="text-sm text-ink-400">아직 입력한 지출이 없어요</Text>
             </View>
@@ -416,10 +416,10 @@ export default function VoiceInput() {
           {unsorted.length > 0 && (
             <View
               onLayout={(e) => zones.current.set('__unsorted', { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height })}
-              className="rounded-[14px] border-[1.5px] border-dashed border-warning-line bg-warning-banner"
+              className="rounded-button border border-dashed border-warning-line bg-warning-banner"
             >
               <View className="flex-row items-center gap-3 px-4 pb-3 pt-3.5">
-                <View className="h-10 w-10 items-center justify-center rounded-xl bg-white">
+                <View className="h-10 w-10 items-center justify-center rounded-chip bg-white">
                   <Icon as={HelpCircle} size={20} color={colors.warning.DEFAULT} />
                 </View>
                 <View className="min-w-0 flex-1 gap-px">
@@ -436,10 +436,10 @@ export default function VoiceInput() {
             <View
               onLayout={(e) => zones.current.set(NEW_ZONE, { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height })}
               style={{ borderColor: over === NEW_ZONE ? colors.primary.DEFAULT : colors.sky[200] }}
-              className={`h-16 flex-row items-center justify-center gap-[5px] rounded-[14px] border-[1.5px] border-dashed ${over === NEW_ZONE ? 'bg-sky-100' : ''}`}
+              className={`h-16 flex-row items-center justify-center gap-[5px] rounded-button border border-dashed ${over === NEW_ZONE ? 'bg-sky-100' : ''}`}
             >
               <Icon as={Plus} size={14} color={colors.ink.DEFAULT} />
-              <Text className="font-medium text-[13px] text-ink">여기에 놓으면 새 가게로 분리돼요</Text>
+              <Text className="font-medium text-13 text-ink">여기에 놓으면 새 가게로 분리돼요</Text>
             </View>
           )}
           </Pressable>
@@ -449,7 +449,7 @@ export default function VoiceInput() {
           <View
             pointerEvents="none"
             style={{ top: drag.top, left: drag.left, width: drag.width, boxShadow: '0 12px 28px -10px rgba(19,25,39,.35)' }}
-            className="absolute rounded-lg"
+            className="absolute rounded-badge"
           >
             <RowLook item={dragged} who={whoOf(dragged)} />
           </View>
@@ -460,11 +460,11 @@ export default function VoiceInput() {
         onLayout={(e) => (sheetH.current = e.nativeEvent.layout.height)}
         onStartShouldSetResponder={() => true}
         onResponderRelease={closeEdit}
-        className="absolute bottom-0 left-0 right-0 items-center gap-3.5 rounded-t-[28px] bg-white px-5 pt-[18px]"
+        className="absolute bottom-0 left-0 right-0 items-center gap-3.5 rounded-t-sheet bg-white px-5 pt-[18px]"
         style={{ paddingBottom: Math.max(insets.bottom + 12, 24), boxShadow: '0 -8px 24px -12px rgba(19,25,39,.18)' }}
       >
         <View className="min-h-12 items-center justify-center gap-0.5">
-          <Text className={`text-center font-semibold text-[13px] ${rec ? 'text-danger' : 'text-ink-400'}`}>{stateText}</Text>
+          <Text className={`text-center font-semibold text-13 ${rec ? 'text-danger' : 'text-ink-400'}`}>{stateText}</Text>
           {!!liveLine && <Text className="text-center font-semibold text-base text-ink">{liveLine}</Text>}
         </View>
         <Pressable
@@ -472,8 +472,8 @@ export default function VoiceInput() {
           accessibilityLabel={rec ? '말하기 멈추기' : '말하기 시작'}
           disabled={mic === 'parsing'}
           onPress={onMic}
-          className={`h-[76px] w-[76px] items-center justify-center rounded-full border-[1.5px] ${rec ? 'border-danger bg-danger' : 'border-line bg-white'}`}
-          style={{ boxShadow: rec ? '0 0 0 10px rgba(217,45,32,.12)' : '0 10px 24px -8px rgba(19,25,39,.25)' }}
+          className={`h-[76px] w-[76px] items-center justify-center rounded-full border ${rec ? 'border-danger bg-danger' : 'border-line bg-white'}`}
+          style={{ boxShadow: rec ? '0 0 0 10px rgba(217,33,72,.12)' : '0 10px 24px -8px rgba(19,25,39,.25)' }}
         >
           {mic === 'parsing' ? (
             <ActivityIndicator color={colors.ink.DEFAULT} />
@@ -504,8 +504,8 @@ function RemoveBadge({ label, onPress }: { label: string; onPress: () => void })
       accessibilityLabel={label}
       hitSlop={8}
       onPress={onPress}
-      className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-line bg-white"
-      style={{ boxShadow: '0 2px 6px -2px rgba(14,27,61,.18)' }}
+      className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full border border-line bg-white"
+      style={{ boxShadow: '0 2px 6px -2px rgba(23,32,58,.18)' }}
     >
       <Icon as={Xmark} size={14} color={colors.ink[400]} />
     </Pressable>
@@ -524,16 +524,16 @@ type StoreProps = {
   children: ReactNode;
 };
 
-// 가게 카드: 바탕 #E4EAF4(끌어 올리면 #D5DFF0 + 네이비 테두리). 핸드오프 실측값이고 토큰에 없다.
+// 가게 카드: 바탕 sky-50(끌어 올리면 sky-100 + primary 테두리).
 function StoreCard({ store, items, over, editingName, onEditName, onRename, onRemove, onLayout, children }: StoreProps) {
   return (
     <View
       onLayout={(e) => onLayout(e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
-      style={{ backgroundColor: over ? '#D5DFF0' : '#E4EAF4', borderColor: over ? colors.primary.DEFAULT : 'transparent' }}
-      className="rounded-[14px] border-[1.5px]"
+      style={{ backgroundColor: over ? colors.sky[100] : colors.sky[50], borderColor: over ? colors.primary.DEFAULT : 'transparent' }}
+      className="rounded-button border"
     >
       <View className="flex-row items-center gap-3 px-4 pb-3 pt-3.5">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-white">
+        <View className="h-10 w-10 items-center justify-center rounded-chip bg-white">
           <Icon as={Shop} size={20} color={colors.primary.DEFAULT} />
         </View>
         <View className="min-w-0 flex-1 gap-px">
@@ -615,8 +615,8 @@ function Handle() {
     <View className="gap-[2.5px] px-[3px] py-1">
       {[0, 1, 2].map((r) => (
         <View key={r} className="flex-row gap-[2.5px]">
-          <View className="h-[2px] w-[2px] rounded-full bg-[#C4C9D2]" />
-          <View className="h-[2px] w-[2px] rounded-full bg-[#C4C9D2]" />
+          <View className="h-[2px] w-[2px] rounded-full bg-line-off" />
+          <View className="h-[2px] w-[2px] rounded-full bg-line-off" />
         </View>
       ))}
     </View>
@@ -629,8 +629,8 @@ type Who = { name: string; color: Color };
 function RowLook({ item: c, who, handle }: { item: VoiceItem; who: Who[]; handle?: ReactNode }) {
   return (
     <View
-      style={{ boxShadow: '0 1px 2px rgba(14,27,61,.06)' }}
-      className="flex-row items-center gap-2 rounded-lg border-[1.5px] border-transparent bg-white py-[7px] pl-1.5 pr-3"
+      style={{ boxShadow: '0 1px 2px rgba(23,32,58,.06)' }}
+      className="flex-row items-center gap-2 rounded-badge border border-transparent bg-white py-[7px] pl-1.5 pr-3"
     >
       {handle ?? <Handle />}
       <View className="flex-row">
@@ -638,7 +638,7 @@ function RowLook({ item: c, who, handle }: { item: VoiceItem; who: Who[]; handle
           <View
             key={i}
             style={{ backgroundColor: w.color.tint, marginLeft: i ? -8 : 0 }}
-            className="h-[26px] w-[26px] items-center justify-center rounded-full border-[1.5px] border-white"
+            className="h-[26px] w-[26px] items-center justify-center rounded-full border border-white"
           >
             <Text style={{ color: w.color.fg }} className="font-semibold text-xs">
               {w.name.slice(0, 1)}
@@ -746,7 +746,7 @@ type EditProps = {
 function EditRow({ item: c, people, onChange, onRemove }: EditProps) {
   const unit = c.currency === 'KRW' ? '원' : (CURRENCIES.find((x) => x.code === c.currency)?.symbol ?? c.currency);
   return (
-    <View onStartShouldSetResponder={() => true} className="gap-3 rounded-lg border border-primary bg-white px-3.5 pb-3.5 pt-3">
+    <View onStartShouldSetResponder={() => true} className="gap-3 rounded-badge border border-primary bg-white px-3.5 pb-3.5 pt-3">
       <View className="flex-row items-start gap-2">
         <Text className="min-w-0 flex-1 text-xs text-ink-400">들은 말 · “{c.part}”</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={`${c.title} 삭제`} hitSlop={10} onPress={onRemove}>
@@ -763,14 +763,14 @@ function EditRow({ item: c, people, onChange, onRemove }: EditProps) {
               accessibilityState={{ checked: on }}
               onPress={() => onChange({ memberIds: toggleMember(c.memberIds, p.id) })}
               style={{ backgroundColor: on ? p.color.tint : '#FFFFFF', borderColor: on ? p.color.tint : colors['card-line'] }}
-              className="h-[34px] flex-row items-center gap-1.5 rounded-full border-[1.5px] pl-[3px] pr-[11px]"
+              className="h-[34px] flex-row items-center gap-1.5 rounded-full border pl-[3px] pr-[11px]"
             >
               <View style={{ backgroundColor: on ? p.color.fg : colors.muted }} className="h-[26px] w-[26px] items-center justify-center rounded-full">
                 <Text style={{ color: on ? '#FFFFFF' : colors.ink[300] }} className="font-semibold text-xs">
                   {p.name.slice(0, 1)}
                 </Text>
               </View>
-              <Text style={{ color: on ? p.color.fg : colors.ink[300] }} className="font-semibold text-[13px]">
+              <Text style={{ color: on ? p.color.fg : colors.ink[300] }} className="font-semibold text-13">
                 {p.name}
               </Text>
             </Pressable>
@@ -785,18 +785,18 @@ function EditRow({ item: c, people, onChange, onRemove }: EditProps) {
           placeholderTextColor={colors.ink[300]}
           maxLength={80}
           accessibilityLabel="품목"
-          className="h-12 min-w-0 flex-1 rounded-xl border border-line px-3 font-semibold text-[15px] text-ink focus:border-primary"
+          className="h-12 min-w-0 flex-1 rounded-chip border border-line px-3 font-semibold text-input-15 text-ink focus:border-primary"
         />
-        <View className="h-12 w-[130px] flex-row items-center gap-1 rounded-xl border border-line px-3">
+        <View className="h-12 w-[130px] flex-row items-center gap-1 rounded-chip border border-line px-3">
           {/* ponytail: 정수만 받는다. 센트 단위 외화를 말로 넣는 경우가 생기면 parseAmountInput으로 바꾼다. */}
           <TextInput
             value={c.amount ? c.amount.toLocaleString('ko-KR') : ''}
             onChangeText={(t) => onChange({ amount: parseInt(t.replace(/[^0-9]/g, ''), 10) || 0 })}
             keyboardType="number-pad"
             accessibilityLabel="금액"
-            className="min-w-0 flex-1 text-right font-semibold text-[15px] text-ink"
+            className="min-w-0 flex-1 text-right font-semibold text-input-15 text-ink"
           />
-          <Text className="font-semibold text-[15px] text-ink-500">{unit}</Text>
+          <Text className="font-semibold text-15 text-ink-500">{unit}</Text>
         </View>
       </View>
     </View>

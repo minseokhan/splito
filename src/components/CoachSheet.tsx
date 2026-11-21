@@ -20,7 +20,7 @@ export function CoachCard({ card, onPress }: { card: CoachCardView; onPress: () 
     <Box
       accessibilityRole={card.hasPlans ? 'button' : undefined}
       onPress={card.hasPlans ? onPress : undefined}
-      className="gap-2 rounded-card border border-stats-line bg-sky-50 px-[18px] py-4"
+      className="gap-2 rounded-card border border-stats-line bg-app px-[18px] py-4"
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-1.5">
@@ -29,7 +29,7 @@ export function CoachCard({ card, onPress }: { card: CoachCardView; onPress: () 
         </View>
         {card.hasPlans && (
           <View className="flex-row items-center">
-            <Text className="font-semibold text-[13px] text-primary-text">조정안 보기</Text>
+            <Text className="font-semibold text-13 text-primary-text">조정안 보기</Text>
             <Icon as={NavArrowRight} size={16} color={colors.primary.text} />
           </View>
         )}
@@ -64,7 +64,7 @@ export function CoachSheet({ visible, onClose, n, per, plans, loading, onRefresh
         <View className="gap-0.5">
           <View className="flex-row items-center gap-1.5">
             <Icon as={Sparks} size={16} color={colors.primary.text} />
-            <Text className="font-semibold text-[13px] text-primary-text">AI 예산 코칭</Text>
+            <Text className="font-semibold text-13 text-primary-text">AI 예산 코칭</Text>
           </View>
           <Text className="font-semibold text-xl text-ink">남은 {n}일 조정안</Text>
           <Text className="text-sm text-ink-500">하루 {formatKrw(per)}이면 예산 안이에요. 하나를 골라주세요.</Text>
@@ -83,30 +83,31 @@ export function CoachSheet({ visible, onClose, n, per, plans, loading, onRefresh
                 accessibilityRole="radio"
                 accessibilityState={{ selected: on }}
                 onPress={() => setPickedId(plan.id)}
-                style={{ borderWidth: 1.5, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
-                className={`gap-2.5 rounded-[18px] px-4 py-3.5 ${on ? 'bg-sky-50' : 'bg-white'}`}
+                // 선택 = ink 테두리(시안 로직, 배경은 흰색 그대로)
+                style={{ borderWidth: 1, borderColor: on ? colors.ink.DEFAULT : colors.line.DEFAULT }}
+                className="gap-2.5 rounded-button bg-white px-4 py-3.5"
               >
                 <View className="flex-row items-center gap-2.5">
                   <View
-                    style={{ borderWidth: 2, borderColor: on ? colors.primary.DEFAULT : colors.line.off }}
+                    style={{ borderWidth: 1, borderColor: on ? colors.ink.DEFAULT : colors.line.off }}
                     className="h-5 w-5 items-center justify-center rounded-full"
                   >
-                    {on && <View className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                    {on && <View className="h-2.5 w-2.5 rounded-full bg-ink" />}
                   </View>
                   <View className="flex-1">
                     <Text className="font-semibold text-base text-ink">{plan.title}</Text>
-                    {!!plan.desc && <Text className="text-[13px] text-ink-400">{plan.desc}</Text>}
+                    {!!plan.desc && <Text className="text-13 text-ink-500">{plan.desc}</Text>}
                   </View>
                 </View>
                 <View className="flex-row gap-1">
                   {ALLOC_CATEGORIES.map((code) => (
-                    // 높이는 내용에 맡기지 않고 고정한다 — 금액 자릿수가 달라도 타일 5개가 같은 크기로 선다.
+                    // 한 줄(flex-row)이라 높이는 가장 큰 타일에 맞춰 늘어난다 — 금액 자릿수가 달라도 5개가 같은 크기로 선다.
                     <View
                       key={code}
-                      className={`h-[64px] flex-1 items-center justify-center gap-1 rounded-[10px] ${on ? 'bg-sky-100' : 'bg-muted'}`}
+                      className={`flex-1 items-center justify-center rounded-badge py-1.5 ${on ? 'bg-sky-100' : 'bg-app'}`}
                     >
-                      <Text className="text-[11px] text-ink-400">{categoryLabel(code)}</Text>
-                      <Text className={`font-semibold text-[15px] ${on ? 'text-primary-text' : 'text-ink'}`}>
+                      <Text className="text-11 text-ink-500">{categoryLabel(code)}</Text>
+                      <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink'}`}>
                         {formatManwon(plan.perDay[code] ?? 0)}
                       </Text>
                     </View>
@@ -117,7 +118,7 @@ export function CoachSheet({ visible, onClose, n, per, plans, loading, onRefresh
           })
         )}
 
-        <Text className="text-xs text-ink-400">금액은 카테고리별 하루 금액이에요</Text>
+        <Text className="text-xs text-ink-500">금액은 카테고리별 하루 금액이에요</Text>
         <View className="flex-row gap-2">
           <PrimaryButton title="다시 분석" variant="muted" icon={RefreshDouble} loading={loading} onPress={onRefresh} />
           <PrimaryButton title="이 안으로 적용" variant="dark" grow disabled={!selected} onPress={() => selected && onApply(selected)} />

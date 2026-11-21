@@ -43,6 +43,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
     ['GUEST_IN_USE', '지출에 포함된 게스트는 삭제할 수 없어요', '이름·대표자만 변경'],
     ['INVALID_INPUT', '입력값을 확인해 주세요', '수정'],
     ['FORBIDDEN', '이 작업을 할 권한이 없어요', undefined],
+    ['SPOT_SENT', '이 자리 정산을 보낸 지출은 삭제할 수 없어요', undefined],
     ['CURRENCY_LOCKED', '지출이 있어 기본 통화를 바꿀 수 없어요', undefined],
     ['INVALID_PAYER', '결제자를 다시 선택해 주세요', '선택'],
     ['ALREADY_CONFIRMED', '이미 받은 분이 확인한 송금이에요', '새로고침'],
@@ -57,7 +58,7 @@ describe('toUserError — ARCHITECTURE §8 표', () => {
   });
 
   it('표의 코드를 빠짐없이 다룬다', () => {
-    expect(ERROR_CODES).toHaveLength(45);
+    expect(ERROR_CODES).toHaveLength(46);
   });
 });
 

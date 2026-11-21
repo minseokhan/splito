@@ -288,3 +288,35 @@ export function splitLabel(n: number, total: number, per: string): string {
 export function perPersonOriginal(amountOriginal: number, n: number): number {
   return fromMilli(splitEvenly(toMilli(amountOriginal), n).perPerson);
 }
+
+// 확인하고 나누기의 일정 기본 선택(18번 ⑤). dayItems는 결제일의 일정(시각순).
+// 일정 상세에서 들어오면 그 일정 / 패키지는 결제 시각과 가장 가까운 일정 / 자유여행은 그날 일정이 1개일 때만 그 일정.
+export function defaultScheduleId(a: {
+  dayItems: { id: string; startTime: string | null }[];
+  entryId: string | null;
+  isPackage: boolean;
+  paidTime: string | null;
+}): string | null {
+  if (a.entryId) return a.entryId;
+  if (!a.dayItems.length) return null;
+  if (!a.isPackage) return a.dayItems.length === 1 ? a.dayItems[0].id : null;
+  if (!a.paidTime) return a.dayItems[0].id;
+  const at = Number(a.paidTime.slice(0, 2)) * 60 + Number(a.paidTime.slice(3, 5));
+  // 시각 없는 일정은 가장 멀리 둔다
+  const dist = (t: string | null) => (t ? Math.abs(Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)) - at) : Infinity);
+  return a.dayItems.reduce((best, x) => (dist(x.startTime) < dist(best.startTime) ? x : best)).id;
+}
+
+// ponytail: 키워드 몇 개로 맞추는 단순 규칙. 오탐이 문제되면 일정에 카테고리 컬럼을 두고 그걸 비교한다.
+const SCHEDULE_KEYWORDS: Partial<Record<string, RegExp>> = {
+  food: /먹방|맛집|식사|식당|조식|중식|석식|점심|저녁|아침|카페|라멘|스시|이자카야|디저트/,
+  shopping: /쇼핑|시장|아울렛|면세|마트|백화점|돈키호테/,
+  sightseeing: /관광|입장|투어|공원|박물관|미술관|성\b|성$|신사|절|사원|전망|USJ|유니버설|테마파크/,
+  lodging: /호텔|숙소|체크인|체크아웃|료칸|리조트/,
+  transport: /공항|이동|기차|열차|버스|택시|지하철|항공|출국|입국|페리/,
+};
+
+// 카테고리↔일정 이름이 맞으면 '✦ 추천' 라벨(자동 선택은 하지 않는다).
+export function scheduleMatchesCategory(category: string, title: string): boolean {
+  return !!SCHEDULE_KEYWORDS[category]?.test(title);
+}

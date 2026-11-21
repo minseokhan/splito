@@ -7,9 +7,9 @@ export function ActivityRow({ text, onPress }: { text: string; onPress?: () => v
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : 'text'}
       onPress={onPress}
-      className="min-h-11 justify-center py-3"
+      className="min-h-11 justify-center px-4 py-3"
     >
-      <Text className={`text-[13px] ${onPress ? 'font-semibold text-primary-text' : 'text-ink-400'}`}>
+      <Text className={`text-13 ${onPress ? 'font-semibold text-primary-text' : 'text-ink-400'}`}>
         {onPress ? `${text} · 계좌 등록하기` : text}
       </Text>
     </Pressable>

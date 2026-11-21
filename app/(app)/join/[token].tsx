@@ -50,7 +50,7 @@ export default function JoinSheet() {
 
   return (
     <View className="flex-1 justify-end bg-[rgba(19,25,39,0.45)]">
-      <SafeAreaView edges={['bottom']} className="gap-[18px] rounded-t-hero bg-white px-5 pb-4 pt-3">
+      <SafeAreaView edges={['bottom']} className="gap-[18px] rounded-t-sheet bg-white px-5 pb-4 pt-3">
         <View className="h-[5px] w-10 self-center rounded-full bg-line" />
         {invalid ? (
           <Text className="text-base text-ink-700">{INVALID}</Text>
@@ -75,7 +75,7 @@ export default function JoinSheet() {
             <PrimaryButton title="다시 시도" onPress={() => preview.refetch()} />
           ) : !invalid ? (
             <>
-              {join.error && !invalid && <Text className="mb-2 text-center text-[13px] text-danger">{error?.message}</Text>}
+              {join.error && !invalid && <Text className="mb-2 text-center text-13 text-danger">{error?.message}</Text>}
               <PrimaryButton title="참여하기" onPress={submit} loading={join.isPending} disabled={!p} />
             </>
           ) : null}

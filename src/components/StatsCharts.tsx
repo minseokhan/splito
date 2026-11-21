@@ -7,7 +7,7 @@ import type { CategoryCode } from '@/lib/category';
 import { colors } from '@/theme/tokens';
 import type { Krw } from '@/types/domain';
 
-import { CATEGORY_ICON } from './categoryIcon';
+import { CategoryCircle } from './CategoryCircle';
 import { Icon } from './Icon';
 import { formatKrw } from './Money';
 
@@ -42,7 +42,7 @@ type CompareProps = {
 /** 전날 대비 카드 + 일차별 막대(명세 §6-1). 숙소는 집계에서 빠져 있다. */
 export function CompareCard({ top, bottom, daily, baseline, d, selected, locked }: CompareProps) {
   const max = Math.max(baseline, ...daily, 1);
-  const h = (v: number) => Math.max(4, Math.round((v / max) * BAR_MAX));
+  const h = (v: number) => Math.max(6, Math.round((v / max) * BAR_MAX));
 
   return (
     <View style={CARD} className="gap-3.5 rounded-card bg-white px-5 py-[18px]">
@@ -55,12 +55,12 @@ export function CompareCard({ top, bottom, daily, baseline, d, selected, locked 
           <>
             <View
               pointerEvents="none"
-              style={{ bottom: LABEL_H + 4 + h(baseline), borderTopWidth: 1.5, borderColor: colors.warning.bar, borderStyle: 'dashed' }}
+              style={{ bottom: LABEL_H + 4 + h(baseline), borderTopWidth: 1, borderColor: colors.warning.bar }}
               className="absolute left-0 right-0 z-10"
             />
             <Text
               style={{ bottom: LABEL_H + 8 + h(baseline) }}
-              className="absolute right-0 z-20 bg-white px-1 font-semibold text-[11px] text-warning-accent"
+              className="absolute right-0 z-20 bg-white px-1 font-semibold text-11 text-warning-accent"
             >
               하루 권장 {locked ? '???원' : formatKrw(baseline)}
             </Text>
@@ -68,30 +68,32 @@ export function CompareCard({ top, bottom, daily, baseline, d, selected, locked 
         )}
         {daily.map((v, i) => {
           const future = i > d - 1;
-          const on = selected === null ? i === d - 1 : i === selected;
+          const today = i === d - 1;
+          // 시안: 전체 보기면 오늘만 진하게(나머지 스카이 200), 일차를 고르면 그 날만 ink(나머지 회색).
+          const color = selected === null ? (today ? colors.primary.text : colors.sky[200]) : i === selected ? colors.ink.DEFAULT : colors.line.DEFAULT;
           return (
             <View key={i} className="h-full flex-1 items-center justify-end gap-1">
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 style={locked ? blurText(8) : undefined}
-                className="font-semibold text-[11px] text-ink-500"
+                className="font-semibold text-11 text-ink-500"
               >
                 {future ? '' : formatKrw(v)}
               </Text>
               <View
                 style={{
-                  height: future ? BAR_MAX / 3 : h(v),
+                  height: future ? 10 : h(v),
                   maxWidth: 44,
-                  backgroundColor: future ? 'transparent' : on ? colors.primary.DEFAULT : colors.sky[200],
-                  borderWidth: future ? 1.5 : 0,
-                  borderColor: colors.line.DEFAULT,
+                  backgroundColor: future ? 'transparent' : color,
+                  borderWidth: future ? 1 : 0,
+                  borderColor: colors.line.off,
                   borderStyle: 'dashed',
                 }}
-                className="w-full rounded-t-[8px]"
+                className="w-full rounded-t-badge"
               />
-              <Text style={{ height: LABEL_H }} className={`text-xs ${on ? 'font-semibold text-ink' : 'text-ink-400'}`}>
-                {i + 1}일차
+              <Text style={{ height: LABEL_H }} className={`text-xs ${today ? 'font-semibold text-ink' : 'text-ink-400'}`}>
+                {today ? '오늘' : `${i + 1}일차`}
               </Text>
             </View>
           );
@@ -119,7 +121,7 @@ export function CategoryCard({
     <View style={CARD} className="gap-1 rounded-card bg-white px-5 pb-2 pt-[18px]">
       <View className="flex-row items-baseline justify-between pb-1.5">
         <Text className="font-semibold text-base text-ink">카테고리별 지출</Text>
-        <Text style={locked ? blurText(10) : undefined} className="text-[13px] text-ink-500">
+        <Text style={locked ? blurText(10) : undefined} className="text-13 text-ink-500">
           {formatKrw(total)}
         </Text>
       </View>
@@ -131,13 +133,11 @@ export function CategoryCard({
           onPress={() => (locked ? onLocked?.() : onPick(r.code))}
           className={`flex-row items-center gap-3 py-2.5 ${i < rows.length - 1 ? 'border-b border-line-row' : ''}`}
         >
-          <View className="h-9 w-9 items-center justify-center rounded-chip bg-muted">
-            <Icon as={CATEGORY_ICON[r.code]} size={18} color={colors.primary.text} />
-          </View>
+          <CategoryCircle code={r.code} size={36} />
           <View className={`min-w-0 flex-1 ${locked ? 'gap-1.5' : 'gap-[5px]'}`}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-baseline gap-1.5">
-                <Text className="font-semibold text-[15px] text-ink">{r.label}</Text>
+                <Text className="font-semibold text-15 text-ink">{r.label}</Text>
                 <Text className="font-medium text-xs text-ink-400">{locked ? '??%' : `${Math.round(r.ratio * 100)}%`}</Text>
               </View>
               {locked ? (
@@ -146,11 +146,11 @@ export function CategoryCard({
                   <Text className="font-semibold text-xs text-ink-400">???원</Text>
                 </View>
               ) : (
-                <Text className="font-semibold text-[15px] text-ink">{formatKrw(r.amount)}</Text>
+                <Text className="font-semibold text-15 text-ink">{formatKrw(r.amount)}</Text>
               )}
             </View>
-            <View className="h-1.5 rounded-full bg-[#EEF0F3]">
-              <View style={{ width: `${Math.round(r.ratio * 100)}%` }} className="h-full rounded-full bg-primary" />
+            <View className="h-1.5 rounded-full bg-line">
+              <View style={{ width: `${Math.round(r.ratio * 100)}%`, backgroundColor: colors.cat[r.code].chart }} className="h-full rounded-full" />
             </View>
           </View>
           <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
@@ -190,11 +190,11 @@ export function MatesCard({ rows, onLocked }: { rows: MateRow[]; onLocked?: () =
       <Text className="font-semibold text-base text-ink">동행별 지출</Text>
       <View className="flex-row gap-3.5">
         {[
-          { label: '결제한 돈', color: colors.primary.DEFAULT },
+          { label: '결제한 돈', color: colors.primary.text },
           { label: '쓴 돈', color: colors.sky[200] },
         ].map((l) => (
           <View key={l.label} className="flex-row items-center gap-1.5">
-            <View style={{ backgroundColor: l.color }} className="h-2.5 w-2.5 rounded-[3px]" />
+            <View style={{ backgroundColor: l.color }} className="h-2.5 w-2.5 rounded-full" />
             <Text className="text-xs text-ink-500">{l.label}</Text>
           </View>
         ))}
@@ -203,21 +203,21 @@ export function MatesCard({ rows, onLocked }: { rows: MateRow[]; onLocked?: () =
         <Pressable key={r.id} disabled={!r.masked} onPress={onLocked} className="flex-row items-center gap-3">
           <View className="w-10 items-center gap-1">
             <View style={{ backgroundColor: r.tint }} className="h-8 w-8 items-center justify-center rounded-full">
-              <Text style={{ color: r.fg }} className="font-semibold text-[13px]">
+              <Text style={{ color: r.fg }} className="font-semibold text-13">
                 {r.initial}
               </Text>
             </View>
-            <Text numberOfLines={1} className="text-[11px] text-ink-400">
+            <Text numberOfLines={1} className="text-11 text-ink-400">
               {r.name}
             </Text>
           </View>
           <View className="min-w-0 flex-1 gap-1">
             <View className="flex-row items-center gap-2">
               {r.masked ? (
-                <BlurBar width={w(r.paid)} color={colors.primary.DEFAULT} />
+                <BlurBar width={w(r.paid)} color={colors.primary.text} />
               ) : (
                 <View className="h-2 flex-1 rounded-full bg-app">
-                  <View style={{ width: w(r.paid) }} className="h-full rounded-full bg-primary" />
+                  <View style={{ width: w(r.paid) }} className="h-full rounded-full bg-primary-text" />
                 </View>
               )}
               <Text className={`w-[76px] text-right font-semibold text-xs ${r.masked ? 'text-ink-300' : 'text-ink'}`}>

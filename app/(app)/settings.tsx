@@ -126,10 +126,10 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-app">
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="내 정보" />
       <ScrollView contentContainerClassName="gap-4 px-5 pb-10 pt-2">
-        <View className="flex-row items-center gap-3.5 rounded-[22px] bg-white p-5">
+        <View className="flex-row items-center gap-3.5 rounded-card bg-white p-5">
           <View className="h-[60px] w-[60px] items-center justify-center rounded-full bg-sky-100">
             <Text className="font-semibold text-xl text-primary-text">{name.slice(0, 1)}</Text>
           </View>
@@ -138,8 +138,8 @@ export default function Settings() {
               {name}
             </Text>
             <View className="flex-row items-center gap-1.5">
-              <View className={`h-4 w-4 rounded-[5px] ${naver ? 'bg-naver' : 'bg-kakao'}`} />
-              <Text className="text-[13px] text-ink-400">{naver ? '네이버로 로그인' : '카카오로 로그인'}</Text>
+              <View className={`h-4 w-4 rounded-full ${naver ? 'bg-naver' : 'bg-kakao'}`} />
+              <Text className="text-13 text-ink-400">{naver ? '네이버로 로그인' : '카카오로 로그인'}</Text>
             </View>
           </View>
           <Pressable accessibilityRole="button" onPress={openEdit} hitSlop={8}>
@@ -147,7 +147,7 @@ export default function Settings() {
           </Pressable>
         </View>
 
-        <View className="overflow-hidden rounded-[22px] bg-white py-1">
+        <View className="overflow-hidden rounded-card bg-white py-1">
           <Row
             icon={Bank}
             label="받을 계좌"
@@ -160,7 +160,7 @@ export default function Settings() {
           <Row icon={Mail} label="마케팅 정보 수신" right={<Toggle on={marketingOn} label="마케팅 정보 수신" onChange={(on) => void toggleMarketing(on)} />} />
         </View>
 
-        <View className="overflow-hidden rounded-[22px] bg-white py-1">
+        <View className="overflow-hidden rounded-card bg-white py-1">
           <Row icon={LogOut} label="로그아웃" onPress={logout} right={null} />
         </View>
 
@@ -175,9 +175,9 @@ export default function Settings() {
           maxLength={12}
           placeholder="1~12자"
           autoFocus
-          right={<Text className="font-medium text-[13px] text-ink-400">{`${nickname.length}/12`}</Text>}
+          right={<Text className="font-medium text-13 text-ink-400">{`${nickname.length}/12`}</Text>}
         />
-        {error && <Text className="text-[13px] text-danger">{error}</Text>}
+        {error && <Text className="text-13 text-danger">{error}</Text>}
         <PrimaryButton title="저장" disabled={!nicknameSchema.safeParse(nickname).success} loading={saving} onPress={saveNickname} />
       </BottomSheet>
     </SafeAreaView>

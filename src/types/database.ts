@@ -551,14 +551,14 @@ isOneToOne: false
                   ]
                 },"schedule_items": {
                   Row: {
-                    "created_at": string,"day_index": number,"edited_at": string | null,"edited_by": string | null,"est_amount": number,"excludes": (string)[],"id": string,"includes": (string)[],"optional": boolean,"room_id": string,"source": string,"start_time": string,"title": string
+                    "created_at": string,"day_index": number,"edited_at": string | null,"edited_by": string | null,"est_amount": number,"excludes": (string)[],"id": string,"includes": (string)[],"optional": boolean,"position": number,"room_id": string,"source": string,"start_time": string | null,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"day_index": number,"edited_at"?: string | null,"edited_by"?: string | null,"est_amount"?: number,"excludes"?: (string)[],"id"?: string,"includes"?: (string)[],"optional"?: boolean,"room_id": string,"source": string,"start_time": string,"title": string
+                    "created_at"?: string,"day_index": number,"edited_at"?: string | null,"edited_by"?: string | null,"est_amount"?: number,"excludes"?: (string)[],"id"?: string,"includes"?: (string)[],"optional"?: boolean,"position"?: number,"room_id": string,"source": string,"start_time"?: string | null,"title": string
                   }
                   Update: {
-                    "created_at"?: string,"day_index"?: number,"edited_at"?: string | null,"edited_by"?: string | null,"est_amount"?: number,"excludes"?: (string)[],"id"?: string,"includes"?: (string)[],"optional"?: boolean,"room_id"?: string,"source"?: string,"start_time"?: string,"title"?: string
+                    "created_at"?: string,"day_index"?: number,"edited_at"?: string | null,"edited_by"?: string | null,"est_amount"?: number,"excludes"?: (string)[],"id"?: string,"includes"?: (string)[],"optional"?: boolean,"position"?: number,"room_id"?: string,"source"?: string,"start_time"?: string | null,"title"?: string
                   }
                   Relationships: [
                     {

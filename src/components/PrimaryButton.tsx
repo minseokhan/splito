@@ -7,15 +7,16 @@ import { colors } from '@/theme/tokens';
 
 import { Icon } from './Icon';
 
-// 네이비 primary 위 글자는 primary-on(흰색). 밝은 틴트(sky) 위 글자는 primary-text. 비활성은 투명도 대신 회색 배경.
+// primary(스카이 600) 위 글자는 primary-on(흰색). 밝은 틴트(sky) 위 글자는 primary-text. 비활성은 투명도 대신 회색 배경.
 const VARIANT = {
   primary: { box: 'bg-primary active:bg-primary-press', text: 'text-primary-on', icon: colors.primary.on },
-  dark: { box: 'bg-ink active:bg-black', text: 'text-white', icon: '#FFFFFF' },
+  // 20번: 예전 ink 배경 주요 버튼도 primary로 바뀌었다. 호출부가 많아 키는 남긴다.
+  dark: { box: 'bg-primary active:bg-primary-press', text: 'text-primary-on', icon: colors.primary.on },
   muted: { box: 'bg-muted active:bg-line', text: 'text-ink', icon: colors.ink.DEFAULT },
   sky: { box: 'bg-sky-100 active:bg-sky-200', text: 'text-primary-text', icon: colors.primary.text },
   kakao: { box: 'bg-kakao active:bg-[#F2DA00]', text: 'text-kakao-text', icon: colors.kakao.text },
   naver: { box: 'bg-naver active:bg-[#02B350]', text: 'text-white', icon: '#FFFFFF' },
-  danger: { box: 'bg-white border-[1.5px] border-line active:bg-muted', text: 'text-danger-text', icon: colors.danger.text },
+  danger: { box: 'bg-white border border-line active:bg-muted', text: 'text-danger-text', icon: colors.danger.text },
 } as const;
 
 export type ButtonVariant = keyof typeof VARIANT;
@@ -51,7 +52,7 @@ export function PrimaryButton({ title, onPress, disabled, loading, variant = 'pr
       ) : (
         <>
           {icon && <Icon as={icon} size={22} color={disabled ? colors.ink[300] : v.icon} />}
-          <Text className={`font-semibold ${size === 'lg' ? 'text-[17px]' : 'text-base'} ${disabled ? 'text-ink-300' : v.text}`}>
+          <Text className={`font-semibold ${size === 'lg' ? 'text-17' : 'text-base'} ${disabled ? 'text-ink-300' : v.text}`}>
             {title}
           </Text>
         </>

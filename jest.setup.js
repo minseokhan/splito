@@ -4,5 +4,6 @@ jest.mock('react-native-reanimated', () => {
   const { View } = require('react-native');
   const stub = {};
   stub.duration = () => stub;
-  return { __esModule: true, default: { View }, FadeIn: stub, FadeOut: stub, SlideInDown: stub, SlideOutDown: stub };
+  stub.easing = () => stub;
+  return { __esModule: true, default: { View }, FadeIn: stub, FadeOut: stub, SlideInDown: stub, SlideOutDown: stub, Easing: { bezier: () => (t) => t }, useAnimatedKeyboard: () => ({ height: { value: 0 } }), useAnimatedStyle: (fn) => fn() };
 });

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, Copy, NavArrowDown, NavArrowUp, Plus, Xmark } from 'iconoir-react-native';
+import { Calendar, Check, Copy, InfoCircle, NavArrowDown, NavArrowRight, NavArrowUp, Plus, User, Wallet, Xmark } from 'iconoir-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,23 +8,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { DateSheet } from '@/components/DateSheet';
-import { ItemBox } from '@/components/ItemBox';
 import { Icon } from '@/components/Icon';
 import { CATEGORY_ICON } from '@/components/categoryIcon';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
-import { ScheduleChip } from '@/components/ScheduleChip';
+import { ItemRow } from '@/components/review/ItemRow';
+import { Perforation, WavyBottom } from '@/components/review/TicketEdge';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useScheduleItems } from '@/hooks/useBooking';
+import { useScheduleItems, useTripBooking } from '@/hooks/useBooking';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
 import { useMyBudget, useMyShares } from '@/hooks/useBudget';
 import { useMyRooms, useRoom, useRoomMembers } from '@/hooks/useRooms';
-import { addDays, dateLabel as longDateLabel } from '@/lib/calendar';
+import { addDays, shortDate, tripDayTag } from '@/lib/calendar';
 import { budgetStats, myShareOfDraft, overRecWarning } from '@/lib/budget';
 import { CATEGORIES } from '@/lib/category';
 import { CURRENCIES } from '@/lib/currency';
@@ -32,6 +32,7 @@ import { describeDuplicate, findDuplicate, type DupCandidate } from '@/lib/dupli
 import { toUserError, type UserError } from '@/lib/errors';
 import {
   addItem,
+  defaultScheduleId,
   draftFromExpense,
   effScope,
   kstToday,
@@ -42,6 +43,7 @@ import {
   previewKrw,
   previewVisibility,
   removeItem,
+  scheduleMatchesCategory,
   setAssignees,
   splitItem,
   splitLabel,
@@ -117,12 +119,19 @@ export default function ReviewExpense() {
   const pickableRooms = (myRooms ?? []).filter((r) => isActiveTrip(r, kstToday(new Date())) || r.roomId === roomId);
   const [roomOpen, setRoomOpen] = useState(false);
   const [moving, setMoving] = useState(false);
-  // 사람 선택은 한 번에 한 박스만 펼친다(시안). 처음엔 모두 접혀 있다.
+  // 품목 줄은 한 번에 하나만 펼친다. 처음 들어오면 '확인필요' 중 첫 줄을 펼친다(18번 ④).
   const [openBox, setOpenBox] = useState<string | null>(null);
+  const [autoOpened, setAutoOpened] = useState(false);
   const [dupDismissed, setDupDismissed] = useState(false);
-  // ── 일정 연결: 일정 카드의 [+ 지출]로 들어온 경우에만 값이 있다(명세 §7)
+  const [fxTip, setFxTip] = useState(false);
+  // ── 일정 연결(18번 ⑤). entry = 일정 상세의 [+ 지출]로 들어온 일정. 결제일을 바꾸면 선택값과 함께 초기화한다.
   const { data: scheduleItems = [] } = useScheduleItems(roomId);
-  const target = scheduleItems.find((x) => x.id === scheduleId) ?? null;
+  const { data: booking } = useTripBooking(roomId);
+  const [entry, setEntry] = useState<string | null>(scheduleId ?? null);
+  // undefined = 기본값 규칙을 따른다, null = [일정 없음]을 직접 골랐다
+  const [pickedSchedule, setPickedSchedule] = useState<string | null | undefined>(undefined);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const target = scheduleItems.find((x) => x.id === entry) ?? null;
   // 포함 사항에 식사가 있으면 '따로 결제한 게 맞나요?' 한 줄만 보여주고 저장은 막지 않는다.
   const mealWarn = target?.includes.find((l) => /^[조중석]식 포함$/.test(l))?.slice(0, 2) ?? null;
   const [dateConflict, setDateConflict] = useState(false);
@@ -148,6 +157,15 @@ export default function ReviewExpense() {
     queryKey: ['room', roomId, 'recent'],
     queryFn: () => api.recentExpenses(roomId, new Date(Date.now() - DUP_WINDOW_MS).toISOString()),
   });
+
+  // 결제일 달력의 [영수증 날짜] 칩: 처음 불러온 결제일
+  const [receiptDate, setReceiptDate] = useState<string | null>(null);
+  if (draft && receiptDate === null) setReceiptDate(draft.paidLocalDate);
+  if (draft && !autoOpened) {
+    setAutoOpened(true);
+    const first = draft.items.find((it) => it.needsReview);
+    if (first) setOpenBox(first.id);
+  }
 
   // 작성 중 지출이 없으면(저장·폐기 후 다시 열림) 장부 홈으로 돌아간다.
   useEffect(() => {
@@ -237,10 +255,23 @@ export default function ReviewExpense() {
     sectionY.current[s] = e.nativeEvent.layout.y;
   };
 
-  // 결제일이 일정 날짜와 다르면 어디에 넣을지 먼저 묻는다(명세 §7).
+  // 결제일의 일정(시각순). 여행 후 날짜는 '여행 전'으로 접히지 않게 비운다.
+  const startDate = room?.start_date ?? null;
+  const endDate = room?.end_date ?? null;
+  const dayTag = tripDayTag(draft.paidLocalDate, startDate, endDate);
+  const dayIdx = dayIndexOfDate(draft.paidLocalDate, startDate, endDate);
+  const dayItems = dayTag === '여행 후' ? [] : scheduleItems.filter((x) => x.dayIndex === dayIdx);
+  const scheduleSel =
+    pickedSchedule !== undefined
+      ? pickedSchedule
+      : defaultScheduleId({ dayItems, entryId: entry, isPackage: !!booking, paidTime: draft.paidLocalTime });
+  const selItem = scheduleItems.find((x) => x.id === scheduleSel) ?? null;
+
+  // 일정 상세에서 들어온 일정의 날짜가 결제일과 다르면 어디에 넣을지 먼저 묻는다(명세 §7).
   const onSave = async () => {
     if (
       target &&
+      scheduleSel === target.id &&
       !dateConflict &&
       dayIndexOfDate(draft.paidLocalDate, room?.start_date ?? null, room?.end_date ?? null) !== target.dayIndex
     ) {
@@ -250,7 +281,7 @@ export default function ReviewExpense() {
         return;
       }
     }
-    await commit(scheduleId ?? null);
+    await commit(scheduleSel);
   };
 
   const commit = async (linkTo: string | null) => {
@@ -285,7 +316,8 @@ export default function ReviewExpense() {
       const saved = await save.mutateAsync({ payload: toSavePayload(draft, meMemberId, activeIds), expectedVersion: null });
       // 금액·배분은 save_expense가 확정했다. 연결은 표시용 메타라 따로 붙인다.
       if (linkTo) await api.setExpenseMeta({ expenseId: saved.id, scheduleId: linkTo });
-      toast(linkTo && target ? `‘${target.title}’ 일정에 연결했어요` : '지출을 저장했어요');
+      const linked = scheduleItems.find((x) => x.id === linkTo);
+      toast(linked ? `‘${linked.title}’에 연결했어요` : '지출을 저장했어요');
       leave();
     } catch (err) {
       setError(asUserError(err).message);
@@ -351,6 +383,12 @@ export default function ReviewExpense() {
     if (!next) return toast('한 명 이상 골라 주세요');
     update((d) => updateItem(setAssignees(d, itemId, next), itemId, { needsReview: false }));
   };
+  // [전원]: 누르면 전원, 이미 전원이면 나만 남긴다.
+  const allAssignees = (itemId: string) => {
+    const cur = draft.items.find((x) => x.id === itemId)?.assigneeMemberIds ?? [];
+    const next = cur.length === 0 && meMemberId && activeIds.includes(meMemberId) ? [meMemberId] : [];
+    update((d) => updateItem(setAssignees(d, itemId, next), itemId, { needsReview: false }));
+  };
   const itemName = (it: ExpenseDraft['items'][number]) => it.nameKo || it.nameOriginal || '품목';
 
   return (
@@ -358,134 +396,196 @@ export default function ReviewExpense() {
       <NavBar title={edit ? '지출 수정' : '확인하고 나누기'} align="center" />
       <ScrollView
         ref={scrollRef}
-        contentContainerClassName="gap-3.5 px-5 pt-1"
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerClassName="gap-3 px-5 pt-1"
+        contentContainerStyle={{ paddingBottom: 170 }}
         keyboardShouldPersistTaps="handled"
       >
-        {!!target && <ScheduleChip title={target.title} />}
-        {dup && <DupBanner dup={dup} members={members} onMerge={onMerge} onDismiss={() => setDupDismissed(true)} />}
-
-        <View onLayout={(e) => setY('top', e)} className="flex-row items-center gap-3.5 rounded-card bg-white p-[18px]">
-          <ReceiptThumb uri={thumb} />
-          <View className="flex-1 gap-[3px]">
-            <View className="flex-row items-center gap-1.5">
-              <TextInput
-                value={draft.merchant}
-                onChangeText={(merchant) => update((d) => ({ ...d, merchant }))}
-                placeholder="가맹점"
-                placeholderTextColor={colors.ink[300]}
-                accessibilityLabel="가맹점"
-                className="flex-shrink p-0 font-semibold text-[17px] text-ink"
-              />
-              {draft.needsReview && (
-                <Badge kind="review" onPress={() => update((d) => ({ ...d, needsReview: false }))} accessibilityLabel="확인 필요 해제" />
-              )}
-            </View>
-            {/* 현지 통화를 크게, 원화는 옆에 작게 회색(KRW 지출은 원화만). */}
-            <View className="mt-0.5 flex-row flex-wrap items-baseline gap-1.5">
-              {isKrw ? (
-                total && (
-                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[22px] text-ink">
-                    {total}
-                  </Text>
-                )
-              ) : (
-                <>
-                  <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-[22px] text-local">
-                    {formatForeign(sumOriginal, draft.currency)}
-                  </Text>
-                  {total && (
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="text-sm text-ink-300">
-                      {total}
-                    </Text>
-                  )}
-                </>
-              )}
-              {!total && fxPending && <Badge kind="pending" />}
-            </View>
-            {!!dateLabel && <Text className="text-[13px] text-ink-400">{dateLabel}</Text>}
-            {fx.fx && !draft.krwCharged && (
-              <Text className="text-xs text-primary-text">
-                {fxBasisLabel({ source: fx.fx.source, baseDate: fx.fx.base_date, rate: fx.fx.rate, currency: draft.currency })}
-              </Text>
-            )}
-          </View>
-        </View>
-
-        {multi && (
-          <View className="flex-row items-start gap-2 rounded-chip bg-sky-100 px-3 py-2.5">
-            <View className="mt-px h-[18px] w-[18px] items-center justify-center rounded-full bg-alert">
-              <Text className="font-semibold text-xs text-white">!</Text>
-            </View>
-            <Text className="flex-1 text-[13px] text-ink">박스마다 먹은 사람을 눌러주세요. 안 누르면 전원이 1/N로 나눠요.</Text>
+        {/* ② 개인/공금 토글. 공금이 켜진 여행에서만(꺼진 뒤 열린 공금 지출도). 개인 = 올린 사람(나)이 결제. */}
+        {(room?.pool_enabled || draft.payerKind === 'pool') && (
+          <View className="flex-row gap-0.5 self-center rounded-chip bg-muted p-[3px]">
+            {(['member', 'pool'] as const).map((k) => {
+              const on = draft.payerKind === k;
+              return (
+                <Pressable
+                  key={k}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={k === 'pool' ? '공금' : '개인'}
+                  onPress={() =>
+                    update((d) =>
+                      k === 'pool' ? { ...d, payerKind: 'pool', payerMemberId: null } : { ...d, payerKind: 'member', payerMemberId: meMemberId },
+                    )
+                  }
+                  style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
+                  className={`h-[34px] flex-row items-center justify-center gap-1.5 rounded-toggle px-[18px] ${on ? 'bg-white' : ''}`}
+                >
+                  <Icon as={k === 'pool' ? Wallet : User} size={16} color={k === 'pool' ? colors.warning.DEFAULT : colors.primary.text} />
+                  <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{k === 'pool' ? '공금' : '개인'}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
-        <View onLayout={(e) => setY('items', e)} className="gap-3.5">
-          {draft.items.map((it, i) => (
-            <ItemBox
-              key={`${it.id}:${splitRev}`}
-              nameOriginal={it.nameOriginal}
-              nameKo={it.nameKo}
-              quantity={it.quantity}
-              amountLabel={formatForeign(it.amountOriginal, draft.currency)}
-              amountText={String(it.amountOriginal)}
-              krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
-              needsReview={it.needsReview}
-              isKrw={isKrw}
-              people={multi ? active.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
-              splitLabel={multi ? itemSplitLabel(i) : ''}
-              expanded={openBox === it.id}
-              onToggleOpen={multi ? () => setOpenBox((o) => (o === it.id ? null : it.id)) : undefined}
-              onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
-              onChangeAmount={(text) => {
-                const amountOriginal = parseAmountInput(text);
-                if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
-              }}
-              onToggle={multi ? (id) => toggleAssignee(it.id, id) : undefined}
-              onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}
-              onSplit={() => {
-                update((d) => splitItem(d, it.id, uuidV4));
-                setSplitRev((r) => r + 1);
-                setOpenBox(null);
-                toast(`‘${itemName(it)}’을 ${it.quantity}개로 쪼갰어요`);
-              }}
-              onMerge={
-                it.splitFrom
-                  ? () => {
-                      update((d) => mergeSplit(d, it.id));
-                      setSplitRev((r) => r + 1);
-                      setOpenBox(null);
-                      toast(`‘${itemName(it.splitFrom!)}’로 다시 합쳤어요`);
-                    }
-                  : undefined
-              }
-              // 마지막 한 박스는 지울 수 없다(박스 0개 지출은 저장 불가)
-              onRemove={
-                draft.items.length > 1
-                  ? () => {
-                      update((d) => removeItem(d, it.id));
-                      toast(`‘${itemName(it)}’ 품목을 삭제했어요`);
-                    }
-                  : undefined
-              }
-            />
-          ))}
+        {/* ③ 영수증 티켓: 요약 + 중복 배너 + 절취선 + 품목 */}
+        <View onLayout={(e) => setY('top', e)} className="overflow-hidden rounded-t-box bg-white">
+          <View className="flex-row items-center gap-3.5 px-5 pb-3 pt-5">
+            <ReceiptThumb uri={thumb} />
+            <View className="flex-1 gap-0.5">
+              <View className="flex-row items-center gap-1.5">
+                <TextInput
+                  value={draft.merchant}
+                  onChangeText={(merchant) => update((d) => ({ ...d, merchant }))}
+                  placeholder="가맹점"
+                  placeholderTextColor={colors.ink[300]}
+                  accessibilityLabel="가맹점"
+                  className="flex-shrink p-0 font-semibold text-input-16 text-ink"
+                />
+                {draft.needsReview && (
+                  <Badge kind="review" onPress={() => update((d) => ({ ...d, needsReview: false }))} accessibilityLabel="확인 필요 해제" />
+                )}
+              </View>
+              {/* 결제 통화를 크게(#1272BF), 원화는 옆에 작게 회색. 원화 결제는 원화만. */}
+              <View style={{ zIndex: 10 }} className="relative flex-row flex-wrap items-center gap-1.5">
+                {isKrw ? (
+                  total && (
+                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-22 text-ink">
+                      {total}
+                    </Text>
+                  )
+                ) : (
+                  <>
+                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-22 text-local">
+                      {formatForeign(sumOriginal, draft.currency)}
+                    </Text>
+                    {total && (
+                      <Text style={{ fontVariant: ['tabular-nums'] }} className="text-sm text-ink-300">
+                        {total}
+                      </Text>
+                    )}
+                    {fx.fx && !draft.krwCharged && (
+                      <Pressable accessibilityRole="button" accessibilityLabel="환율 근거" onPress={() => setFxTip((v) => !v)} hitSlop={4} className="h-6 w-6 items-center justify-center">
+                        <Icon as={InfoCircle} size={16} color={fxTip ? colors.info.DEFAULT : colors.ink[300]} />
+                      </Pressable>
+                    )}
+                  </>
+                )}
+                {!total && fxPending && <Badge kind="pending" />}
+                {/* 환율 근거는 금액 줄 아래에 떠서 아래 내용을 밀지 않는다(시안). */}
+                {fxTip && fx.fx && !draft.krwCharged && (
+                  <View
+                    style={{ boxShadow: '0 8px 20px -10px rgba(18,168,119,.35)', elevation: 4 }}
+                    className="absolute left-0 top-full mt-1 rounded-badge bg-info-bg px-2.5 py-2"
+                  >
+                    <Text numberOfLines={1} className="font-semibold text-xs text-info">
+                      {fxBasisLabel({ source: fx.fx.source, baseDate: fx.fx.base_date, rate: fx.fx.rate, currency: draft.currency })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="결제일" onPress={() => setDateOpen(true)} hitSlop={6} className="mt-0.5 flex-row items-center gap-1 self-start">
+                <Icon as={Calendar} size={14} color={colors.ink[500]} />
+                <Text className={`text-13 ${pickedDate ? 'text-ink-500' : 'text-ink-300'}`}>{pickedDate ? shortDate(pickedDate) : '날짜 선택'}</Text>
+                <Icon as={NavArrowDown} size={14} color={colors.ink[500]} />
+              </Pressable>
+            </View>
+          </View>
+          {dup && (
+            <View className="mx-5 mb-2">
+              <DupBanner dup={dup} members={members} onMerge={onMerge} onDismiss={() => setDupDismissed(true)} />
+            </View>
+          )}
+          <Perforation />
+          <View onLayout={(e) => setY('items', e)}>
+            <Text className="px-5 pb-0.5 pt-1.5 font-semibold text-13 text-ink-500">품목 {draft.items.length}개</Text>
+            {draft.items.map((it, i) => (
+              <ItemRow
+                key={`${it.id}:${splitRev}`}
+                first={i === 0}
+                nameOriginal={it.nameOriginal}
+                nameKo={it.nameKo}
+                quantity={it.quantity}
+                amountLabel={formatForeign(it.amountOriginal, draft.currency)}
+                amountText={String(it.amountOriginal)}
+                krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
+                needsReview={it.needsReview}
+                isKrw={isKrw}
+                people={multi ? active.map((p) => ({ ...p, on: it.assigneeMemberIds.includes(p.id) })) : []}
+                splitLabel={multi ? itemSplitLabel(i) : ''}
+                expanded={openBox === it.id}
+                onToggleOpen={() => setOpenBox((o) => (o === it.id ? null : it.id))}
+                onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
+                onChangeAmount={(text) => {
+                  const amountOriginal = parseAmountInput(text);
+                  if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
+                }}
+                onToggle={(id) => toggleAssignee(it.id, id)}
+                onAll={() => allAssignees(it.id)}
+                onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}
+                onSplit={() => {
+                  update((d) => splitItem(d, it.id, uuidV4));
+                  setSplitRev((r) => r + 1);
+                  setOpenBox(null);
+                  toast(`‘${itemName(it)}’을 ${it.quantity}개로 쪼갰어요`);
+                }}
+                onMerge={
+                  it.splitFrom
+                    ? () => {
+                        const orig = it.splitFrom!;
+                        update((d) => mergeSplit(d, it.id));
+                        setSplitRev((r) => r + 1);
+                        setOpenBox(null);
+                        toast(`‘${itemName(orig)}${orig.quantity > 1 ? ` ×${orig.quantity}` : ''}’로 다시 합쳤어요`);
+                      }
+                    : undefined
+                }
+                // 마지막 한 품목은 지울 수 없다(품목 0개 지출은 저장 불가)
+                onRemove={
+                  draft.items.length > 1
+                    ? () => {
+                        update((d) => removeItem(d, it.id));
+                        setOpenBox(null);
+                        toast(`‘${itemName(it)}’ 품목을 삭제했어요`);
+                      }
+                    : undefined
+                }
+              />
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => update((d) => addItem(d, uuidV4))}
+              className="h-12 flex-row items-center justify-center gap-1 active:bg-app"
+            >
+              <Icon as={Plus} size={16} color={colors.primary.text} />
+              <Text className="font-semibold text-sm text-primary-text">품목 추가</Text>
+            </Pressable>
+          </View>
+          <WavyBottom />
+        </View>
+
+        {/* ⑤ 일정 카드. 결제일에 일정이 없으면 숨긴다(일정 상세에서 들어온 경우는 그 일정을 보여준다). */}
+        {!edit && (dayItems.length > 0 || !!target) && (
           <Pressable
             accessibilityRole="button"
-            onPress={() => update((d) => addItem(d, uuidV4))}
-            style={{ borderStyle: 'dashed' }}
-            className="h-12 flex-row items-center justify-center gap-1.5 rounded-card border-[1.5px] border-line-off active:bg-muted"
+            accessibilityLabel="일정 고르기"
+            onPress={() => setScheduleOpen(true)}
+            className="h-[52px] flex-row items-center justify-between gap-3 rounded-box bg-white pl-4 pr-3 active:bg-app"
           >
-            <Icon as={Plus} size={20} color={colors.ink[500]} />
-            <Text className="text-base text-ink-500">품목 추가</Text>
+            <Text className="text-15 text-ink-500">일정</Text>
+            <View className="flex-shrink flex-row items-center gap-1.5">
+              <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
+                {selItem?.title ?? '일정 없음'}
+              </Text>
+              {!!selItem && scheduleMatchesCategory(draft.category, selItem.title) && <Recommend />}
+              <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+            </View>
           </Pressable>
-        </View>
+        )}
 
         <View onLayout={(e) => setY('date', e)} className="gap-4 rounded-card bg-white p-4">
           {!edit && pickableRooms.length > 0 && (
             <View className="gap-2" style={{ zIndex: 20 }}>
-              <Text className="font-semibold text-[13px] text-ink-500">정산할 곳</Text>
+              <Text className="font-semibold text-13 text-ink-500">정산할 곳</Text>
               <View>
                 <Pressable
                   accessibilityRole="button"
@@ -493,7 +593,7 @@ export default function ReviewExpense() {
                   accessibilityState={{ expanded: roomOpen }}
                   disabled={moving}
                   onPress={() => setRoomOpen((v) => !v)}
-                  className={`h-[54px] flex-row items-center gap-2 rounded-input border-[1.5px] bg-white px-4 ${
+                  className={`h-[54px] flex-row items-center gap-2 rounded-input border bg-white px-4 ${
                     roomOpen ? 'border-primary' : 'border-line'
                   }`}
                 >
@@ -506,7 +606,7 @@ export default function ReviewExpense() {
                 {roomOpen && (
                   <View
                     style={{ elevation: 8, boxShadow: '0 10px 24px -8px rgba(19,25,39,.22)' }}
-                    className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-input border-[1.5px] border-line bg-white"
+                    className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-input border border-line bg-white"
                   >
                     {pickableRooms.map((r, i) => {
                       const on = r.roomId === roomId;
@@ -535,19 +635,8 @@ export default function ReviewExpense() {
               </View>
             </View>
           )}
-          <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">결제일</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="결제일"
-              onPress={() => setDateOpen(true)}
-              className="h-[54px] justify-center rounded-input border-[1.5px] border-line bg-white px-4"
-            >
-              <Text className={`text-base ${pickedDate ? 'text-ink' : 'text-ink-300'}`}>{pickedDate ? longDateLabel(pickedDate) : '날짜 선택'}</Text>
-            </Pressable>
-          </View>
           <View onLayout={(e) => setY('currency', e)} className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">통화</Text>
+            <Text className="font-semibold text-13 text-ink-500">통화</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
               {CURRENCIES.map((c) => {
                 const on = draft.currency === c.code;
@@ -557,7 +646,7 @@ export default function ReviewExpense() {
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     onPress={() => update((d) => ({ ...d, currency: c.code }))}
-                    className={`h-11 justify-center rounded-[12px] border-[1.5px] px-3.5 ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                    className={`h-11 justify-center rounded-chip border px-3.5 ${on ? 'border-primary-text bg-sky-100' : 'border-line bg-white active:border-sky-200 active:bg-app'}`}
                   >
                     <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.code}</Text>
                   </Pressable>
@@ -566,7 +655,7 @@ export default function ReviewExpense() {
             </ScrollView>
           </View>
           <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">카테고리</Text>
+            <Text className="font-semibold text-13 text-ink-500">카테고리</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
               {CATEGORIES.map((c) => {
                 const on = draft.category === c.code;
@@ -576,10 +665,10 @@ export default function ReviewExpense() {
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     onPress={() => update((d) => ({ ...d, category: c.code }))}
-                    className={`h-11 flex-row items-center gap-1.5 rounded-[12px] border-[1.5px] px-3.5 ${on ? 'border-primary bg-sky-50' : 'border-line bg-white'}`}
+                    className={`h-11 flex-row items-center gap-1.5 rounded-chip border px-3.5 ${on ? 'border-ink bg-ink' : 'border-line bg-white active:border-sky-200 active:bg-app'}`}
                   >
-                    <Icon as={CATEGORY_ICON[c.code]} size={17} color={on ? colors.primary.text : colors.ink[400]} />
-                    <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.label}</Text>
+                    <Icon as={CATEGORY_ICON[c.code]} size={17} color={on ? '#FFFFFF' : colors.ink[400]} />
+                    <Text className={`font-semibold text-base ${on ? 'text-white' : 'text-ink-500'}`}>{c.label}</Text>
                   </Pressable>
                 );
               })}
@@ -587,43 +676,22 @@ export default function ReviewExpense() {
           </View>
         </View>
 
-        {/* 결제자는 올린 사람이라 멤버 선택이 없다. 공금이 켜져 있을 때만(꺼진 뒤 열린 공금 지출도) 토글로 바꾼다. */}
-        {(room?.pool_enabled || draft.payerKind === 'pool') && (
-          <View className="flex-row items-center justify-between gap-3 rounded-card bg-white px-4 py-3">
-            <Text className="font-semibold text-sm text-ink">공금으로 결제</Text>
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityState={{ checked: draft.payerKind === 'pool' }}
-              accessibilityLabel="공금으로 결제"
-              onPress={() =>
-                update((d) =>
-                  d.payerKind === 'pool'
-                    ? { ...d, payerKind: 'member', payerMemberId: meMemberId }
-                    : { ...d, payerKind: 'pool', payerMemberId: null },
-                )
-              }
-              className={`h-8 justify-center rounded-full px-3 ${draft.payerKind === 'pool' ? 'bg-ink' : 'bg-muted'}`}
-            >
-              <Text className={`font-semibold text-[13px] ${draft.payerKind === 'pool' ? 'text-white' : 'text-ink-500'}`}>
-                {draft.payerKind === 'pool' ? '공금' : '내가 결제'}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-
         {multi && (
-          <Text className={`px-1 text-right text-[13px] ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
+          <Text className={`px-1 text-right text-13 ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
             {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
           </Text>
         )}
       </ScrollView>
 
-      <BottomBar shadow>
+      <BottomBar fade>
         {!!mealWarn && (
-          <Text className="text-[13px] text-warning">이 일정은 {mealWarn}이 포함돼 있어요. 따로 결제한 게 맞나요?</Text>
+          <View className="flex-row items-center gap-1.5">
+            <Icon as={InfoCircle} size={16} color={colors.warning.DEFAULT} />
+            <Text className="flex-1 text-13 text-warning-text">이 일정은 {mealWarn}이 포함돼 있어요. 따로 결제한 게 맞나요?</Text>
+          </View>
         )}
-        {!!budgetWarn && <Text className="text-[13px] text-warning-accent">{budgetWarn}</Text>}
-        {error && <Text className="text-[13px] text-danger-text">{error}</Text>}
+        {!!budgetWarn && <Text className="text-13 text-warning-accent">{budgetWarn}</Text>}
+        {error && <Text className="text-13 text-danger-text">{error}</Text>}
         <PrimaryButton
           title={total ? `${total} 저장하기` : '저장하기'}
           onPress={() => void onSave()}
@@ -642,7 +710,7 @@ export default function ReviewExpense() {
         }
       >
         <View className="gap-2">
-          <PrimaryButton title="이 일정에 넣기" variant="dark" onPress={() => void commit(scheduleId ?? null)} />
+          <PrimaryButton title="이 일정에 넣기" variant="dark" onPress={() => void commit(scheduleSel)} />
           <PrimaryButton
             title={`결제일(${conflictDayLabel}) 그 외 지출로 넣기`}
             variant="muted"
@@ -656,14 +724,75 @@ export default function ReviewExpense() {
         visible={dateOpen}
         value={draft.paidLocalDate}
         // 시차 때문에 '내일'까지는 허용한다(validateDraft와 같은 기준)
-        max={addDays(kstToday(new Date()), 1)}
+        max={addDays(todayLocal, 1)}
+        quick={[
+          ...(receiptDate && /^\d{4}-\d{2}-\d{2}$/.test(receiptDate)
+            ? [{ label: `영수증 날짜 ${receiptDate.slice(5).replace('-', '.')}`, date: receiptDate }]
+            : []),
+          { label: `오늘 ${todayLocal.slice(5).replace('-', '.')}`, date: todayLocal },
+        ]}
+        band={startDate ? { start: startDate, end: endDate } : undefined}
+        resultLabel={(d) => {
+          const tag = tripDayTag(d, startDate, endDate);
+          return tag ? `${shortDate(d)} · ${tag}` : shortDate(d);
+        }}
         onPick={(paidLocalDate) => {
-          update((d) => ({ ...d, paidLocalDate }));
           setDateOpen(false);
+          if (paidLocalDate === draft.paidLocalDate) return;
+          // 결제일이 바뀌면 일정 선택값을 초기화한다. 환율은 결제일 키로 다시 불러온다(useFxPreview).
+          update((d) => ({ ...d, paidLocalDate }));
+          setEntry(null);
+          setPickedSchedule(undefined);
+          toast(`결제일을 ${shortDate(paidLocalDate)}로 바꿨어요`);
         }}
         onClose={() => setDateOpen(false)}
       />
+
+      <BottomSheet visible={scheduleOpen} onClose={() => setScheduleOpen(false)} title="어떤 일정에 넣을까요?" subtitle={dateLabel ? `결제일 ${dateLabel}` : undefined}>
+        <View className="flex-row flex-wrap gap-2">
+          {[...dayItems, ...(target && !dayItems.includes(target) ? [target] : [])].map((x) => {
+            const on = scheduleSel === x.id;
+            return (
+              <Pressable
+                key={x.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                onPress={() => {
+                  setPickedSchedule(x.id);
+                  setScheduleOpen(false);
+                }}
+                className={`h-9 flex-row items-center gap-[5px] rounded-full border px-3 ${on ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
+              >
+                {on && <Icon as={Check} size={14} color={colors.primary.text} />}
+                <Text className={`font-semibold text-sm ${on ? 'text-primary-text' : 'text-ink'}`}>{x.title}</Text>
+                {scheduleMatchesCategory(draft.category, x.title) && <Recommend />}
+              </Pressable>
+            );
+          })}
+          <Pressable
+            accessibilityRole="radio"
+            accessibilityState={{ selected: scheduleSel === null }}
+            onPress={() => {
+              setPickedSchedule(null);
+              setScheduleOpen(false);
+            }}
+            className={`h-9 flex-row items-center gap-[5px] rounded-full border px-3 ${scheduleSel === null ? 'border-primary-text bg-sky-50' : 'border-line bg-white'}`}
+          >
+            {scheduleSel === null && <Icon as={Check} size={14} color={colors.primary.text} />}
+            <Text className={`font-semibold text-sm ${scheduleSel === null ? 'text-primary-text' : 'text-ink'}`}>일정 없음</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
+  );
+}
+
+// 카테고리↔일정 이름이 맞을 때의 노란 '✦ 추천' 라벨(자동 선택 아님).
+function Recommend() {
+  return (
+    <View className="rounded-badge bg-warning-bg px-1.5 py-0.5">
+      <Text className="font-semibold text-11 text-warning-text">✦ 추천</Text>
+    </View>
   );
 }
 
@@ -684,12 +813,12 @@ function DupBanner({
   return (
     <View className="flex-row items-center gap-2.5 rounded-button bg-warning-banner px-3.5 py-3">
       <Icon as={Copy} size={20} color={colors.warning.DEFAULT} />
-      <Text className="flex-1 text-[13px] text-warning-deep">
+      <Text className="flex-1 text-13 text-warning-deep">
         {by ? `${by}님이 올린 ` : ''}
         <Text className="font-semibold">{describeDuplicate(dup, localToday())}</Text> 기록과 같은 결제 같아요
       </Text>
       <Pressable accessibilityRole="button" onPress={() => void onMerge(dup, by)} className="rounded-badge bg-white px-2.5 py-1.5">
-        <Text className="font-semibold text-[13px] text-warning">합치기</Text>
+        <Text className="font-semibold text-13 text-warning-text">합치기</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="별개예요" onPress={onDismiss} hitSlop={8}>
         <Icon as={Xmark} size={18} color={colors.warning.DEFAULT} />

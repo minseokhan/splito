@@ -98,13 +98,13 @@ export default function Budget() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-[18px] px-5 pb-10 pt-2">
           <View className="gap-1.5">
             <Text className="font-semibold text-2xl text-ink">{editing ? '예산 수정' : '여행 예산을 정해 주세요'}</Text>
-            {!editing && <Text className="text-[15px] text-ink-500">하루 쓸 수 있는 금액을 계산해 드려요</Text>}
+            {!editing && <Text className="text-15 text-ink-500">하루 쓸 수 있는 금액을 계산해 드려요</Text>}
           </View>
 
           <View className="gap-2">
-            <Text className="font-semibold text-[13px] text-ink-500">전체 예산</Text>
+            <Text className="font-semibold text-13 text-ink-500">전체 예산</Text>
             <View
-              style={{ borderWidth: 1.5, borderColor: colors.primary.DEFAULT, boxShadow: '0 0 0 4px rgba(29,60,143,.16)' }}
+              style={{ borderWidth: 1, borderColor: colors.primary.text, boxShadow: '0 0 0 4px rgba(18,114,191,.16)' }}
               className="h-14 flex-row items-center gap-1.5 rounded-input px-4"
             >
               <TextInput
@@ -123,7 +123,7 @@ export default function Budget() {
           </View>
 
           <View className="gap-2.5">
-            <Text className="font-semibold text-[13px] text-ink-500">
+            <Text className="font-semibold text-13 text-ink-500">
               카테고리 배분 <Text className="font-medium text-ink-300">선택</Text>
             </Text>
             <View className="flex-row gap-1.5 rounded-input bg-muted p-1">
@@ -135,8 +135,8 @@ export default function Budget() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                     onPress={() => pickMode(m.key)}
-                    style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
-                    className={`h-[38px] flex-1 items-center justify-center rounded-[10px] ${on ? 'bg-white' : ''}`}
+                    style={on ? { boxShadow: '0 2px 4px -2px rgba(19,25,39,.12)' } : undefined}
+                    className={`h-[38px] flex-1 items-center justify-center rounded-chip ${on ? 'bg-white' : ''}`}
                   >
                     <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{m.label}</Text>
                   </Pressable>
@@ -149,8 +149,8 @@ export default function Budget() {
                 {ALLOC_CATEGORIES.map((code) => (
                   <View key={code} className="flex-row items-center gap-2.5">
                     <Icon as={CATEGORY_ICON[code]} size={18} color={colors.primary.text} />
-                    <Text className="flex-1 text-[15px] text-ink">{categoryLabel(code)}</Text>
-                    <View style={{ borderWidth: 1.5, borderColor: colors.line.DEFAULT }} className="h-[42px] w-[140px] justify-center rounded-chip px-3">
+                    <Text className="flex-1 text-15 text-ink">{categoryLabel(code)}</Text>
+                    <View style={{ borderWidth: 1, borderColor: colors.line.DEFAULT }} className="h-[42px] w-[140px] justify-center rounded-chip px-3">
                       <TextInput
                         accessibilityLabel={`${categoryLabel(code)} 예산`}
                         value={comma(alloc[code] ?? 0)}
@@ -158,14 +158,14 @@ export default function Budget() {
                         keyboardType="number-pad"
                         placeholder="0"
                         placeholderTextColor={colors.ink[300]}
-                        className="text-right font-semibold text-[15px] text-ink"
+                        className="text-right font-semibold text-input-15 text-ink"
                       />
                     </View>
                   </View>
                 ))}
                 {/* 합계가 달라도 막지 않고 안내만 한다(명세 §4). */}
                 {mismatch && (
-                  <Text className="text-[13px] text-warning">
+                  <Text className="text-13 text-warning-text">
                     배분 합계 {formatKrw(manualSum)}이 전체 예산과 {formatKrw(Math.abs(manualSum - total))} 달라요
                   </Text>
                 )}
@@ -173,10 +173,10 @@ export default function Budget() {
             )}
 
             {mode === 'ai' && (
-              <View className="gap-2 rounded-button border border-stats-line bg-sky-50 p-3.5">
+              <View className="gap-2 rounded-card border border-stats-line bg-app p-3.5">
                 <View className="flex-row items-center gap-1.5">
                   <Icon as={Sparks} size={16} color={colors.primary.text} />
-                  <Text className="font-semibold text-[13px] text-primary-text">지금까지 지출을 바탕으로 나눴어요</Text>
+                  <Text className="font-semibold text-13 text-primary-text">지금까지 지출을 바탕으로 나눴어요</Text>
                 </View>
                 {aiLoading && <ActivityIndicator color={colors.primary.DEFAULT} />}
                 {!aiLoading &&

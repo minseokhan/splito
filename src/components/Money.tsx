@@ -6,7 +6,7 @@ const fmt = new Intl.NumberFormat('ko-KR');
 
 type Props = { net: Krw; size?: 'base' | 'large'; label?: boolean };
 
-// 순잔액: 받을 돈 + primary-text(#1D3C8F), 줄 돈 − danger(#D92D20). 색만으로 구분하지 않고 부호와 라벨을 함께 쓴다.
+// 순잔액: 받을 돈 + success(민트 600), 줄 돈 − ink(빨강은 삭제·오류에만). 색만으로 구분하지 않고 부호와 라벨을 함께 쓴다.
 export function Money({ net, size = 'base', label = true }: Props) {
   const abs = `${fmt.format(Math.abs(net))}원`;
   const text = net > 0 ? '받을 돈' : net < 0 ? '줄 돈' : '정산할 돈 없음';
@@ -19,13 +19,13 @@ export function Money({ net, size = 'base', label = true }: Props) {
         {netSign(net)}
         {abs}
       </Text>
-      {label && <Text className="text-[13px] text-ink-400">{text}</Text>}
+      {label && <Text className="text-13 text-ink-400">{text}</Text>}
     </View>
   );
 }
 
 export const netSign = (net: Krw) => (net > 0 ? '+' : net < 0 ? '−' : '');
-export const netColor = (net: Krw) => (net > 0 ? 'text-primary-text' : net < 0 ? 'text-danger' : 'text-ink');
+export const netColor = (net: Krw) => (net > 0 ? 'text-success' : 'text-ink');
 
 export function formatKrw(v: Krw) {
   return `${fmt.format(v)}원`;
