@@ -158,7 +158,7 @@ export default function Budget() {
                         keyboardType="number-pad"
                         placeholder="0"
                         placeholderTextColor={colors.ink[300]}
-                        className="text-right font-semibold text-15 text-ink"
+                        className="text-right font-semibold text-input-15 text-ink"
                       />
                     </View>
                   </View>

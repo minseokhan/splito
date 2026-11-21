@@ -400,7 +400,7 @@ export default function ExpenseDetailScreen() {
               value={draft}
               onChangeText={setDraft}
               maxLength={500}
-              className="h-[54px] flex-1 rounded-input border border-line bg-white px-4 text-base text-ink focus:border-primary"
+              className="h-[54px] flex-1 rounded-input border border-line bg-white px-4 text-input-16 text-ink focus:border-primary"
             />
             <Pressable
               accessibilityRole="button"

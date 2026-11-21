@@ -439,7 +439,7 @@ export default function ReviewExpense() {
                   placeholder="가맹점"
                   placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="가맹점"
-                  className="flex-shrink p-0 font-semibold text-base text-ink"
+                  className="flex-shrink p-0 font-semibold text-input-16 text-ink"
                 />
                 {draft.needsReview && (
                   <Badge kind="review" onPress={() => update((d) => ({ ...d, needsReview: false }))} accessibilityLabel="확인 필요 해제" />

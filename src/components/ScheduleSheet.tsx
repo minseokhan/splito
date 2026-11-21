@@ -199,7 +199,7 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
                 placeholderTextColor={colors.ink[300]}
                 keyboardType="number-pad"
                 accessibilityLabel="예정 금액"
-                className="min-w-0 flex-1 text-right font-semibold text-15 text-ink"
+                className="min-w-0 flex-1 text-right font-semibold text-input-15 text-ink"
               />
               <Text className="font-semibold text-15 text-ink">원</Text>
             </View>

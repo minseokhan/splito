@@ -77,7 +77,7 @@ export function ItemBox(p: Props) {
                   placeholder="품목 이름"
                   placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="품목 이름"
-                  className="flex-shrink p-0 font-semibold text-base text-ink"
+                  className="flex-shrink p-0 font-semibold text-input-16 text-ink"
                 />
                 {!!qty && <Text className="font-semibold text-base text-ink">{qty}</Text>}
               </View>

@@ -302,7 +302,7 @@ export default function NewExpense() {
                 placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="카드 승인 문자"
                 textAlignVertical="top"
-                className="min-h-40 rounded-input border border-line bg-white p-4 text-17 text-ink focus:border-primary"
+                className="min-h-40 rounded-input border border-line bg-white p-4 text-input-17 text-ink focus:border-primary"
               />
               <Text className="self-end text-sm text-ink-400">
                 {text.length.toLocaleString()}/{TEXT_LIMIT.toLocaleString()}

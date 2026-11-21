@@ -68,7 +68,7 @@ export function GuestForm({ roomId, guest, onClose }: Props) {
         value={name}
         onChangeText={setName}
         maxLength={12}
-        className="h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-17 text-ink focus:border-primary"
+        className="h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-input-17 text-ink focus:border-primary"
       />
       <View className="gap-2">
         <Text className="text-13 text-ink-500">대표자 · 게스트 정산을 대신 기록하고 알려줘요</Text>

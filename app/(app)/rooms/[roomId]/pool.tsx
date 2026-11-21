@@ -25,7 +25,7 @@ import type { MemberId, RoomMember } from '@/types/domain';
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
 const toKrw = (text: string) => Number(text.replace(/\D/g, '') || '0');
-const INPUT = 'h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-17 text-ink focus:border-primary';
+const INPUT = 'h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-input-17 text-ink focus:border-primary';
 // 시안 16 잔액 카드의 민트 계열 글자·트랙 색. 이 화면에서만 쓰여 토큰에 없다(프로토타입 인라인 값).
 const MINT_DEEP = '#0A6656'; // TODO(token): 민트 800 #0A6656
 const MINT_TRACK = 'rgba(11,125,108,.15)';
@@ -292,7 +292,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                 value={bulk ? toKrw(bulk).toLocaleString('ko-KR') : ''}
                 onChangeText={setBulk}
                 style={{ fontVariant: ['tabular-nums'] }}
-                className="h-[50px] flex-1 rounded-input border border-line bg-white px-3.5 font-semibold text-base text-ink focus:border-sky-500"
+                className="h-[50px] flex-1 rounded-input border border-line bg-white px-3.5 font-semibold text-input-16 text-ink focus:border-sky-500"
               />
               <Pressable
                 accessibilityRole="button"
@@ -324,7 +324,7 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
                     placeholder="0"
                     placeholderTextColor={colors.ink[300]}
                     style={{ fontVariant: ['tabular-nums'] }}
-                    className="h-[42px] w-[128px] rounded-chip bg-app px-3 text-right font-semibold text-15 text-ink"
+                    className="h-[42px] w-[128px] rounded-chip bg-app px-3 text-right font-semibold text-input-15 text-ink"
                   />
                 </View>
               ))}

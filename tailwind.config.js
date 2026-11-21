@@ -80,6 +80,11 @@ module.exports = {
         26: ['26px', '42px'],
         28: ['28px', '45px'],
         30: ['30px', '48px'],
+        // 입력칸 전용: 행간 없음. iOS 한 줄 TextInput에 행간이 붙으면 글자·placeholder가 아래로 처진다(커서는 위).
+        'input-15': '15px',
+        'input-16': '16px',
+        'input-17': '17px',
+        'input-18': '18px',
       },
       fontFamily: {
         sans: ['Pretendard-Regular'],

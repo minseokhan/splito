@@ -785,7 +785,7 @@ function EditRow({ item: c, people, onChange, onRemove }: EditProps) {
           placeholderTextColor={colors.ink[300]}
           maxLength={80}
           accessibilityLabel="품목"
-          className="h-12 min-w-0 flex-1 rounded-chip border border-line px-3 font-semibold text-15 text-ink focus:border-primary"
+          className="h-12 min-w-0 flex-1 rounded-chip border border-line px-3 font-semibold text-input-15 text-ink focus:border-primary"
         />
         <View className="h-12 w-[130px] flex-row items-center gap-1 rounded-chip border border-line px-3">
           {/* ponytail: 정수만 받는다. 센트 단위 외화를 말로 넣는 경우가 생기면 parseAmountInput으로 바꾼다. */}
@@ -794,7 +794,7 @@ function EditRow({ item: c, people, onChange, onRemove }: EditProps) {
             onChangeText={(t) => onChange({ amount: parseInt(t.replace(/[^0-9]/g, ''), 10) || 0 })}
             keyboardType="number-pad"
             accessibilityLabel="금액"
-            className="min-w-0 flex-1 text-right font-semibold text-15 text-ink"
+            className="min-w-0 flex-1 text-right font-semibold text-input-15 text-ink"
           />
           <Text className="font-semibold text-15 text-ink-500">{unit}</Text>
         </View>

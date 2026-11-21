@@ -196,19 +196,11 @@ export default function RoomHome() {
 
   // ── 날짜 탭 바로가기(노션 19번 ②). 좌표는 모두 ScrollView 콘텐츠 기준으로 되짚는다.
   const scrollRef = useRef<ScrollView>(null);
-  const lay = useRef({ body: 0, list: 0, tabs: 0, viewport: 0, days: new Map<string, { y: number; h: number }>() });
+  const lay = useRef({ body: 0, list: 0, tabs: 0, days: new Map<string, { y: number; h: number }>() });
   const [activeTab, setActiveTab] = useState('all');
-  const [bottomPad, setBottomPad] = useState(130);
   const dayTop = (key: string) => lay.current.body + lay.current.list + (lay.current.days.get(key)?.y ?? 0) - lay.current.tabs;
-  // 마지막 날짜도 탭 바로 아래까지 올라오도록 아래 여백을 확보한다.
-  const fitBottom = () => {
-    const last = [...lay.current.days.values()].sort((a, b) => b.y - a.y)[0];
-    const next = Math.max(130, last ? lay.current.viewport - lay.current.tabs - last.h : 130);
-    setBottomPad((v) => (v === next ? v : next));
-  };
   const onDayLayout = (key: string, y: number, h: number) => {
     lay.current.days.set(key, { y, h });
-    fitBottom();
   };
   const switchView = (v: 'sched' | 'exp') => {
     lay.current.days.clear();
@@ -268,8 +260,6 @@ export default function RoomHome() {
   const showSchedule = hasSchedule && view === 'sched';
   // 일정·지출이 하나도 없는 자유여행 방은 일정표 첫 화면(노션 16번).
   const firstRun = !pkg && scheduleItems.length === 0 && (feed.data ?? []).length === 0 && !feed.isLoading;
-  // 가입 안내는 직접 만든 방에서만 — 패키지 연동 방은 동행이 예약으로 정해져 있다.
-  const needJoinHint = !together && !pkg;
   const flag = currencyFlag(room.baseCurrency);
   // 메뉴는 누른 요소 아래로 8pt 띄운다. 오른쪽 정렬은 화면 폭에서 되짚는다.
   const rightOf = (x: number, w: number) => Math.max(16, Dimensions.get('window').width - (x + w));
@@ -379,14 +369,13 @@ export default function RoomHome() {
           />
         </View>
       </View>
-      {(offline || needJoinHint || pending.length > 0) && (
+      {(offline || pending.length > 0) && (
         <View className="gap-2 pt-3">
           {offline && (
             <View className="rounded-input border border-warning-line bg-warning-banner px-4 py-3">
               <Text className="text-13 text-warning-deep">인터넷 연결이 끊겼어요. 기록은 연결 후 할 수 있어요.</Text>
             </View>
           )}
-          {needJoinHint && <Text className="px-1 text-13 text-ink-500">모든 동행이 앱에 가입해야 정확히 나눠져요</Text>}
           {pending.length > 0 && (
             <Banner
               warning
@@ -587,10 +576,6 @@ export default function RoomHome() {
         ref={scrollRef}
         stickyHeaderIndices={[1]}
         scrollEventThrottle={16}
-        onLayout={(e) => {
-          lay.current.viewport = e.nativeEvent.layout.height;
-          fitBottom();
-        }}
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           // 스크롤 위치에 따라 밑줄을 옮긴다: 탭 아래를 지난 마지막 날짜.
@@ -616,7 +601,8 @@ export default function RoomHome() {
           >
             {showSchedule ? scheduleBody : expenseList}
           </View>
-          <View style={{ height: bottomPad }} />
+          {/* 지출 올리기 버튼에 가리지 않을 만큼만. 마지막 날짜를 탭 바로 아래로 올리려고 화면 높이만큼 비우던 여백은 없앴다(사용자 결정). */}
+          <View style={{ height: 130 }} />
         </View>
       </ScrollView>
       {/* 지출 올리기: 오른쪽 아래 떠 있는 알약 버튼(오른쪽 20 · 높이 52 · 좌우 20 · 16/600 · 아이콘 20). 스크롤해도 그대로 있다. */}

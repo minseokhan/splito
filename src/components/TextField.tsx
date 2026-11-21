@@ -25,7 +25,7 @@ export function TextField({ invalid, right, onFocus, onBlur, ...input }: Props) 
           setFocused(false);
           onBlur?.(e);
         }}
-        className="h-full flex-1 font-semibold text-17 text-ink"
+        className="h-full flex-1 font-semibold text-input-17 text-ink"
       />
       {right}
     </View>

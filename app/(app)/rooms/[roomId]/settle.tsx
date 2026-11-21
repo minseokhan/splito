@@ -365,7 +365,7 @@ function SendSheet({ item, toName, busy, onClose, onSubmit }: SendSheetProps) {
         value={amount ? amount.toLocaleString('ko-KR') : ''}
         onChangeText={setText}
         style={{ fontVariant: ['tabular-nums'] }}
-        className="h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-17 text-ink focus:border-primary focus:bg-sky-50"
+        className="h-[54px] rounded-input border border-line bg-white px-4 font-semibold text-input-17 text-ink focus:border-primary focus:bg-sky-50"
       />
       <PrimaryButton title="기록하기" variant="dark" loading={busy} disabled={amount <= 0} onPress={() => onSubmit(id, amount)} />
     </BottomSheet>

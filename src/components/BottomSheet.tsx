@@ -1,28 +1,31 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
-import Animated, { Easing, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { Easing, SlideInDown, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 type Props = { visible: boolean; onClose: () => void; children: ReactNode; title?: string; subtitle?: string };
 
 // 시안: 시트 320ms cubic-bezier(0.2,0.8,0.2,1), 바운스 없음.
 const ENTER_MS = 320;
 const EXIT_MS = 200;
-// 키보드 위에 붙을 때 시트 흰 바닥을 키보드 밑으로 이만큼 더 깐다 —
-// 그러지 않으면 키보드 위쪽 둥근 모서리 사이로 스크림이 까맣게 비친다.
-// iOS 26 키보드의 모서리 반지름(실측 ~18)보다 넉넉히 잡는다. 같은 값만큼 paddingBottom을
-// 더하므로 내용 위치는 그대로다.
-const KEYBOARD_OVERLAP = 32;
 
-// 바텀시트: 스크림 rgba(23,32,58,.45), 상단 radius 28, 핸들 40×5. 스크림을 누르면 닫힌다.
+// 키보드 들어올림(iOS): 네이티브 키보드 추적값으로 시트를 translateY한다. JS 키보드 이벤트 + margin 재배치로는
+// 실기기에서 autoFocus 시트가 키보드에 통째로 가려졌다(2026-11-20·21 재현). 시트 바닥 여백(홈 인디케이터 + 16)은
+// 키보드 밑으로 들어가 키보드 둥근 모서리 사이 틈을 흰색으로 메운다. Android는 들어올리지 않는다(기존 동작).
+// ponytail: useAnimatedKeyboard는 reanimated에서 deprecated — keyboard-controller를 들이면 그쪽으로 옮긴다.
+const useLift =
+  Platform.OS === 'ios'
+    ? (bottomInset: number) => {
+        const kb = useAnimatedKeyboard();
+        return useAnimatedStyle(() => ({ transform: [{ translateY: -Math.max(kb.height.value - bottomInset, 0) }] }));
+      }
+    : () => undefined;
+
+// 바텀시트: 스크림 rgba(23,32,58,.45), 상단 radius 20, 핸들 40×5. 스크림을 누르면 닫힌다.
 // Modal의 animationType="slide"는 스크림까지 같이 밀어 어색해서, 시트만 슬라이드하고 스크림은 즉시 켜고 끈다.
 export function BottomSheet({ visible, onClose, children, title, subtitle }: Props) {
   const insets = useSafeAreaInsets();
-  // Modal은 Android의 adjustResize를 안 받으므로 iOS에서만 키보드 높이만큼 직접 들어올린다.
-  const keyboard = useKeyboardHeight();
-  const lift = Platform.OS === 'ios' ? keyboard : 0;
+  const liftStyle = useLift(insets.bottom);
   // 내려가는 애니메이션이 끝날 때까지 Modal을 띄워 둔다. ponytail: 타이머가 EXIT_MS와 짝이다.
   const [mounted, setMounted] = useState(visible);
   if (visible && !mounted) setMounted(true);
@@ -36,18 +39,14 @@ export function BottomSheet({ visible, onClose, children, title, subtitle }: Pro
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View className="flex-1 justify-end">
         {visible && <Pressable accessibilityLabel="닫기" onPress={onClose} className="absolute inset-0 bg-[rgba(23,32,58,0.45)]" />}
-        {/* 키보드 들어올림은 애니메이션 없는 바깥 뷰가 맡는다. SlideInDown은 시작할 때 잡은 위치(originY)로
-            끝나서, autoFocus로 키보드가 슬라이드 도중에 올라오면 시트에 준 margin이 무시되고 키보드에 가려졌다. */}
-        <View pointerEvents="box-none" style={{ marginBottom: Math.max(lift - KEYBOARD_OVERLAP, 0) }}>
+        {/* 들어올림은 슬라이드 애니메이션이 없는 바깥 뷰가 맡는다(entering과 transform이 겹치지 않게). */}
+        <Animated.View pointerEvents="box-none" style={liftStyle}>
           {visible && (
             <Animated.View
               entering={SlideInDown.duration(ENTER_MS).easing(Easing.bezier(0.2, 0.8, 0.2, 1))}
               exiting={SlideOutDown.duration(EXIT_MS)}
               className="gap-[18px] rounded-t-sheet bg-white px-5 pt-3"
-              // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없다 — 입력칸이 키보드에 붙게 둔다.
-              style={{
-                paddingBottom: keyboard > 0 ? 16 + KEYBOARD_OVERLAP : Math.max(insets.bottom + 16, 40),
-              }}
+              style={{ paddingBottom: Math.max(insets.bottom + 16, 40) }}
             >
               <View className="h-[5px] w-10 self-center rounded-full bg-line" />
               {title && (
@@ -59,7 +58,7 @@ export function BottomSheet({ visible, onClose, children, title, subtitle }: Pro
               {children}
             </Animated.View>
           )}
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

@@ -71,7 +71,7 @@ export function ItemRow(p: Props) {
                   placeholder="품목 이름"
                   placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="품목 이름"
-                  className="flex-shrink p-0 font-semibold text-15 text-ink"
+                  className="flex-shrink p-0 font-semibold text-input-15 text-ink"
                 />
               ) : (
                 <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
@@ -91,7 +91,7 @@ export function ItemRow(p: Props) {
                 keyboardType="numbers-and-punctuation"
                 accessibilityLabel="품목 금액"
                 style={TABULAR}
-                className={`min-w-[56px] p-0 text-right font-semibold text-15 focus:bg-sky-50 ${mainCls}`}
+                className={`min-w-[56px] p-0 text-right font-semibold text-input-15 focus:bg-sky-50 ${mainCls}`}
               />
             ) : (
               <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>
