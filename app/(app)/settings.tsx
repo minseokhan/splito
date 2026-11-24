@@ -1,6 +1,6 @@
 import * as Application from 'expo-application';
 import { router } from 'expo-router';
-import { Bank, Bell, LogOut, Mail, NavArrowRight, Page, ShieldCheck } from 'iconoir-react-native';
+import { Bank, Bell, CheckCircleSolid, Circle, LogOut, Mail, NavArrowRight, Page, ShieldCheck, UserXmark, WarningCircle } from 'iconoir-react-native';
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,16 +14,18 @@ import { TextField } from '@/components/TextField';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyPayoutAccount } from '@/hooks/usePayoutAccount';
+import { useMyRooms } from '@/hooks/useRooms';
 import { toUserError } from '@/lib/errors';
 import { nicknameSchema } from '@/lib/profile';
-import { signOut, updateMarketing, updateNickname, updatePushEnabled } from '@/services/auth';
+import { unsettledLines } from '@/lib/withdraw';
+import { deleteAccount, signOut, updateMarketing, updateNickname, updatePushEnabled } from '@/services/auth';
 import { colors } from '@/theme/tokens';
 
 const LINK_DOMAIN = process.env.EXPO_PUBLIC_LINK_DOMAIN ?? 'splito-trip.vercel.app';
 
-type RowProps = { icon: ComponentType<SvgProps>; label: string; value?: string; onPress?: () => void; right?: ReactNode };
+type RowProps = { icon: ComponentType<SvgProps>; label: string; value?: string; onPress?: () => void; right?: ReactNode; danger?: boolean };
 
-function Row({ icon, label, value, onPress, right }: RowProps) {
+function Row({ icon, label, value, onPress, right, danger }: RowProps) {
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -31,8 +33,8 @@ function Row({ icon, label, value, onPress, right }: RowProps) {
       onPress={onPress}
       className="flex-row items-center gap-3 px-5 py-4 active:bg-app"
     >
-      <Icon as={icon} size={22} color={colors.ink[500]} />
-      <Text className="flex-1 font-semibold text-base text-ink">{label}</Text>
+      <Icon as={icon} size={22} color={danger ? colors.danger.DEFAULT : colors.ink[500]} />
+      <Text className={`flex-1 font-semibold text-base ${danger ? 'text-danger' : 'text-ink'}`}>{label}</Text>
       {value && <Text className="text-sm text-ink-400">{value}</Text>}
       {right !== undefined ? right : onPress && <Icon as={NavArrowRight} size={18} color={colors.ink[300]} />}
     </Pressable>
@@ -67,6 +69,11 @@ function Toggle({ on, label, onChange }: { on: boolean; label: string; onChange:
 export default function Settings() {
   const { session, profile, refreshProfile } = useAuth();
   const { data: account } = useMyPayoutAccount();
+  const { data: rooms } = useMyRooms();
+  const [wdOpen, setWdOpen] = useState(false);
+  const [wdAgree, setWdAgree] = useState(false);
+  const [wdBusy, setWdBusy] = useState(false);
+  const unsettled = unsettledLines(rooms ?? []);
   const toast = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [nickname, setNickname] = useState('');
@@ -120,6 +127,19 @@ export default function Settings() {
       setSaving(false);
     }
   };
+  const withdraw = async () => {
+    setWdBusy(true);
+    try {
+      await deleteAccount();
+      setWdOpen(false);
+      router.replace('/(auth)/login');
+      toast('탈퇴했어요. 그동안 이용해 주셔서 고마워요');
+    } catch (e) {
+      toast(toUserError(e).message);
+    } finally {
+      setWdBusy(false);
+    }
+  };
   const logout = async () => {
     await signOut().catch(() => undefined);
     router.replace('/(auth)/login');
@@ -162,6 +182,16 @@ export default function Settings() {
 
         <View className="overflow-hidden rounded-card bg-white py-1">
           <Row icon={LogOut} label="로그아웃" onPress={logout} right={null} />
+          <Row
+            icon={UserXmark}
+            label="회원 탈퇴"
+            danger
+            right={null}
+            onPress={() => {
+              setWdAgree(false);
+              setWdOpen(true);
+            }}
+          />
         </View>
 
         <Text className="text-center text-xs text-ink-300">버전 {Application.nativeApplicationVersion ?? '-'}</Text>
@@ -179,6 +209,56 @@ export default function Settings() {
         />
         {error && <Text className="text-13 text-danger">{error}</Text>}
         <PrimaryButton title="저장" disabled={!nicknameSchema.safeParse(nickname).success} loading={saving} onPress={saveNickname} />
+      </BottomSheet>
+
+      {/* 회원 탈퇴 확인(노션 26번). 정산이 남아 있어도 탈퇴할 수 있고, 장부에는 '탈퇴한 사용자'로 남는다. */}
+      <BottomSheet
+        visible={wdOpen}
+        onClose={() => setWdOpen(false)}
+        title="정말 탈퇴할까요?"
+        subtitle="탈퇴하면 내 계정과 받을 계좌 정보가 삭제되고, 다시 되돌릴 수 없어요."
+      >
+        {unsettled.length > 0 && (
+          <View className="flex-row items-start gap-2.5 rounded-input bg-warning-bg px-3.5 py-3">
+            <Icon as={WarningCircle} size={18} color={colors.warning.text} />
+            <View className="flex-1 gap-0.5">
+              <Text className="font-semibold text-sm text-ink">정산이 남은 여행이 있어요</Text>
+              <Text className="text-13 leading-5 text-ink-700">
+                {unsettled.join('\n')}
+                {"\n탈퇴해도 동행에게는 내 지출과 정산 내역이 '탈퇴한 사용자'로 남아요."}
+              </Text>
+            </View>
+          </View>
+        )}
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel="위 내용을 확인했어요"
+          accessibilityState={{ checked: wdAgree }}
+          onPress={() => setWdAgree((v) => !v)}
+          hitSlop={8}
+          className="flex-row items-center gap-2 self-start"
+        >
+          <Icon as={wdAgree ? CheckCircleSolid : Circle} size={22} color={wdAgree ? colors.danger.DEFAULT : colors.line.off} />
+          <Text className="text-sm text-ink">위 내용을 확인했어요</Text>
+        </Pressable>
+        <View className="flex-row gap-2">
+          {/* 두 버튼 너비를 같게: 같은 flex:1 칸에 넣고 버튼은 칸을 꽉 채운다. */}
+          <View style={{ flex: 1 }}>
+            <PrimaryButton title="취소" variant="muted" onPress={() => setWdOpen(false)} />
+          </View>
+          <View style={{ flex: 1 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="탈퇴하기"
+            accessibilityState={{ disabled: !wdAgree || wdBusy }}
+            disabled={!wdAgree || wdBusy}
+            onPress={() => void withdraw()}
+            className={`h-14 items-center justify-center rounded-button ${wdAgree ? 'bg-danger active:opacity-80' : 'bg-line'}`}
+          >
+            <Text className={`font-semibold text-17 ${wdAgree ? 'text-white' : 'text-ink-300'}`}>탈퇴하기</Text>
+          </Pressable>
+          </View>
+        </View>
       </BottomSheet>
     </SafeAreaView>
   );

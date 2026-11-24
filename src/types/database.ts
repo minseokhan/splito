@@ -911,6 +911,9 @@ isOneToOne: false
 "delete_expense":
 { Args: { "p_expected_version": number,"p_id": string }; Returns: undefined
                            },
+"delete_my_account":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "delete_push_token":
 { Args: { "p_token": string }; Returns: undefined
                            },
