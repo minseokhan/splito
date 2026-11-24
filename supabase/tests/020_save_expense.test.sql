@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(59);
+select plan(54);
 
 -- ───── fixture (superuser) ─────
 -- A·B: 활성 멤버, C: 비멤버, D: 나간 멤버, G: 게스트(대표 A)
@@ -57,7 +57,6 @@ select set_config('t.mg', (select id::text from public.room_members where room_i
 select ok(not has_function_privilege('anon', 'public.save_expense(jsonb,integer)', 'execute'), 'anon save_expense 실행 불가');
 select ok(not has_function_privilege('anon', 'public.delete_expense(uuid,integer)', 'execute'), 'anon delete_expense 실행 불가');
 select ok(not has_function_privilege('anon', 'public.reconfirm_pending_fx(uuid)', 'execute'), 'anon reconfirm_pending_fx 실행 불가');
-select ok(not has_function_privilege('anon', 'public.expense_history(uuid)', 'execute'), 'anon expense_history 실행 불가');
 select ok(not has_function_privilege('authenticated', 'public._lookup_fx(text,date)', 'execute'), '내부 헬퍼 _lookup_fx 실행 불가');
 
 set local role authenticated;
@@ -191,21 +190,12 @@ select throws_ok(format('select public.delete_expense(%L, 1)', current_setting('
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
 select throws_ok(format('select public.delete_expense(%L, 3)', current_setting('t.j')::jsonb ->> 'id'),
   'P0001', 'FORBIDDEN', '비멤버 삭제 거부');
-select throws_ok(format('select public.expense_history(%L)', current_setting('t.j')::jsonb ->> 'id'),
-  'P0001', 'FORBIDDEN', '비멤버 이력 조회 거부');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
 select throws_ok(format('select public.delete_expense(%L, 3)', current_setting('t.j')::jsonb ->> 'id'),
   'P0001', 'FORBIDDEN', '올린 사람·결제자가 아니면 삭제 거부');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
 select public.delete_expense((current_setting('t.j')::jsonb ->> 'id')::uuid, 3);
 select is((select count(*)::int from public.expenses where id = (current_setting('t.j')::jsonb ->> 'id')::uuid), 0, '삭제 후 피드 SELECT 0행');
-select is((select array_agg(h ->> 'action') from public.expense_history((current_setting('t.j')::jsonb ->> 'id')::uuid) h),
-  '{create,update,update,delete}'::text[], '삭제된 지출 이력 조회');
-select is((select h ->> 'actor_nickname' || '|' || jsonb_array_length(h -> 'snapshot' -> 'items') || '|' || (h -> 'snapshot' ->> 'deleted_at' is not null)
-  from public.expense_history((current_setting('t.j')::jsonb ->> 'id')::uuid) h where h ->> 'action' = 'delete'),
-  'Alice|1|true', '삭제 이력: 행위자 닉네임, 스냅샷에 박스 포함');
-select is((select h ->> 'actor_nickname' from public.expense_history((current_setting('t.j')::jsonb ->> 'id')::uuid) h
-  where h ->> 'action' = 'create'), 'Alice', '생성 이력 행위자');
 
 -- ───── 환율 재확정 ─────
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);

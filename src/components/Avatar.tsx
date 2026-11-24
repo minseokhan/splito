@@ -1,12 +1,14 @@
 import { Text, View } from 'react-native';
 
-import { memberColor } from '@/theme/tokens';
+import { colors, memberColor } from '@/theme/tokens';
 
-// 멤버 아바타: 원형, 이름 첫 글자, 합류 순서별 tint/fg. 게스트는 점선 테두리.
+// 멤버 아바타: 원형, 이름 첫 글자. 멤버는 진한 fg 바탕 + 흰 글자(시안),
+// 게스트는 연한 tint 바탕 + 점선 테두리로 구분한다.
 type Props = { name: string; colorIndex: number; guest?: boolean; size?: number; ring?: string };
 
 export function Avatar({ name, colorIndex, guest, size = 36, ring }: Props) {
-  const c = memberColor(colorIndex);
+  const m = memberColor(colorIndex);
+  const c = guest ? m : { tint: m.fg, fg: colors.primary.on };
   return (
     <View
       accessibilityLabel={guest ? `${name}(게스트)` : name}
@@ -17,7 +19,7 @@ export function Avatar({ name, colorIndex, guest, size = 36, ring }: Props) {
         backgroundColor: c.tint,
         borderWidth: ring ? 2 : guest ? 1.5 : 0,
         borderStyle: guest && !ring ? 'dashed' : 'solid',
-        borderColor: ring ?? c.fg,
+        borderColor: ring ?? m.fg,
       }}
       className="items-center justify-center"
     >

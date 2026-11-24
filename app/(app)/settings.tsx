@@ -126,7 +126,7 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-white">
+    <SafeAreaView edges={['top']} className="flex-1 bg-muted">
       <NavBar title="내 정보" />
       <ScrollView contentContainerClassName="gap-4 px-5 pb-10 pt-2">
         <View className="flex-row items-center gap-3.5 rounded-card bg-white p-5">

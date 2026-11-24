@@ -4,9 +4,8 @@ import { type CategoryCode, toCategory } from '@/lib/category';
 import type { DupCandidate } from '@/lib/duplicate';
 import { toUserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
-import type { VoiceParseItem } from '@/lib/voice';
+import type { VoiceParse } from '@/lib/voice';
 import type { RoomEvent } from '@/lib/activity';
-import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
 import type { ScheduleItem } from '@/lib/schedule';
 import type { SpotExpense, SpotParticipant } from '@/lib/spotSettle';
@@ -68,15 +67,6 @@ export type ExpenseDetail = Tables<'expenses'> & {
   expense_items: (Tables<'expense_items'> & { item_assignees: { member_id: string }[] })[];
   expense_scope: { member_id: string }[];
   expense_photos: { storage_path: string; kind: string }[];
-};
-
-export type HistoryRow = {
-  id: string;
-  action: string;
-  actorId: string | null;
-  actorNickname: string | null;
-  at: string;
-  snapshot: Snapshot;
 };
 
 // 정산 전 확인 단계(명세 4)용 한 줄. RLS가 남의 '나만 보기' 지출은 돌려주지 않는다.
@@ -338,15 +328,30 @@ export const api = {
     return data!;
   },
 
-  // 말로 입력: 한 발화 → 가게·사람·품목·금액 여러 건(parse-expense kind 'voice'). names = 사람 인식에 쓸 참여자 이름,
-  // stores = 화면에 이미 있는 가게(같은 가게를 같은 이름으로 묶게).
-  async parseVoice(req: { roomId: RoomId; text: string; names: string[]; stores: string[]; baseCurrency: string }): Promise<VoiceParseItem[]> {
-    const { data, error } = await supabase.functions.invoke<{ items: VoiceParseItem[] }>('parse-expense', {
-      body: { room_id: req.roomId, kind: 'voice', text: req.text, names: req.names, stores: req.stores, base_currency: req.baseCurrency },
+  // 음성으로 입력: 한 발화 → 가게·사람·품목·금액 여러 건(parse-expense kind 'voice'). names = 사람 인식에 쓸 참여자 이름,
+  // stores = 화면에 이미 있는 가게(같은 가게를 같은 이름으로 묶게), current = 화면의 품목(이어 말하기로 고치기·가게 이름 바꾸기).
+  async parseVoice(req: {
+    roomId: RoomId;
+    text: string;
+    names: string[];
+    stores: string[];
+    baseCurrency: string;
+    current: { key: string; store: string | null; title: string; quantity: number; amount: number; who: string[] }[];
+  }): Promise<VoiceParse> {
+    const { data, error } = await supabase.functions.invoke<VoiceParse>('parse-expense', {
+      body: {
+        room_id: req.roomId,
+        kind: 'voice',
+        text: req.text,
+        names: req.names,
+        stores: req.stores,
+        base_currency: req.baseCurrency,
+        ...(req.current.length ? { current: req.current } : {}),
+      },
       timeout: PARSE_TIMEOUT_MS,
     });
     if (error) throw await functionError(error);
-    return data!.items;
+    return data!;
   },
 
   // AI 예산 코칭(내 통계). kind='alloc'이면 카테고리 배분 비율, 'plans'면 조정안 2~3개.
@@ -465,25 +470,6 @@ export const api = {
     }));
   },
 
-  async expenseHistory(id: ExpenseId): Promise<HistoryRow[]> {
-    const rows = unwrap(await supabase.rpc('expense_history', { p_expense_id: id })) as {
-      id: string;
-      action: string;
-      actor_id: string | null;
-      actor_nickname: string | null;
-      at: string;
-      snapshot: Snapshot;
-    }[];
-    return rows.map((r) => ({
-      id: r.id,
-      action: r.action,
-      actorId: r.actor_id,
-      actorNickname: r.actor_nickname,
-      at: r.at,
-      snapshot: r.snapshot,
-    }));
-  },
-
   // 방 활동 시스템 메시지. INSERT는 RPC 안에서만 한다(ARCHITECTURE §3). 최근 200건만 읽는다.
   async roomEvents(roomId: RoomId): Promise<RoomEvent[]> {
     const rows = unwrap(
@@ -519,6 +505,11 @@ export const api = {
         .from('comments')
         .insert({ id: input.id, expense_id: input.expenseId, room_id: input.roomId, author_id: input.authorId, body: input.body }),
     );
+  },
+
+  // 본문만 고칠 수 있다(컬럼 권한 body·deleted_at). RLS가 본인 행만 허용한다.
+  async editComment(id: string, body: string): Promise<void> {
+    unwrap(await supabase.from('comments').update({ body }).eq('id', id));
   },
 
   // RLS가 본인 행만 고치게 한다. 남의 댓글이면 0행이라 조용히 끝난다.
@@ -831,12 +822,6 @@ export const api = {
         ...(input.flags ? { p_flags: input.flags } : {}),
       }),
     );
-  },
-
-  // 지출 상세에서 '누가 뭘 먹었는지'만 바꾼다. 금액·환율·대상 인원은 그대로 둔다.
-  // 값이 빈 배열인 품목은 지정을 지운다(= 대상 인원 전원 1/N).
-  async setItemAssignees(expenseId: ExpenseId, assign: Record<string, MemberId[]>): Promise<void> {
-    unwrap(await supabase.rpc('set_item_assignees', { p_expense_id: expenseId, p_assign: assign }));
   },
 
   async roomSpotSettles(roomId: RoomId): Promise<SpotSettle[]> {

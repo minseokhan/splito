@@ -26,9 +26,11 @@ type Props = {
   splitLabel: string;
   onToggle: (memberId: string) => void;
   onAll: () => void;
-  onChangeName: (v: string) => void;
-  onChangeAmount: (v: string) => void;
-  onClearReview: () => void;
+  /** 지출 상세: 이름·금액은 글자로만 보이고, 펼치면 사람 고르기만 한다. */
+  readOnly?: boolean;
+  onChangeName?: (v: string) => void;
+  onChangeAmount?: (v: string) => void;
+  onClearReview?: () => void;
   onSplit?: () => void;
   onMerge?: () => void;
   onRemove?: () => void;
@@ -40,10 +42,13 @@ const TABULAR = { fontVariant: ['tabular-nums' as const] };
 export function ItemRow(p: Props) {
   const [amount, setAmount] = useState(p.amountText);
   const open = p.expanded;
+  const editing = open && !p.readOnly;
   const qty = p.quantity > 1 ? ` ×${p.quantity}` : '';
   const name = p.nameKo || p.nameOriginal || '품목';
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
+  // 펼쳐서 금액을 고칠 때도 통화 기호를 붙여 둔다(¥·$ 등은 앞, 원화는 뒤 '원'). 기호는 amountLabel 앞부분이다.
+  const prefix = p.isKrw ? '' : (/^-?(\D*)/.exec(p.amountLabel)?.[1] ?? '');
   // 지정이 없으면 전원
   const allOn = !p.people.some((m) => m.on);
   const selected = allOn ? p.people : p.people.filter((m) => m.on);
@@ -64,7 +69,7 @@ export function ItemRow(p: Props) {
         <View className="flex-1 gap-0.5">
           <View className="flex-row items-center justify-between gap-2">
             <View className="flex-shrink flex-row items-center gap-1.5">
-              {open ? (
+              {editing ? (
                 <TextInput
                   value={p.nameKo}
                   onChangeText={p.onChangeName}
@@ -81,18 +86,22 @@ export function ItemRow(p: Props) {
               {!!qty && <Text className="font-semibold text-15 text-ink">{qty}</Text>}
               {p.needsReview && <Badge kind="review" onPress={p.onClearReview} accessibilityLabel="확인 필요 해제" />}
             </View>
-            {open ? (
-              <TextInput
-                value={amount}
-                onChangeText={(v) => {
-                  setAmount(v);
-                  p.onChangeAmount(v);
-                }}
-                keyboardType="numbers-and-punctuation"
-                accessibilityLabel="품목 금액"
-                style={TABULAR}
-                className={`min-w-[56px] p-0 text-right font-semibold text-input-15 focus:bg-sky-50 ${mainCls}`}
-              />
+            {editing ? (
+              <View className="flex-row items-center">
+                {!!prefix && <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>{prefix}</Text>}
+                <TextInput
+                  value={amount}
+                  onChangeText={(v) => {
+                    setAmount(v);
+                    p.onChangeAmount?.(v);
+                  }}
+                  keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="품목 금액"
+                  style={TABULAR}
+                  className={`min-w-[40px] p-0 text-right font-semibold text-input-15 focus:bg-sky-50 ${mainCls}`}
+                />
+                {p.isKrw && <Text className={`font-semibold text-15 ${mainCls}`}>원</Text>}
+              </View>
             ) : (
               <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>
                 {mainLabel}
@@ -102,7 +111,7 @@ export function ItemRow(p: Props) {
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
               {!!p.nameOriginal && (
-                <Text numberOfLines={1} className="flex-shrink text-xs text-ink-500">
+                <Text numberOfLines={open ? undefined : 1} className="flex-shrink text-xs text-ink-500">
                   {p.nameOriginal + qty}
                 </Text>
               )}

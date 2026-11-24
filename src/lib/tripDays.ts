@@ -54,20 +54,6 @@ export function dateTab(day: TripDay): { top: string; label: string } {
   return { top: weekday(day.key), label: String(Number(day.key.slice(8))) };
 }
 
-// 지출 없는 날을 누르면 가장 가까운(같은 거리면 앞) 지출 있는 날로 보낸다. keys는 탭 순서.
-export function nearestDay(keys: string[], has: Set<string>, target: string): string | null {
-  const at = keys.indexOf(target);
-  let best: string | null = null;
-  let dist = Infinity;
-  keys.forEach((k, i) => {
-    if (has.has(k) && Math.abs(i - at) < dist) {
-      best = k;
-      dist = Math.abs(i - at);
-    }
-  });
-  return best;
-}
-
 // 고른 기간을 문장으로 푼다. 내 통계 화면(my-stats)이 카드 캡션으로 쓴다.
 export function dayCaption(day: string, startDate: string | null, endDate: string | null): string {
   if (day === PRE_TRIP) return '여행 전 지출';

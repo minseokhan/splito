@@ -36,3 +36,11 @@ export function useDeleteComment() {
     onSettled: (_d, _e, v) => qc.invalidateQueries({ queryKey: key(v.expenseId) }),
   });
 }
+
+export function useEditComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; expenseId: ExpenseId; body: string }) => api.editComment(v.id, v.body),
+    onSettled: (_d, _e, v) => qc.invalidateQueries({ queryKey: key(v.expenseId) }),
+  });
+}

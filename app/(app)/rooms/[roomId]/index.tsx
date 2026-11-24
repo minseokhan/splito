@@ -14,7 +14,7 @@ import {
   Wallet,
   Xmark,
 } from 'iconoir-react-native';
-import { Fragment, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { Fragment, useMemo, useRef, useState, type ComponentType } from 'react';
 import { Dimensions, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
@@ -56,7 +56,7 @@ import { currencyFlag } from '@/lib/flag';
 import { formatForeign } from '@/lib/money';
 import { buildScheduleDays, type ScheduleItem } from '@/lib/schedule';
 import { qrProgress, spotStatusText, spotTotals } from '@/lib/spotSettle';
-import { buildTripDays, dateTab, filterByCategory, nearestDay } from '@/lib/tripDays';
+import { buildTripDays, dateTab, filterByCategory } from '@/lib/tripDays';
 import type { FeedRow } from '@/services/api';
 import type { RoomMember } from '@/types/domain';
 import { colors } from '@/theme/tokens';
@@ -94,7 +94,7 @@ export default function RoomHome() {
   const [category, setCategory] = useState<CategoryCode | null>(null);
   // 일정표 / 지출 내역. 두 종류 방 모두 일정표가 기본이다(노션 19번 ①).
   const [view, setView] = useState<'sched' | 'exp'>('sched');
-  // 날짜 탭: [전체] [여행 전] [날짜…]. 누르면 그 날짜로 스크롤한다(필터 아님).
+  // 날짜 탭: [전체] [여행 전] [날짜…]. 누르면 그 날짜의 일정·지출만 보여 준다(필터).
   const days = useMemo(
     () =>
       buildTripDays({
@@ -104,7 +104,11 @@ export default function RoomHome() {
       }),
     [room?.startDate, room?.endDate, sections],
   );
-  const visibleSections = useMemo(() => filterByCategory(sections, category), [sections, category]);
+  const [activeTab, setActiveTab] = useState('all');
+  const visibleSections = useMemo(
+    () => filterByCategory(sections, category).filter((s) => activeTab === 'all' || s.key === activeTab),
+    [sections, category, activeTab],
+  );
   const offline = (feed.error as { code?: string } | null)?.code === 'OFFLINE';
   const insets = useSafeAreaInsets();
   // 팝오버(참여자·카테고리·일정 메뉴)는 누른 순간의 화면 좌표를 재서 그 아래에 띄운다.
@@ -194,38 +198,8 @@ export default function RoomHome() {
     [scheduleDays],
   );
 
-  // ── 날짜 탭 바로가기(노션 19번 ②). 좌표는 모두 ScrollView 콘텐츠 기준으로 되짚는다.
-  const scrollRef = useRef<ScrollView>(null);
-  const lay = useRef({ body: 0, list: 0, tabs: 0, days: new Map<string, { y: number; h: number }>() });
-  const [activeTab, setActiveTab] = useState('all');
-  const dayTop = (key: string) => lay.current.body + lay.current.list + (lay.current.days.get(key)?.y ?? 0) - lay.current.tabs;
-  const onDayLayout = (key: string, y: number, h: number) => {
-    lay.current.days.set(key, { y, h });
-  };
-  const switchView = (v: 'sched' | 'exp') => {
-    lay.current.days.clear();
-    setView(v);
-  };
-  const tabKeys = days.filter((d) => d.key !== 'all').map((d) => d.key);
-  const goTab = (key: string) => {
-    if (key === 'all') return scrollRef.current?.scrollTo({ y: 0, animated: true });
-    let target: string | null = key;
-    if (!lay.current.days.has(key)) {
-      // 지출 없는 날(지출 내역): 가장 가까운 날로 보내고 알려 준다.
-      target = nearestDay(tabKeys, new Set(lay.current.days.keys()), key);
-      toast(`${days.find((d) => d.key === key)?.label ?? '이 날'}에는 지출이 없어요`);
-      if (!target) return;
-    }
-    scrollRef.current?.scrollTo({ y: Math.max(0, dayTop(target)) + 1, animated: true });
-  };
-
-  // 날짜 줄이 넘치면 스크롤해서 고른 날짜를 보이게 한다. 전체·여행 전은 고정 칸이라 제외.
-  const dateStripRef = useRef<ScrollView>(null);
+  // 날짜 탭 칸 폭 = 줄 폭의 1/6. 날짜가 적으면 남는 폭을 나눠 채운다.
   const [tabW, setTabW] = useState(0);
-  useEffect(() => {
-    const i = days.filter((d) => DATE_KEY.test(d.key)).findIndex((d) => d.key === activeTab);
-    if (i >= 0 && tabW) dateStripRef.current?.scrollTo({ x: Math.max(0, (i - 1) * tabW), animated: true });
-  }, [activeTab, days, tabW]);
   if (isLoading) return null;
   if (!room) {
     return (
@@ -277,7 +251,7 @@ export default function RoomHome() {
   const period = roomPeriod(room);
   const topBar = (
     <View
-      className="h-[60px] flex-row items-center gap-0.5 bg-white px-1"
+      className="h-[60px] flex-row items-center gap-0.5 bg-white pl-1 pr-3"
       style={{ zIndex: 1 }}
     >
       <Pressable
@@ -321,11 +295,11 @@ export default function RoomHome() {
     </View>
   );
 
-  // 요약 카드(노션 19번 ①): sky-50 · 둥글기 16 · 안쪽 위·좌우 16 / 아래 12 · 총 지출 줄과 버튼 묶음 사이 14.
+  // 요약 카드(노션 19번 ①): canvas(회색) · 둥글기 16 · 안쪽 위·좌우 16 / 아래 12 · 총 지출 줄과 버튼 묶음 사이 14.
   // 카드 아래 → 날짜 탭 12(원본: 간격 16 − 탭 margin-top 4).
   const summary = (
     <View className="px-5 pb-3 pt-1">
-      <View className="rounded-box bg-sky-50 px-4 pb-3 pt-4">
+      <View className="rounded-box bg-canvas px-4 pb-3 pt-4">
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
             <Text className="text-xs text-ink">총 지출</Text>
@@ -343,7 +317,7 @@ export default function RoomHome() {
               avatarRef.current?.measureInWindow((x, y, w, h) => setPeopleAt({ top: y + h + 6, right: rightOf(x, w) }))
             }
           >
-            <AvatarStack people={people} size={30} ring={colors.sky[50]} />
+            <AvatarStack people={people} size={30} ring={colors.canvas} />
           </Pressable>
         </View>
         <View className="mt-3.5 flex-row overflow-hidden rounded-button bg-white">
@@ -390,7 +364,7 @@ export default function RoomHome() {
   );
 
   // 날짜 탭 줄(고정): 좌우 8, 칸 폭 = 줄 폭의 1/6(위 6 · 아래 10), 요일 줄 16 고정, 선택 밑줄 2.5가 구분선을 덮는다.
-  // [전체][여행 전]은 왼쪽에 고정, 날짜는 그 오른쪽에서 가로로 스크롤한다(날짜가 적으면 남는 폭을 나눠 채운다).
+  // [전체][여행 전][날짜…]가 한 줄로 함께 가로 스크롤된다.
   const tabCell = (d: (typeof days)[number], style?: object) => {
     const t = dateTab(d);
     const on = activeTab === d.key;
@@ -400,7 +374,7 @@ export default function RoomHome() {
         accessibilityRole="tab"
         accessibilityState={{ selected: on }}
         accessibilityLabel={d.label}
-        onPress={() => goTab(d.key)}
+        onPress={() => setActiveTab(d.key)}
         className="items-center pt-1.5"
         style={style}
       >
@@ -415,20 +389,11 @@ export default function RoomHome() {
   const dateTabs = (
     <View
       className="flex-row bg-white px-2"
-      onLayout={(e) => {
-        lay.current.tabs = e.nativeEvent.layout.height;
-        setTabW((e.nativeEvent.layout.width - 16) / 6);
-      }}
+      onLayout={(e) => setTabW((e.nativeEvent.layout.width - 16) / 6)}
     >
       <View className="absolute inset-x-0 bottom-0 h-px bg-line" />
-      {days.filter((d) => !DATE_KEY.test(d.key)).map((d) => tabCell(d, { width: tabW }))}
-      <ScrollView
-        ref={dateStripRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        {days.filter((d) => DATE_KEY.test(d.key)).map((d) => tabCell(d, { minWidth: tabW, flex: 1 }))}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+        {days.map((d) => tabCell(d, { minWidth: tabW, flex: 1 }))}
       </ScrollView>
     </View>
   );
@@ -439,7 +404,7 @@ export default function RoomHome() {
       {hasSchedule ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => switchView(showSchedule ? 'exp' : 'sched')}
+          onPress={() => setView(showSchedule ? 'exp' : 'sched')}
           hitSlop={8}
           className="flex-row items-center gap-1 py-1"
         >
@@ -480,7 +445,11 @@ export default function RoomHome() {
       feed.isLoading ? null : (
         <View className="items-center justify-center gap-1.5 px-5 py-14">
           <Text className="text-center font-semibold text-base text-ink">
-            {category === null ? '첫 지출을 올려보세요' : '해당 품목의 지출이 없어요'}
+            {activeTab !== 'all' && sections.length > 0
+              ? '이 날에는 지출이 없어요'
+              : category === null
+                ? '첫 지출을 올려보세요'
+                : '해당 품목의 지출이 없어요'}
           </Text>
           <Text className="text-center text-sm text-ink-400">
             {category === null ? '영수증 사진 한 장이면 돼요' : '아래 버튼으로 지출을 올려보세요'}
@@ -493,11 +462,7 @@ export default function RoomHome() {
           const sum = section.data.reduce((s, r) => s + ('kind' in r ? 0 : (r.krwAmount ?? 0)), 0);
           const hasExpense = section.data.some((r) => !('kind' in r));
           return (
-            <View
-              key={section.key}
-              className="gap-2 pt-1.5"
-              onLayout={(e) => onDayLayout(section.key, e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
-            >
+            <View key={section.key} className="gap-2 pt-1.5">
               <View className="flex-row items-center justify-between">
                 <Text className="font-semibold text-13 text-ink-500">{section.title}</Text>
                 {hasExpense && (
@@ -544,13 +509,13 @@ export default function RoomHome() {
     <ScheduleEmpty
       days={days
         .filter((d) => d.key !== 'all' && d.key !== 'pre-trip')
-        .map((d, i) => ({ key: d.key, dayIndex: i + 1, label: d.label, sub: `${d.sub} (${dateTab(d).top})` }))}
+        .map((d, i) => ({ key: d.key, dayIndex: i + 1, label: d.label, sub: `${d.sub} (${dateTab(d).top})` }))
+        .filter((d) => activeTab === 'all' || d.key === activeTab)}
       onAddSchedule={(dayIndex) => setDraft(newDraft(dayIndex))}
-      onDayLayout={onDayLayout}
     />
   ) : (
     <ScheduleSection
-      days={scheduleDays}
+      days={activeTab === 'all' ? scheduleDays : scheduleDays.filter((d) => d.key === activeTab)}
       pkg={pkg}
       onMore={(item, pageY) => setMoreAt({ item, top: pageY + 14 })}
       onAddSchedule={(dayIndex) => setDraft(newDraft(dayIndex))}
@@ -565,7 +530,6 @@ export default function RoomHome() {
       }
       spots={spotCards}
       onSpot={openSpotSettle}
-      onDayLayout={onDayLayout}
     />
   );
 
@@ -573,32 +537,14 @@ export default function RoomHome() {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {topBar}
       <ScrollView
-        ref={scrollRef}
         stickyHeaderIndices={[1]}
-        scrollEventThrottle={16}
-        onScroll={(e) => {
-          const y = e.nativeEvent.contentOffset.y;
-          // 스크롤 위치에 따라 밑줄을 옮긴다: 탭 아래를 지난 마지막 날짜.
-          let on = 'all';
-          for (const k of tabKeys) if (lay.current.days.has(k) && dayTop(k) <= y + 2) on = k;
-          setActiveTab((v) => (v === on ? v : on));
-        }}
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />}
       >
         {summary}
         {dateTabs}
-        <View
-          onLayout={(e) => {
-            lay.current.body = e.nativeEvent.layout.y;
-          }}
-        >
+        <View>
           {toggleRow}
-          <View
-            key={showSchedule ? 'sched' : 'exp'}
-            onLayout={(e) => {
-              lay.current.list = e.nativeEvent.layout.y;
-            }}
-          >
+          <View key={showSchedule ? 'sched' : 'exp'}>
             {showSchedule ? scheduleBody : expenseList}
           </View>
           {/* 지출 올리기 버튼에 가리지 않을 만큼만. 마지막 날짜를 탭 바로 아래로 올리려고 화면 높이만큼 비우던 여백은 없앴다(사용자 결정). */}
@@ -736,8 +682,6 @@ type SegmentProps = {
 };
 
 // 요약 카드 버튼 묶음 한 칸: 높이 36 · 13/600 · 아이콘 16 · 아이콘↔글자 5.
-const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
-
 function Segment({ label, icon, iconColor, onPress }: SegmentProps) {
   return (
     <Pressable

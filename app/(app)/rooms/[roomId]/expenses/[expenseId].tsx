@@ -1,85 +1,53 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { InfoCircle, SendDiagonal, Trash, WarningCircle, Xmark } from 'iconoir-react-native';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChatBubble, SendDiagonal, WarningCircle, Xmark } from 'iconoir-react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AvatarStack, type AvatarPerson } from '@/components/AvatarStack';
-import { Badge } from '@/components/Badge';
+import { Avatar } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
-import { CategoryCircle } from '@/components/CategoryCircle';
 import { Icon } from '@/components/Icon';
-import { ItemBox } from '@/components/ItemBox';
 import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
-import { ReceiptThumb } from '@/components/ReceiptThumb';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useScheduleItems } from '@/hooks/useBooking';
-import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
-import { useAddComment, useComments, useDeleteComment } from '@/hooks/useComments';
-import { useDeleteExpense, useExpense, useExpenseHistory, useSetItemAssignees } from '@/hooks/useExpense';
+import { useAddComment, useComments, useDeleteComment, useEditComment } from '@/hooks/useComments';
+import { useDeleteExpense, useExpense } from '@/hooks/useExpense';
 import { useReconfirmPendingFx } from '@/hooks/useFeed';
-import { useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { useRoomMembers } from '@/hooks/useRooms';
 import { useTransfers } from '@/hooks/useSettlement';
 import { useRoomSpotSettles } from '@/hooks/useSpotSettle';
 import { commentSchema } from '@/lib/activity';
-import { toCategory } from '@/lib/category';
 import { toUserError, type UserError } from '@/lib/errors';
-import { perPersonOriginal, splitLabel, toggleWho } from '@/lib/expenseForm';
-import { diffSnapshots, historyStamp } from '@/lib/history';
-import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
-import { dayIndexOfDate } from '@/lib/schedule';
-import { md } from '@/lib/tripDays';
+import { historyStamp } from '@/lib/history';
 import { uuidV4 } from '@/lib/uuid';
-import { signedUrl } from '@/services/storage';
 import { colors } from '@/theme/tokens';
-import type { FxSource } from '@/types/domain';
+import type { RoomMember } from '@/types/domain';
 
-// 서명 URL은 10분짜리라 9분 지나면 다시 받는다(ARCHITECTURE §4).
-const SIGNED_URL_STALE_MS = 9 * 60_000;
+import { ExpenseEditor } from './review';
 
 const asUserError = (err: unknown): UserError =>
   typeof err === 'object' && err !== null && 'code' in err ? (err as UserError) : toUserError(err);
 
+// 지출 상세(노션 12번): 확인하고 나누기와 같은 영수증 티켓을 그 자리에서 고친다. 상세 전용은 댓글·삭제뿐이다.
 export default function ExpenseDetailScreen() {
-  const { roomId, expenseId } = useLocalSearchParams<{ roomId: string; expenseId: string }>();
+  const { roomId, expenseId } = useLocalSearchParams<{
+    roomId: string;
+    expenseId: string;
+  }>();
   const qc = useQueryClient();
-  const insets = useSafeAreaInsets();
-  const keyboard = useKeyboardHeight();
   const { data: e, error: loadError } = useExpense(expenseId);
-  const { data: history } = useExpenseHistory(expenseId);
   const { data: members = [] } = useRoomMembers(roomId);
   const reconfirm = useReconfirmPendingFx(roomId);
   const del = useDeleteExpense();
   const toast = useToast();
-  const { data: room } = useRoom(roomId);
-  const { data: schedule = [] } = useScheduleItems(roomId);
   const { data: transfers = [] } = useTransfers(roomId);
   const { data: spots = [] } = useRoomSpotSettles(roomId);
   const myId = useAuth().session?.user.id;
   const { data: comments = [] } = useComments(expenseId);
-  const addComment = useAddComment();
-  const deleteComment = useDeleteComment();
-  const [draft, setDraft] = useState('');
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [openItems, setOpenItems] = useState<string[]>([]); // 먹은 사람을 펼쳐 본 품목
-  // 품목별 '누가 먹었는지' 편집. null이면 손대지 않은 상태 — 저장 버튼도 안 띄운다.
-  const [pick, setPick] = useState<Record<string, string[]> | null>(null);
-  const [pickError, setPickError] = useState<string | null>(null);
-  const saveAssignees = useSetItemAssignees(roomId, expenseId);
-
-  const paths = e?.expense_photos.map((p) => p.storage_path) ?? [];
-  const { data: photoUrls } = useQuery({
-    queryKey: ['expense', expenseId, 'photos', paths],
-    queryFn: () => Promise.all(paths.map(signedUrl)),
-    enabled: paths.length > 0,
-    staleTime: SIGNED_URL_STALE_MS,
-  });
 
   // 열 때 환율 대기면 fx-rate로 캐시를 채운 뒤 서버가 재확정한다(한 번만).
   const reconfirmed = useRef(false);
@@ -93,7 +61,7 @@ export default function ExpenseDetailScreen() {
 
   if (!e) {
     return loadError ? (
-      <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-canvas" edges={['top']}>
         <NavBar />
         <View className="flex-1 items-center justify-center px-5">
           <Text className="text-base text-ink-500">지출을 찾을 수 없어요</Text>
@@ -101,30 +69,6 @@ export default function ExpenseDetailScreen() {
       </SafeAreaView>
     ) : null;
   }
-
-  const people = new Map<string, AvatarPerson>(
-    members.map((m, i) => [m.id, { id: m.id, name: m.name, colorIndex: i, guest: m.kind === 'guest' }]),
-  );
-  const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
-  const userName = new Map(members.flatMap((m) => (m.userId ? [[m.userId, m.name] as const] : [])));
-  const payerName = e.payer_kind === 'pool' ? '공금' : (names[e.payer_member_id ?? ''] ?? '참여자');
-  const scopePeople = e.expense_scope.flatMap((s) => people.get(s.member_id) ?? []);
-  const fxSource = e.fx_source as FxSource;
-  const amountOriginal = Number(e.amount_original);
-  const isKrw = e.currency === 'KRW';
-
-  // 메타 줄: '2일차 · 10.21 (화) 12:40 · 민지 결제 · 도톤보리 먹방' / '여행 전 21:10 · 서연 결제'
-  const day = dayIndexOfDate(e.paid_local_date, room?.start_date ?? null, room?.end_date ?? null);
-  const dow = '일월화수목금토'[new Date(`${e.paid_local_date}T00:00:00Z`).getUTCDay()];
-  const dateText = `${md(e.paid_local_date)} (${dow})`;
-  const when = [
-    !room?.start_date ? dateText : day === 0 ? '여행 전' : `${day}일차 · ${dateText}`,
-    e.paid_local_time?.slice(0, 5),
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const scheduleTitle = schedule.find((s) => s.id === e.schedule_id)?.title;
-  const meta = [when, `${payerName} 결제`, scheduleTitle].filter(Boolean).join(' · ');
 
   // 삭제 규칙(노션 12번). 올린 사람이나 결제자 본인만 지울 수 있다.
   const payerUserId = members.find((m) => m.id === e.payer_member_id)?.userId;
@@ -134,9 +78,14 @@ export default function ExpenseDetailScreen() {
   const settled = transfers.some((t) => t.confirmedAt && !t.voidedAt && t.createdAt >= e.created_at);
   const deletable = canDelete && !spotSent;
 
+  const onDeletePress = () => {
+    if (!canDelete) return toast('올린 사람(결제자)만 삭제할 수 있어요');
+    if (spotSent) return toast('이 자리 정산(QR)을 보낸 지출이라 삭제할 수 없어요');
+    setConfirmDelete(true);
+  };
+
   const onDelete = () => {
     setConfirmDelete(false);
-    setError(null);
     del.mutate(
       { roomId, id: e.id, expectedVersion: e.version },
       {
@@ -145,20 +94,141 @@ export default function ExpenseDetailScreen() {
           router.back();
         },
         onError: (err) => {
-          setError(asUserError(err).message);
+          toast(asUserError(err).message);
           void qc.invalidateQueries({ queryKey: ['expense', expenseId] });
         },
       },
     );
   };
 
+  return (
+    <ExpenseEditor
+      roomId={roomId}
+      edit={e.id}
+      version={e.version}
+      linkedScheduleId={e.schedule_id}
+      navRight={
+        // 댓글(노션 38): 말풍선 + 개수 배지 → 바텀시트
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`댓글 ${comments.length}개`}
+          onPress={() => setCommentsOpen(true)}
+          className="h-11 w-11 items-center justify-center rounded-full active:bg-muted"
+        >
+          <Icon as={ChatBubble} size={24} color={colors.ink.DEFAULT} />
+          {comments.length > 0 && (
+            <View
+              style={{ borderColor: colors.canvas }}
+              className="absolute right-0.5 top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 bg-primary-text px-1"
+            >
+              <Text className="font-semibold text-11 leading-[13px] text-white">{comments.length}</Text>
+            </View>
+          )}
+        </Pressable>
+      }
+      deleteButton={
+        // 못 지우는 지출도 누를 수는 있다 — 회색 글자에 이유를 토스트로 알린다.
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="삭제"
+          disabled={del.isPending}
+          onPress={onDeletePress}
+          className="h-14 w-24 items-center justify-center rounded-button bg-muted active:bg-line"
+        >
+          <Text className={`font-semibold text-17 ${deletable ? 'text-danger' : 'text-ink-300'}`}>삭제</Text>
+        </Pressable>
+      }
+    >
+      {/* 삭제 확인: 가운데 다이얼로그(radius 20) */}
+      <Modal visible={confirmDelete} transparent animationType="fade" onRequestClose={() => setConfirmDelete(false)}>
+        <View className="flex-1 items-center justify-center bg-[rgba(23,32,58,0.45)] px-8">
+          <View className="w-full gap-4 rounded-sheet bg-white p-5">
+            <View className="gap-1">
+              <Text className="font-semibold text-lg text-ink">이 지출을 삭제할까요?</Text>
+              <Text className="text-sm text-ink-500">정산 금액이 다시 계산돼요.</Text>
+            </View>
+            {settled && (
+              <View className="flex-row gap-2 rounded-input bg-warning-bg px-3.5 py-3">
+                <Icon as={WarningCircle} size={18} color={colors.warning.DEFAULT} />
+                <Text className="flex-1 text-13 leading-5 text-ink-700">
+                  송금이 끝난 정산에 포함된 지출이에요. 삭제하면 정산 금액이 다시 계산돼요.
+                </Text>
+              </View>
+            )}
+            <View className="flex-row gap-2">
+              <PrimaryButton title="취소" variant="muted" size="md" grow onPress={() => setConfirmDelete(false)} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="삭제 확인"
+                onPress={onDelete}
+                className="h-[52px] flex-1 items-center justify-center rounded-input bg-danger active:opacity-90"
+              >
+                <Text className="font-semibold text-base text-white">삭제</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <CommentsSheet visible={commentsOpen} onClose={() => setCommentsOpen(false)} roomId={roomId} expenseId={e.id} members={members} />
+    </ExpenseEditor>
+  );
+}
+
+// 댓글 바텀시트(노션 38): 최대 화면 72%, 목록은 스크롤, 입력 줄은 아래 고정. 내 댓글은 고치고 지울 수 있다.
+function CommentsSheet({
+  visible,
+  onClose,
+  roomId,
+  expenseId,
+  members,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  roomId: string;
+  expenseId: string;
+  members: RoomMember[];
+}) {
+  const toast = useToast();
+  const myId = useAuth().session?.user.id;
+  const { height: screenH } = useWindowDimensions();
+  const { data: comments = [] } = useComments(expenseId);
+  const addComment = useAddComment();
+  const deleteComment = useDeleteComment();
+  const editComment = useEditComment();
+  const [editingId, setEditingId] = useState<string | null>(null); // 고치는 중인 내 댓글
+  const [draft, setDraft] = useState('');
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const author = new Map(members.flatMap((m, i) => (m.userId ? [[m.userId, { name: m.name, colorIndex: i }] as const] : [])));
+
   const body = commentSchema.safeParse(draft);
   const onSend = () => {
     if (!body.success || !myId) return;
     setCommentError(null);
     setDraft('');
+    if (editingId) {
+      const id = editingId;
+      setEditingId(null);
+      editComment.mutate(
+        { id, expenseId, body: body.data },
+        {
+          onError: (err) => {
+            setEditingId(id);
+            setDraft(body.data);
+            setCommentError(asUserError(err).message);
+          },
+        },
+      );
+      return;
+    }
     addComment.mutate(
-      { id: uuidV4(), expenseId: e.id, roomId, authorId: myId, body: body.data },
+      {
+        id: uuidV4(),
+        expenseId,
+        roomId,
+        authorId: myId,
+        body: body.data,
+      },
       {
         onError: (err) => {
           setDraft(body.data);
@@ -168,291 +238,109 @@ export default function ExpenseDetailScreen() {
     );
   };
 
-  const onEdit = () =>
-    router.push({
-      pathname: '/rooms/[roomId]/expenses/review',
-      params: { roomId, edit: e.id, version: String(e.version) },
-    });
-
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      <NavBar title="지출 상세" align="center" />
-      {/* 댓글 입력창이 키보드와 함께 올라온다. Android는 adjustResize가 처리한다. */}
-      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-3.5 px-5 pb-6 pt-1">
-          {error && <Text className="px-1 text-13 text-danger-text">{error}</Text>}
-
-          <View className="gap-3.5 rounded-card bg-white p-[18px]">
-            <View className="flex-row items-center gap-3">
-              <CategoryCircle code={toCategory(e.category)} size={40} />
-              <View className="flex-1 gap-[3px]">
-                <View className="flex-row items-center gap-1.5">
-                  <Text className="flex-shrink font-bold text-17 text-ink">{e.merchant ?? '가맹점 없음'}</Text>
-                  {e.needs_review && <Badge kind="review" />}
-                </View>
-                <Text className="text-13 text-ink-500">{meta}</Text>
-              </View>
-            </View>
-
-            {/* 금액 규칙(노션 11번): 외화는 결제 통화 크게(강조색) + 원화 작게 회색, 원화 결제는 원화만 */}
-            <View className="gap-1 rounded-box bg-app px-4 py-[18px]">
-              <View className="flex-row items-center justify-between gap-2">
-                <Text style={{ fontVariant: ['tabular-nums'] }} className={`font-bold text-2xl ${isKrw ? 'text-ink' : 'text-primary-text'}`}>
-                  {isKrw ? formatKrw(e.krw_amount ?? amountOriginal) : formatForeign(amountOriginal, e.currency)}
-                </Text>
-                {!isKrw &&
-                  (e.krw_amount === null ? (
-                    <Badge kind="pending" />
-                  ) : (
-                    <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-15 text-ink-500">
-                      {formatKrw(e.krw_amount)}
-                    </Text>
-                  ))}
-              </View>
-              {!isKrw && (
-                <Text className="text-xs text-ink-400">
-                  {fxBasisLabel({
-                    source: fxSource,
-                    baseDate: e.fx_base_date ?? undefined,
-                    rate: e.fx_rate === null ? undefined : Number(e.fx_rate),
-                    currency: e.currency,
-                  })}
-                </Text>
-              )}
-            </View>
-
-            {(!deletable || settled) && (
-              <View className={`flex-row gap-2 rounded-input px-3.5 py-3 ${deletable ? 'bg-warning-bg' : 'bg-muted'}`}>
-                <Icon
-                  as={deletable ? WarningCircle : InfoCircle}
-                  size={18}
-                  color={deletable ? colors.warning.DEFAULT : colors.ink[500]}
-                />
-                <Text className="flex-1 text-13 leading-5 text-ink-700">
-                  {!canDelete
-                    ? '올린 사람(결제자)만 삭제할 수 있어요.'
-                    : spotSent
-                      ? '이 자리 정산(QR)을 보낸 지출이라 삭제할 수 없어요.'
-                      : '송금이 끝난 정산에 포함된 지출이에요. 삭제하면 정산 금액이 다시 계산돼요.'}
-                </Text>
-              </View>
-            )}
-
-            <View className="flex-row gap-2">
-              <PrimaryButton title="수정" variant="muted" size="md" grow onPress={onEdit} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !deletable || del.isPending }}
-                disabled={!deletable || del.isPending}
-                onPress={() => setConfirmDelete(true)}
-                className={`h-[52px] flex-1 flex-row items-center justify-center gap-1.5 rounded-input ${deletable ? 'bg-danger-bg' : 'bg-muted'}`}
-              >
-                <Icon as={Trash} size={20} color={deletable ? colors.danger.text : colors.ink[300]} />
-                <Text className={`font-semibold text-base ${deletable ? 'text-danger-text' : 'text-ink-300'}`}>삭제</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {photoUrls && photoUrls.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-              {photoUrls.map((url, i) => (
-                <Pressable key={url} accessibilityRole="imagebutton" accessibilityLabel={`원본 사진 ${i + 1} 크게 보기`} onPress={() => setZoomUrl(url)}>
-                  <ReceiptThumb uri={url} />
-                </Pressable>
-              ))}
-            </ScrollView>
+    <BottomSheet visible={visible} onClose={onClose}>
+      <View style={{ maxHeight: screenH * 0.72 }}>
+        <View className="flex-row items-center justify-between pb-2">
+          <Text className="font-semibold text-lg text-ink">
+            댓글 <Text className="text-primary-text">{comments.length}</Text>
+          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="댓글 닫기" onPress={onClose} hitSlop={10}>
+            <Icon as={Xmark} size={24} color={colors.ink[500]} />
+          </Pressable>
+        </View>
+        <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled">
+          {comments.length === 0 && (
+            <Text className="py-10 text-center text-sm text-ink-300">
+              아직 댓글이 없어요{'\n'}궁금한 품목이 있으면 남겨 보세요
+            </Text>
           )}
-
-          <View className="gap-2.5 rounded-card bg-white p-4">
-            <Text className="font-semibold text-13 text-ink-500">함께한 사람</Text>
-            <View className="flex-row items-center gap-2.5">
-              <AvatarStack people={scopePeople} size={28} ring="#FFFFFF" />
-              <Text className="flex-1 text-sm text-ink-700">{scopePeople.map((p) => p.name).join(', ')}</Text>
-            </View>
-          </View>
-
-          {e.expense_items.map((it) => {
-            // 편집 중이면 화면 상태가, 아니면 저장된 지정이 정답이다.
-            const assigned = new Set(pick?.[it.id] ?? it.item_assignees.map((a) => a.member_id));
-            const n = assigned.size || scopePeople.length || 1;
-            const per =
-              it.krw_amount !== null
-                ? formatKrw(floorDiv(it.krw_amount, n))
-                : formatForeign(perPersonOriginal(Number(it.amount_original), n), e.currency);
+          {comments.map((c, i) => {
+            const a = author.get(c.authorId);
             return (
-              <ItemBox
-                key={it.id}
-                nameOriginal={it.name_original ?? ''}
-                nameKo={it.name_ko ?? ''}
-                quantity={Number(it.quantity)}
-                amountLabel={formatForeign(Number(it.amount_original), e.currency)}
-                krwLabel={it.krw_amount === null ? null : formatKrw(it.krw_amount)}
-                isKrw={e.currency === 'KRW'}
-                needsReview={it.needs_review}
-                people={scopePeople.length > 1 ? scopePeople.map((p) => ({ ...p, on: assigned.has(p.id) })) : []}
-                splitLabel={scopePeople.length > 1 ? splitLabel(n, scopePeople.length, per) : ''}
-                expanded={openItems.includes(it.id)}
-                onToggleOpen={() => setOpenItems((s) => (s.includes(it.id) ? s.filter((x) => x !== it.id) : [...s, it.id]))}
-                onToggle={
-                  scopePeople.length > 1
-                    ? (memberId) =>
-                        setPick((prev) => {
-                          const base =
-                            prev ??
-                            Object.fromEntries(
-                              e.expense_items.map((x) => [x.id, x.item_assignees.map((a) => a.member_id)]),
-                            );
-                          // 지정 없음 = 전원 켜짐이라 누르면 그 사람이 빠진다. 마지막 한 명은 끄지 않는다.
-                          const next = toggleWho(base[it.id] ?? [], memberId, scopePeople.map((x) => x.id));
-                          return next ? { ...base, [it.id]: next } : base;
-                        })
-                    : undefined
-                }
-              />
+              <View key={c.id} className={`flex-row gap-3 py-3.5 ${i > 0 ? 'border-t border-line-row' : ''}`}>
+                <Avatar name={a?.name ?? '?'} colorIndex={a?.colorIndex ?? 0} size={32} />
+                <View className="flex-1 gap-0.5">
+                  <View className="flex-row items-center gap-1.5">
+                    <Text className="font-semibold text-13 text-ink">{a?.name ?? '탈퇴한 사용자'}</Text>
+                    <Text className="flex-1 text-xs text-ink-300">{historyStamp(c.createdAt)}</Text>
+                    {c.authorId === myId && (
+                      <View className="flex-row gap-3">
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="댓글 수정"
+                          onPress={() => {
+                            setEditingId(c.id);
+                            setDraft(c.body);
+                            setCommentError(null);
+                          }}
+                          hitSlop={10}
+                        >
+                          <Text className="text-xs text-ink-300">수정</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="댓글 삭제"
+                          onPress={() => {
+                            if (editingId === c.id) {
+                              setEditingId(null);
+                              setDraft('');
+                            }
+                            deleteComment.mutate({ id: c.id, expenseId }, { onSuccess: () => toast('댓글을 삭제했어요') });
+                          }}
+                          hitSlop={10}
+                        >
+                          <Text className="text-xs text-ink-300">삭제</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
+                  <Text className="text-15 leading-[22px] text-ink">{c.body}</Text>
+                </View>
+              </View>
             );
           })}
-
-          <View className="gap-3 rounded-card bg-white p-4">
-            <Text className="font-semibold text-base text-ink">댓글</Text>
-            {comments.length === 0 && <Text className="text-13 text-ink-400">궁금한 점을 댓글로 남겨보세요</Text>}
-            {comments.map((c) => (
-              <View key={c.id} className="gap-0.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-semibold text-xs text-ink-500">
-                    {userName.get(c.authorId) ?? '탈퇴한 사용자'} · {historyStamp(c.createdAt)}
-                  </Text>
-                  {c.authorId === myId && (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="댓글 삭제"
-                      onPress={() => deleteComment.mutate({ id: c.id, expenseId: e.id })}
-                      hitSlop={10}
-                      className="px-1"
-                    >
-                      <Text className="text-xs text-ink-400">삭제</Text>
-                    </Pressable>
-                  )}
-                </View>
-                <Text className="text-base text-ink-700">{c.body}</Text>
-              </View>
-            ))}
-          </View>
-
-          {(history ?? []).length > 0 && (
-            <View className="gap-3 rounded-card bg-white p-4">
-              <Text className="font-semibold text-base text-ink">수정 이력</Text>
-              {(history ?? []).map((h, i, all) => (
-                <View key={h.id} className="gap-0.5">
-                  <Text className="font-semibold text-xs text-ink-500">
-                    {h.actorNickname ?? '탈퇴한 사용자'} · {historyStamp(h.at)}
-                  </Text>
-                  {diffSnapshots(i === 0 ? null : all[i - 1].snapshot, h.snapshot, names).map((line, j) => (
-                    <Text key={j} className="text-sm text-ink-700">
-                      {line}
-                    </Text>
-                  ))}
-                </View>
-              ))}
-            </View>
-          )}
         </ScrollView>
-
-        <View
-          className="gap-2 bg-white px-5 pt-3"
-          // 키보드가 올라오면 홈 인디케이터 여백이 그대로 남아 입력칸과 키보드 사이가 뜬다 — 그때만 줄인다.
-          style={{ paddingBottom: keyboard > 0 ? 10 : Math.max(insets.bottom + 12, 24), boxShadow: '0 -8px 20px -12px rgba(19,25,39,.15)' }}
-        >
-          {/* 품목에서 사람을 고치면 그때만 저장 줄이 뜬다. 금액은 안 바뀌고 '누가 먹었는지'만 바뀐다 */}
-          {pick && (
-            <View className="gap-2 pb-1">
-              {pickError && <Text className="text-13 text-danger-text">{pickError}</Text>}
-              <View className="flex-row gap-2">
-                <PrimaryButton
-                  title="되돌리기"
-                  variant="muted"
-                  onPress={() => {
-                    setPick(null);
-                    setPickError(null);
-                  }}
-                />
-                <PrimaryButton
-                  title="저장하기"
-                  variant="dark"
-                  grow
-                  loading={saveAssignees.isPending}
-                  onPress={() => {
-                    setPickError(null);
-                    saveAssignees.mutate(pick, {
-                      onSuccess: () => setPick(null),
-                      onError: (err) => setPickError(asUserError(err).message),
-                    });
-                  }}
-                />
-              </View>
+        <View className="gap-2 border-t border-line-row pt-3">
+          {editingId && (
+            <View className="flex-row items-center justify-between">
+              <Text className="font-semibold text-xs text-primary-text">댓글 수정 중</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="댓글 수정 취소"
+                onPress={() => {
+                  setEditingId(null);
+                  setDraft('');
+                }}
+                hitSlop={10}
+              >
+                <Text className="text-xs text-ink-500">취소</Text>
+              </Pressable>
             </View>
           )}
           {commentError && <Text className="text-13 text-danger-text">{commentError}</Text>}
           <View className="flex-row items-center gap-2">
             <TextInput
               accessibilityLabel="댓글 입력"
-              placeholder="댓글 달기"
+              placeholder="댓글을 입력해 주세요"
               placeholderTextColor={colors.ink[300]}
               value={draft}
               onChangeText={setDraft}
               maxLength={500}
-              className="h-[54px] flex-1 rounded-input border border-line bg-white px-4 text-input-16 text-ink focus:border-primary"
+              className="h-11 flex-1 rounded-full bg-app px-4 text-input-15 text-ink"
             />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="댓글 보내기"
               onPress={onSend}
               disabled={!body.success}
-              className={`h-[54px] w-[54px] items-center justify-center rounded-input ${body.success ? 'bg-primary active:bg-primary-press' : 'bg-line'}`}
+              className={`h-11 w-11 items-center justify-center rounded-full ${body.success ? 'bg-primary active:bg-primary-press' : 'bg-muted'}`}
             >
-              <Icon as={SendDiagonal} size={22} color={body.success ? colors.primary.on : colors.ink[300]} />
+              <Icon as={SendDiagonal} size={20} color={body.success ? colors.primary.on : colors.ink[300]} />
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
-
-      <BottomSheet
-        visible={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title="이 지출을 삭제할까요?"
-        subtitle={`‘${e.merchant ?? '가맹점 없음'}’ ${e.krw_amount === null ? '' : `${formatKrw(e.krw_amount)} · `}정산 금액이 다시 계산돼요.`}
-      >
-        <View className="gap-3">
-          {settled && (
-            <View className="flex-row gap-2 rounded-input bg-warning-bg px-3.5 py-3">
-              <Icon as={WarningCircle} size={18} color={colors.warning.DEFAULT} />
-              <Text className="flex-1 text-13 leading-5 text-ink-700">
-                송금이 끝난 정산에 포함된 지출이에요. 삭제하면 이미 주고받은 금액과 달라질 수 있어요. 동행에게 먼저 알려 주세요.
-              </Text>
-            </View>
-          )}
-          <View className="flex-row gap-2">
-            <PrimaryButton title="취소" variant="muted" size="md" grow onPress={() => setConfirmDelete(false)} />
-            <Pressable
-              accessibilityRole="button"
-              onPress={onDelete}
-              className="h-[52px] flex-1 items-center justify-center rounded-input bg-danger active:opacity-90"
-            >
-              <Text className="font-semibold text-base text-white">삭제</Text>
-            </Pressable>
-          </View>
-        </View>
-      </BottomSheet>
-
-      <Modal visible={!!zoomUrl} onRequestClose={() => setZoomUrl(null)} animationType="fade">
-        <SafeAreaView className="flex-1 bg-black">
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={() => setZoomUrl(null)} className="self-end p-3">
-            <Icon as={Xmark} size={26} color="#FFFFFF" />
-          </Pressable>
-          <ScrollView maximumZoomScale={4} minimumZoomScale={1} centerContent contentContainerClassName="flex-1">
-            {zoomUrl && <Image source={{ uri: zoomUrl }} resizeMode="contain" className="h-full w-full" />}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+      </View>
+    </BottomSheet>
   );
 }

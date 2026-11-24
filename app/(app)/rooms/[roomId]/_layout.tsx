@@ -12,6 +12,8 @@ export default function RoomLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       {/* 방법 선택이 여행 상세 위 바텀시트라 투명 모달로 띄운다(11-18 시안 §3). 카메라·문자 단계는 화면이 스스로 흰 바탕을 깐다. */}
       <Stack.Screen name="expenses/new" options={{ presentation: 'transparentModal', animation: 'fade' }} />
+      {/* 투명 모달(방법 선택) 위로 그냥 push하면 iOS가 카드 시트로 띄운다. 꽉 찬 화면으로 덮는다. */}
+      <Stack.Screen name="expenses/voice" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
     </Stack>
   );
 }

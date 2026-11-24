@@ -73,7 +73,7 @@ export default function NewExpense() {
   if (!method)
     return (
       <MethodPicker
-        // 말로 입력은 별도 화면이다. push라 뒤로가기가 방법 선택으로 돌아온다.
+        // 음성으로 입력은 별도 화면이다. push라 뒤로가기가 방법 선택으로 돌아온다.
         onSelect={(m) =>
           m === 'voice'
             ? router.push({ pathname: '/rooms/[roomId]/expenses/voice', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } })
@@ -351,7 +351,7 @@ function Title({ title, sub }: { title: string; sub: string }) {
 // 11-18 시안: 세 칸 배경은 회색(app)으로 통일하고 아이콘 색만 다르다(문자 민트 / 음성 앰버 / 직접 스카이). 라벨은 두 줄.
 const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; iconColor: string }[] = [
   { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, iconColor: colors.success.DEFAULT },
-  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, iconColor: colors.warning.DEFAULT },
+  { method: 'voice', label: '음성으로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, iconColor: colors.warning.DEFAULT },
   { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, iconColor: colors.primary.text },
 ];
 
@@ -373,12 +373,14 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
   const out = !passOn && used >= FREE_AI_LIMIT;
   const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
   const insets = useSafeAreaInsets();
-  // 기기에 남은 작성 중 지출(시안: 세 칸 아래 '이어서 쓰기' 카드).
-  const [saved, setSaved] = useState<StoredDraft | null>(null);
+  // 기기에 남은 작성 중 지출(시안: 세 칸 아래 '이어서 쓰기' 카드). undefined = 아직 읽는 중.
+  // 다 읽은 뒤에 시트를 띄운다 — 먼저 띄우면 시트 높이가 카드 없이 잡혀 카드가 잘린다.
+  const [saved, setSaved] = useState<StoredDraft | null | undefined>(undefined);
   useEffect(() => {
     void loadDraft(roomId).then(setSaved);
   }, [roomId]);
   const select = (m: InputMethod) => (out && m !== 'manual' ? setPass({ reason: 'ai' }) : onSelect(m));
+  if (saved === undefined) return null;
   // 여행 상세 위에 뜨는 바텀시트(11-18 시안 §3). 라우트가 transparentModal이라 뒤의 상세가 스크림 너머로 보인다.
   return (
     <View className="flex-1 justify-end">

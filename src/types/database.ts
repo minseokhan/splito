@@ -920,9 +920,6 @@ isOneToOne: false
 "delete_schedule_item":
 { Args: { "p_id": string }; Returns: undefined
                            },
-"expense_history":
-{ Args: { "p_expense_id": string }; Returns: Json[]
-                           },
 "export_expense_shares":
 { Args: { "p_room_id": string }; Returns: {
               "expense_id": string,"member_id": string,"share": number
@@ -1021,9 +1018,6 @@ isOneToOne: false
                            },
 "set_expense_meta":
 { Args: { "p_expense_id": string,"p_flags"?: (string)[],"p_schedule_id"?: string }; Returns: undefined
-                           },
-"set_item_assignees":
-{ Args: { "p_assign": Json,"p_expense_id": string }; Returns: undefined
                            },
 "set_payout_account":
 { Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined
