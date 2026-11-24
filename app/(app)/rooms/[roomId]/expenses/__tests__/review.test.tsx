@@ -124,7 +124,8 @@ describe('확인·수정 화면', () => {
   it('아무도 안 고르면 공동 지출로 보고 활동 참여자 전원으로 저장한다', async () => {
     jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 1 });
     await renderWith(draft());
-    expect(await screen.findByText('공동 지출')).toBeOnTheScreen();
+    await screen.findByDisplayValue('이치란');
+    expect(screen.queryByText('공동 지출')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
     await waitFor(() =>
       expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1', 'm2'] }), null),
@@ -234,7 +235,7 @@ describe('지출 상세(그 자리에서 고치기)', () => {
     await renderWith(d, [], <ExpenseDetail />);
   }
 
-  it('제목은 지출 상세, 아래 버튼은 [삭제]·[수정 완료]이고 고치기 전에는 수정 완료가 꺼져 있다', async () => {
+  it('제목은 지출 상세, 아래 버튼은 [삭제]·[수정하기]이고 고치기 전에는 수정하기가 꺼져 있다', async () => {
     jest.mocked(api.expensePayload).mockResolvedValue({ payload: toSavePayload(draft(), 'm1', ['m1', 'm2']), version: 3 });
     await renderDetail(draft());
     const input = await screen.findByDisplayValue('이치란');
@@ -242,30 +243,29 @@ describe('지출 상세(그 자리에서 고치기)', () => {
     expect(screen.getByRole('button', { name: '댓글 0개' })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: '지출 메뉴' })).toBeNull();
     expect(screen.getByRole('button', { name: '삭제' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: '수정 완료' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeDisabled();
     await fireEvent.changeText(input, '이치란 본점');
-    expect(screen.getByRole('button', { name: '수정 완료' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeEnabled();
   });
 
-  it('[수정 완료]는 저장하고 돌아가며 토스트를 띄운다. 일정은 바꾸지 않았으면 다시 붙이지 않는다', async () => {
+  it('[수정하기]는 저장하고 돌아가며 토스트를 띄운다. 일정은 바꾸지 않았으면 다시 붙이지 않는다', async () => {
     jest.mocked(api.expensePayload).mockResolvedValue({ payload: toSavePayload(draft(), 'm1', ['m1', 'm2']), version: 3 });
     jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 4 });
     await renderDetail(draft());
     await fireEvent.changeText(await screen.findByDisplayValue('이치란'), '이치란 본점');
-    await fireEvent.press(screen.getByRole('button', { name: '수정 완료' }));
+    await fireEvent.press(screen.getByRole('button', { name: '수정하기' }));
     await waitFor(() => expect(router.back).toHaveBeenCalled());
     expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ merchant: '이치란 본점' }), 3);
     expect(api.setExpenseMeta).not.toHaveBeenCalled();
     expect(mockToast).toHaveBeenCalledWith('지출을 수정했어요');
   });
 
-  it('올린 사람(결제자)이 아니면 [삭제]를 눌러도 지우지 않고 토스트로 알린다', async () => {
+  it('올린 사람(결제자)이 아니면 [삭제] 버튼 자체가 없다', async () => {
     jest.mocked(api.expensePayload).mockResolvedValue({ payload: toSavePayload(draft({ payerMemberId: 'm2' }), 'm1', ['m1', 'm2']), version: 3 });
     await renderDetail(draft(), { createdBy: 'u2', payer: 'm2' });
     await screen.findByDisplayValue('이치란');
-    await fireEvent.press(screen.getByRole('button', { name: '삭제' }));
-    expect(mockToast).toHaveBeenCalledWith('올린 사람(결제자)만 삭제할 수 있어요');
-    expect(screen.queryByText('이 지출을 삭제할까요?')).toBeNull();
+    expect(screen.queryByRole('button', { name: '삭제' })).toBeNull();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeOnTheScreen();
   });
 
   it('올린 사람이 [삭제]를 누르면 가운데 확인 다이얼로그를 띄운다', async () => {
@@ -283,17 +283,17 @@ describe('편집 모드', () => {
     mockParams.current = { roomId: 'r1' };
   });
 
-  it('[수정 완료]는 불러온 그대로면 꺼져 있고, 고치면 켜지고, 되돌리면 다시 꺼진다', async () => {
+  it('[수정하기]는 불러온 그대로면 꺼져 있고, 고치면 켜지고, 되돌리면 다시 꺼진다', async () => {
     jest.mocked(api.expensePayload).mockResolvedValueOnce({ payload: toSavePayload(draft(), 'm1', ['m1', 'm2']), version: 3 });
     await renderWith(draft(), [], <ExpenseEditor roomId="r1" edit="e1" version={3} />);
 
     const input = await screen.findByDisplayValue('이치란');
     expect(screen.queryByRole('button', { name: /저장하기$/ })).toBeNull();
-    expect(screen.getByRole('button', { name: '수정 완료' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeDisabled();
     await fireEvent.changeText(input, '이치란 본점');
-    expect(screen.getByRole('button', { name: '수정 완료' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeEnabled();
     await fireEvent.changeText(input, '이치란');
-    expect(screen.getByRole('button', { name: '수정 완료' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeDisabled();
   });
 
   it('VERSION_CONFLICT면 덮어쓰지 않고 문구를 띄운 뒤 최신 지출과 version으로 draft를 바꾼다', async () => {
@@ -304,7 +304,7 @@ describe('편집 모드', () => {
     await renderWith(draft({ merchant: '작성 중 다른 지출' }), [], <ExpenseEditor roomId="r1" edit="e1" version={3} />);
 
     await fireEvent.changeText(await screen.findByDisplayValue('이치란'), '이치란 본점');
-    await fireEvent.press(screen.getByRole('button', { name: '수정 완료' }));
+    await fireEvent.press(screen.getByRole('button', { name: '수정하기' }));
 
     expect(await screen.findByText('다른 분이 먼저 수정했어요. 최신 내용을 불러왔어요')).toBeOnTheScreen();
     expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 3);
@@ -312,10 +312,10 @@ describe('편집 모드', () => {
     expect(clearDraft).not.toHaveBeenCalled();
 
     // 최신 지출이 새 기준이라 다시 고쳐야 켜진다.
-    expect(screen.getByRole('button', { name: '수정 완료' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeDisabled();
     await fireEvent.changeText(screen.getByDisplayValue('최신 가맹점'), '최신 가맹점 2');
     jest.mocked(api.saveExpense).mockResolvedValueOnce({ id: 'e1', version: 5 });
-    await fireEvent.press(screen.getByRole('button', { name: '수정 완료' }));
+    await fireEvent.press(screen.getByRole('button', { name: '수정하기' }));
     expect(api.saveExpense).toHaveBeenLastCalledWith(expect.objectContaining({ merchant: '최신 가맹점 2' }), 4);
     await waitFor(() => expect(router.back).toHaveBeenCalled());
     expect(mockToast).toHaveBeenCalledWith('지출을 수정했어요');

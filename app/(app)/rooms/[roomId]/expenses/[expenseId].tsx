@@ -79,7 +79,6 @@ export default function ExpenseDetailScreen() {
   const deletable = canDelete && !spotSent;
 
   const onDeletePress = () => {
-    if (!canDelete) return toast('올린 사람(결제자)만 삭제할 수 있어요');
     if (spotSent) return toast('이 자리 정산(QR)을 보낸 지출이라 삭제할 수 없어요');
     setConfirmDelete(true);
   };
@@ -127,16 +126,19 @@ export default function ExpenseDetailScreen() {
         </Pressable>
       }
       deleteButton={
-        // 못 지우는 지출도 누를 수는 있다 — 회색 글자에 이유를 토스트로 알린다.
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="삭제"
-          disabled={del.isPending}
-          onPress={onDeletePress}
-          className="h-14 w-24 items-center justify-center rounded-button bg-muted active:bg-line"
-        >
-          <Text className={`font-semibold text-17 ${deletable ? 'text-danger' : 'text-ink-300'}`}>삭제</Text>
-        </Pressable>
+        // 올린 사람(결제자)이 아니면 버튼 자체를 숨긴다. QR 정산을 보낸 지출은 회색 글자 + 토스트로 이유를 알린다.
+        canDelete && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="삭제"
+            disabled={del.isPending}
+            onPress={onDeletePress}
+            className={`h-14 w-24 items-center justify-center rounded-button ${deletable ? 'bg-danger-bg' : 'bg-muted'} active:opacity-80`}
+          >
+            {/* 연한 배경 위 빨강은 흰 글씨보다 굵어 보여, [수정하기](SemiBold)와 맞춰 보이게 Medium으로 둔다. */}
+            <Text className={`font-medium text-17 ${deletable ? 'text-danger' : 'text-ink-300'}`}>삭제</Text>
+          </Pressable>
+        )
       }
     >
       {/* 삭제 확인: 가운데 다이얼로그(radius 20) */}

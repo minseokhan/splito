@@ -247,7 +247,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
       ? pickedSchedule
       : defaultScheduleId({ dayItems, entryId: entry, isPackage: !!booking, paidTime: draft.paidLocalTime });
   const selItem = scheduleItems.find((x) => x.id === scheduleSel) ?? null;
-  // 편집 모드는 불러온 그대로면 저장할 게 없다. 처음 불러온 draft·일정과 다를 때만 [수정 완료]를 켠다.
+  // 편집 모드는 불러온 그대로면 저장할 게 없다. 처음 불러온 draft·일정과 다를 때만 [수정하기]를 켠다.
   const unchanged = !!editing && JSON.stringify(editing.draft) === editing.initial && scheduleSel === linkedScheduleId;
 
   // 일정 상세에서 들어온 일정의 날짜가 결제일과 다르면 어디에 넣을지 먼저 묻는다(명세 §7).
@@ -583,14 +583,10 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
           </Pressable>
         </View>
 
-        {multi && (
-          <Text className={`px-1 text-right text-13 ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
-            {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
-          </Text>
-        )}
+        {multi && visibility === 'private' && <Text className="px-1 text-right text-13 text-ink-400">나만 보기 · 정산에서 빠져요</Text>}
       </ScrollView>
 
-      <BottomBar fade bg={colors.canvas}>
+      <BottomBar fade>
         {!!mealWarn && (
           <View className="flex-row items-center gap-1.5">
             <Icon as={InfoCircle} size={16} color={colors.warning.DEFAULT} />
@@ -602,7 +598,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
         {edit ? (
           <View className="flex-row gap-2">
             {deleteButton}
-            <PrimaryButton title="수정 완료" grow onPress={() => void onSave()} disabled={updateExpense.isPending || unchanged} />
+            <PrimaryButton title="수정하기" grow onPress={() => void onSave()} disabled={updateExpense.isPending || unchanged} />
           </View>
         ) : (
           <PrimaryButton
