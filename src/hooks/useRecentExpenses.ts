@@ -29,6 +29,7 @@ export function useRecentExpenses(rooms: MyRoom[], limit = 3) {
 
   return {
     data: rows.slice(0, limit),
+    isLoading: feeds.some((q) => q.isLoading) || members.some((q) => q.isLoading),
     refetch: () => Promise.all([...feeds, ...members].map((q) => q.refetch())),
   };
 }

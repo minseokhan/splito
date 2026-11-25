@@ -423,7 +423,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
                 <TextInput
                   value={draft.merchant}
                   onChangeText={(merchant) => update((d) => ({ ...d, merchant }))}
-                  placeholder="가맹점"
+                  placeholder="어디서 사용했나요? (선택)"
                   placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="가맹점"
                   className="flex-shrink p-0 font-semibold text-input-16 text-ink"
@@ -572,7 +572,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
             onPress={() => setScheduleOpen(true)}
             className="h-[52px] flex-row items-center justify-between gap-3 pl-4 pr-3 active:bg-app"
           >
-            <Text className="text-15 text-ink-500">일정</Text>
+            <Text className="text-15 text-ink-500">연결할 일정</Text>
             <View className="flex-shrink flex-row items-center gap-1.5">
               <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
                 {selItem?.title ?? '일정 없음'}
@@ -602,7 +602,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
           </View>
         ) : (
           <PrimaryButton
-            title={total ? `${total} 저장하기` : '저장하기'}
+            title={total ? `${total} 기록하기` : '기록하기'}
             onPress={() => void onSave()}
             disabled={save.isPending}
           />

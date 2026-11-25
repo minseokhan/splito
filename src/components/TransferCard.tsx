@@ -12,9 +12,9 @@ import { colors } from '@/theme/tokens';
 /** name: 실명(아바타·안내 문구), label: 카드 제목용("나" 또는 실명) */
 export type Party = { name: string; label: string; colorIndex: number; guest?: boolean };
 
-// 상태 배지(핸드오프 settlement.html): 송금 필요 / 받을 차례 / 확인 대기 / 입금 확인 필요 / 받았어요
+// 상태 배지(핸드오프 settlement.html): 송금 전 / 받을 차례 / 확인 대기 / 입금 확인 필요 / 받았어요
 const BADGE = {
-  'send-need': { label: '송금 필요', box: 'bg-sky-100', text: 'text-primary-text' },
+  'send-need': { label: '송금 전', box: 'bg-sky-100', text: 'text-primary-text' },
   'recv-need': { label: '받을 차례', box: 'bg-muted', text: 'text-ink-500' },
   'send-waiting': { label: '확인 대기', box: 'bg-warning-badge', text: 'text-warning-text' },
   'recv-confirm': { label: '입금 확인 필요', box: 'bg-warning-badge', text: 'text-warning-text' },

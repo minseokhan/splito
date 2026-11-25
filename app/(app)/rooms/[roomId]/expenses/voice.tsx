@@ -7,7 +7,7 @@ import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Calendar, Check, Microphone, NavArrowDown, NavArrowRight, Pause, Plus, User, Wallet, Xmark } from 'iconoir-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { CategoryCircle } from '@/components/CategoryCircle';
@@ -51,6 +51,7 @@ function localToday(): string {
 }
 
 export default function VoiceInput() {
+  const topInset = useSafeAreaInsets().top;
   const { roomId, scheduleId } = useLocalSearchParams<{ roomId: string; scheduleId?: string }>();
   const { session, profile, refreshProfile } = useAuth();
   const { data: room } = useRoom(roomId);
@@ -323,7 +324,8 @@ export default function VoiceInput() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas" edges={['top']}>
+    <View className="flex-1 bg-canvas" style={{ paddingTop: topInset }}>
+      {/* 모달 화면이라 SafeAreaView(네이티브)가 위 여백을 0으로 재서 뒤로·제목이 상태바에 겹쳤다(2026-11-25 실기기). 앱 전체 기준 insets로 띄운다. */}
       <BottomSheet visible={needNotice} onClose={() => router.back()} title="말한 내용이 인식을 위해 Anthropic(미국)으로 전송돼요" subtitle="음성 파일은 보내지 않고 글자만 보내요. 원하지 않으면 직접 입력할 수 있어요.">
         <View className="gap-2.5">
           <PrimaryButton title="확인" onPress={() => void ackNotice()} />
@@ -424,7 +426,7 @@ export default function VoiceInput() {
                 <ItemRow
                   key={c.key}
                   first={i === 0}
-                  nameOriginal={c.part ? `“${c.part}”` : ''}
+                  nameOriginal={c.part ? `“${c.part}”` : '직접 추가한 품목'}
                   nameKo={c.title}
                   quantity={c.quantity}
                   amountText={c.amount ? String(c.amount) : ''}
@@ -584,7 +586,7 @@ export default function VoiceInput() {
           })}
         </View>
       </BottomSheet>
-    </SafeAreaView>
+    </View>
   );
 }
 

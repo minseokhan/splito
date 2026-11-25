@@ -322,7 +322,7 @@ export default function RoomHome() {
         </View>
         <View className="mt-3.5 flex-row overflow-hidden rounded-button bg-white">
           <Segment
-            label="정산 보기"
+            label="정산하기"
             icon={Coins}
             iconColor={colors.primary.text}
             onPress={() => (together ? go('/rooms/[roomId]/settle') : setInviteOpen(true))}
@@ -564,7 +564,7 @@ export default function RoomHome() {
         }}
       >
         <Icon as={Plus} size={20} color={colors.primary.on} />
-        <Text className="font-semibold text-base text-primary-on">지출 올리기</Text>
+        <Text className="font-semibold text-base text-primary-on">지출 기록</Text>
       </Pressable>
       <ScheduleSheet
         draft={draft}

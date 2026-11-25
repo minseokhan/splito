@@ -94,7 +94,7 @@ export function buildSettleItems(
   return items.sort((a, b) => ORDER[a.state] - ORDER[b.state]);
 }
 
-// 요약: "보낼 돈 2건, 받을 돈 1건" / "총 244,920원을 보내주세요". 끝난 건은 세지 않는다.
+// 요약: "보낼 정산 2건 · 받을 정산 1건" / "총 244,920원을 보내야 해요". 끝난 건은 세지 않는다.
 export function settleHeadline(items: SettleItem[]) {
   const open = items.filter((i) => i.state !== 'done');
   const send = open.filter((i) => i.dir === 'send');
@@ -102,14 +102,14 @@ export function settleHeadline(items: SettleItem[]) {
   const sum = (xs: SettleItem[]) => xs.reduce((s, i) => s + i.amount, 0);
   const toSend = send.filter((i) => i.state === 'need');
   const sub = toSend.length
-    ? `총 ${formatKrw(sum(toSend))}을 보내주세요`
+    ? `총 ${formatKrw(sum(toSend))}을 보내야 해요`
     : recv.length
       ? `총 ${formatKrw(sum(recv))}을 받을 차례예요`
       : send.length
         ? '상대 확인을 기다리고 있어요'
         : '모든 송금이 정리됐어요';
   return {
-    title: open.length ? `보낼 돈 ${send.length}건, 받을 돈 ${recv.length}건` : '정산할 돈이 없어요',
+    title: open.length ? `보낼 정산 ${send.length}건 · 받을 정산 ${recv.length}건` : '정산할 돈이 없어요',
     sub,
     send: send.length,
     recv: recv.length,

@@ -46,7 +46,7 @@ export function ScheduleEmpty({ days, onAddSchedule }: Props) {
         <View className="mt-0.5">
           <Icon as={InfoCircle} size={15} color={colors.ink[300]} />
         </View>
-        <Text className="flex-1 text-xs text-ink-500">일정 없이도 아래 [지출 올리기]로 지출을 바로 올릴 수 있어요.</Text>
+        <Text className="flex-1 text-xs text-ink-500">일정 없이도 아래 [지출 기록]으로 지출을 바로 올릴 수 있어요.</Text>
       </View>
     </View>
   );

@@ -73,7 +73,7 @@ describe('확인·수정 화면', () => {
     expect(screen.getByText('29,925원')).toBeOnTheScreen();
     expect(screen.getByText('10.21 (수)')).toBeOnTheScreen();
     expect(screen.getByText('품목 2개')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: '29,925원 저장하기' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: '29,925원 기록하기' })).toBeOnTheScreen();
   });
 
   it('결제자 멤버 선택은 없고, 결제자는 올린 사람(me)으로 저장한다', async () => {
@@ -82,7 +82,7 @@ describe('확인·수정 화면', () => {
     expect(await screen.findByText('¥3,280')).toBeOnTheScreen();
     expect(screen.queryByText('결제한 사람')).toBeNull();
     expect(screen.queryByRole('radio', { name: '민지(나)' })).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await fireEvent.press(screen.getByRole('button', { name: /기록하기$/ }));
     await waitFor(() =>
       expect(api.saveExpense).toHaveBeenCalledWith(
         expect.objectContaining({ payer_kind: 'member', payer_member_id: 'm1' }),
@@ -126,7 +126,7 @@ describe('확인·수정 화면', () => {
     await renderWith(draft());
     await screen.findByDisplayValue('이치란');
     expect(screen.queryByText('공동 지출')).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await fireEvent.press(screen.getByRole('button', { name: /기록하기$/ }));
     await waitFor(() =>
       expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1', 'm2'] }), null),
     );
@@ -142,7 +142,7 @@ describe('확인·수정 화면', () => {
       await fireEvent.press(screen.getByRole('checkbox', { name: '지훈' }));
     }
     expect(await screen.findByText('나만 보기 · 정산에서 빠져요')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await fireEvent.press(screen.getByRole('button', { name: /기록하기$/ }));
     await waitFor(() => expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ scope_member_ids: ['m1'] }), null));
   });
 
@@ -170,7 +170,7 @@ describe('확인·수정 화면', () => {
     expect(screen.getByRole('button', { name: '라멘 품목' })).toHaveProp('accessibilityState', { expanded: false });
     await fireEvent.press(screen.getByRole('button', { name: '전원' }));
     expect(screen.getByRole('checkbox', { name: '지훈' })).not.toBeChecked();
-    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await fireEvent.press(screen.getByRole('button', { name: /기록하기$/ }));
     await waitFor(() =>
       expect(api.saveExpense).toHaveBeenCalledWith(
         expect.objectContaining({ items: expect.arrayContaining([expect.objectContaining({ assignee_member_ids: ['m1'] })]) }),
@@ -198,7 +198,7 @@ describe('확인·수정 화면', () => {
     expect(screen.queryByText('통화')).toBeNull();
     await fireEvent.press(screen.getByRole('radio', { name: '식비' }));
     expect(screen.getByRole('button', { name: '카테고리 · 식비' })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: /저장하기$/ }));
+    await fireEvent.press(screen.getByRole('button', { name: /기록하기$/ }));
     await waitFor(() => expect(api.saveExpense).toHaveBeenCalledWith(expect.objectContaining({ category: 'food' }), null));
   });
 });
@@ -288,7 +288,7 @@ describe('편집 모드', () => {
     await renderWith(draft(), [], <ExpenseEditor roomId="r1" edit="e1" version={3} />);
 
     const input = await screen.findByDisplayValue('이치란');
-    expect(screen.queryByRole('button', { name: /저장하기$/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /기록하기$/ })).toBeNull();
     expect(screen.getByRole('button', { name: '수정하기' })).toBeDisabled();
     await fireEvent.changeText(input, '이치란 본점');
     expect(screen.getByRole('button', { name: '수정하기' })).toBeEnabled();

@@ -121,9 +121,9 @@ describe('보낼 돈 · 받을 돈 탭', () => {
 
   it('보낼 돈 카드에 상태 배지·양쪽 이름·금액을 보여준다', async () => {
     await renderSettle([], payerRows);
-    expect(await screen.findByText('송금 필요')).toBeOnTheScreen();
-    expect(screen.getByText('보낼 돈 1건, 받을 돈 0건')).toBeOnTheScreen();
-    expect(screen.getByText('총 30,000원을 보내주세요')).toBeOnTheScreen();
+    expect(await screen.findByText('송금 전')).toBeOnTheScreen();
+    expect(screen.getByText('보낼 정산 1건 · 받을 정산 0건')).toBeOnTheScreen();
+    expect(screen.getByText('총 30,000원을 보내야 해요')).toBeOnTheScreen();
     expect(screen.getByText('나')).toBeOnTheScreen();
     expect(screen.getAllByText('지훈')).toHaveLength(1); // 순잔액 표는 더 이상 없다
     expect(screen.getByText('30,000원')).toBeOnTheScreen();
@@ -133,14 +133,14 @@ describe('보낼 돈 · 받을 돈 탭', () => {
     const rows = [balanceRow('m1', 0, 0, 0), balanceRow('m2', 30000, 0, 30000), balanceRow('m3', 0, 30000, -30000)];
     await renderSettle([], rows, [...TWO_MEMBERS, member('m3', 'u3', '서연')]);
     expect(await screen.findByText('정산할 돈이 없어요')).toBeOnTheScreen();
-    expect(screen.queryByText('송금 필요')).toBeNull();
+    expect(screen.queryByText('송금 전')).toBeNull();
   });
 
   it('받을 돈 탭으로 바꾸면 그 탭의 카드만 본다', async () => {
     await renderSettle([], payerRows);
     await fireEvent.press(await screen.findByRole('tab', { name: '받을 돈 0건' }));
     expect(screen.getByText('받을 돈이 없어요')).toBeOnTheScreen();
-    expect(screen.queryByText('송금 필요')).toBeNull();
+    expect(screen.queryByText('송금 전')).toBeNull();
   });
 });
 
@@ -157,7 +157,7 @@ describe('게스트 정산', () => {
       ],
       [...TWO_MEMBERS, guestMember('g1', '엄마', 'm1')],
     );
-    expect(await screen.findByText('송금 필요')).toBeOnTheScreen();
+    expect(await screen.findByText('송금 전')).toBeOnTheScreen();
     expect(screen.getByText('엄마')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: '엄마에게 알리기' })).toBeOnTheScreen();
   });

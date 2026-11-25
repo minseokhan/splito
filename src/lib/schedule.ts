@@ -4,7 +4,6 @@ import { weekday } from './feed';
 export const PRE_TRIP = 'pre-trip';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const TIME_RE = /^(\d{1,2}):(\d{2})$/;
 
 const utc = (isoDate: string) => {
   const [y, m, d] = isoDate.split('-').map(Number);
@@ -53,18 +52,6 @@ export type ScheduleDay<E> = {
   daySum: number; // 그날 전체(일정 연결분 + 그 외) 원화 합
   hasExpense: boolean; // 지출이 하나도 없으면 합계를 쓰지 않는다
 };
-
-export function isValidScheduleTime(value: string): boolean {
-  const m = TIME_RE.exec(value);
-  if (!m) return false;
-  return Number(m[1]) <= 23 && Number(m[2]) <= 59;
-}
-
-// '9:30' → '09:30'. 유효하지 않으면 그대로 돌려준다(검증은 호출부가 따로 한다).
-export function normalizeScheduleTime(value: string): string {
-  const m = TIME_RE.exec(value);
-  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : value;
-}
 
 export function dayKeyOfIndex(dayIndex: number, startDate: string | null): string {
   if (dayIndex <= 0 || !startDate) return PRE_TRIP;

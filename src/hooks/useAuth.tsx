@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { queryClient } from '@/services/queryClient';
 import { supabase } from '@/services/supabase';
 import type { Tables } from '@/types/database';
 
@@ -23,7 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // INITIAL_SESSION 이벤트로 저장된 세션도 전달된다.
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    // 사용자가 바뀌면(로그아웃·다른 계정 로그인) 쿼리 캐시를 비운다 — 안 비우면 이전 사용자의 여행·금액이 보인다.
+    let prevUserId: string | undefined;
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+      const id = next?.user.id;
+      if (prevUserId && prevUserId !== id) queryClient.clear();
+      prevUserId = id;
+      setSession(next);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 

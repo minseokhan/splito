@@ -44,7 +44,10 @@ export function ItemRow(p: Props) {
   const open = p.expanded;
   const editing = open && !p.readOnly;
   const qty = p.quantity > 1 ? ` ×${p.quantity}` : '';
-  const name = p.nameKo || p.nameOriginal || '품목';
+  // 비어 있으면 회색 안내 글자(28번 UX 라이팅). 금액 입력값이 비면 금액도 안내 글자.
+  const name = p.nameKo || p.nameOriginal || '품목명을 입력해 주세요';
+  const unnamed = !p.nameKo && !p.nameOriginal;
+  const noAmount = !p.amountText;
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
   // 펼쳐서 금액을 고칠 때도 통화 기호를 붙여 둔다(¥·$ 등은 앞, 원화는 뒤 '원'). 기호는 amountLabel 앞부분이다.
@@ -75,7 +78,7 @@ export function ItemRow(p: Props) {
                   <TextInput
                     value={p.nameKo}
                     onChangeText={p.onChangeName}
-                    placeholder="품목 이름"
+                    placeholder="품목명을 입력해 주세요"
                     placeholderTextColor={colors.ink[300]}
                     accessibilityLabel="품목 이름"
                     className="flex-shrink border-b border-line-off p-0 pb-0.5 pr-1 font-semibold text-input-15 text-ink"
@@ -83,7 +86,7 @@ export function ItemRow(p: Props) {
                   <PencilTip />
                 </View>
               ) : (
-                <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
+                <Text numberOfLines={1} className={`flex-shrink font-semibold text-15 ${unnamed ? 'text-ink-400' : 'text-ink'}`}>
                   {name}
                 </Text>
               )}
@@ -110,8 +113,8 @@ export function ItemRow(p: Props) {
                 <PencilTip />
               </View>
             ) : (
-              <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>
-                {mainLabel}
+              <Text style={TABULAR} className={`font-semibold text-15 ${noAmount ? 'text-ink-400' : mainCls}`}>
+                {noAmount ? '금액을 입력해 주세요' : mainLabel}
               </Text>
             )}
           </View>

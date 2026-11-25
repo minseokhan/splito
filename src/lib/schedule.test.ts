@@ -2,8 +2,6 @@ import {
   buildScheduleDays,
   dayIndexOfDate,
   dayKeyOfIndex,
-  isValidScheduleTime,
-  normalizeScheduleTime,
   type ScheduleItem,
 } from './schedule';
 
@@ -35,21 +33,6 @@ const exp = (
   scheduleId,
   paidLocalTime,
   createdAt,
-});
-
-describe('normalizeScheduleTime / isValidScheduleTime', () => {
-  it('한 자리 시를 0으로 채운다', () => {
-    expect(normalizeScheduleTime('9:30')).toBe('09:30');
-  });
-  it('이미 두 자리면 그대로 둔다', () => {
-    expect(normalizeScheduleTime('09:30')).toBe('09:30');
-  });
-  it.each(['0:00', '9:30', '23:59'])('%s는 유효하다', (v) => {
-    expect(isValidScheduleTime(v)).toBe(true);
-  });
-  it.each(['', '24:00', '9:60', '930', '9:3', 'ab:cd'])('%s는 유효하지 않다', (v) => {
-    expect(isValidScheduleTime(v)).toBe(false);
-  });
 });
 
 describe('dayKeyOfIndex', () => {
