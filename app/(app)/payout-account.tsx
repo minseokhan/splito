@@ -1,17 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { Bell, Check, Eye, Lock, NavArrowDown } from 'iconoir-react-native';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
+import { AccountChangeSheet } from '@/components/AccountChangeSheet';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { TextField } from '@/components/TextField';
+import { useToast } from '@/components/Toast';
 import { useMyPayoutAccount, useSetPayoutAccount } from '@/hooks/usePayoutAccount';
 import { BANKS, accountNumberSchema } from '@/lib/bank';
 import { toUserError } from '@/lib/errors';
@@ -53,18 +55,16 @@ function Notes() {
 export default function PayoutAccountScreen() {
   const { data: current, isLoading } = useMyPayoutAccount();
   const save = useSetPayoutAccount();
-  const [editing, setEditing] = useState(false);
+  const toast = useToast();
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [changeError, setChangeError] = useState<string>();
   const [bankOpen, setBankOpen] = useState(false);
   const [error, setError] = useState<string>();
-  const { control, handleSubmit, formState, reset, setValue } = useForm({
+  const { control, handleSubmit, formState, setValue } = useForm({
     resolver: zodResolver(schema),
     mode: 'onChange',
     defaultValues: { bankCode: '', holderName: '', accountNumber: '' },
   });
-  // 등록돼 있으면 은행·예금주만 채운다. 계좌번호 원문은 읽지 않으므로 다시 입력받는다.
-  useEffect(() => {
-    if (current) reset({ bankCode: current.bankCode, holderName: current.holderName, accountNumber: '' });
-  }, [current, reset]);
   const bankCode = useWatch({ control, name: 'bankCode' });
   const bank = BANKS.find((b) => b.code === bankCode);
 
@@ -78,12 +78,26 @@ export default function PayoutAccountScreen() {
     }
   });
 
+  // 변경 시트: 예금주는 시트에 없으니 등록된 값을 그대로 보낸다. 같은 set_payout_account RPC가 덮어쓴다.
+  const change = async (code: string, accountNumber: string) => {
+    if (!current) return;
+    setChangeError(undefined);
+    try {
+      const bankName = BANKS.find((b) => b.code === code)?.name ?? '';
+      await save.mutateAsync({ bankCode: code, bankName, holderName: current.holderName, accountNumber });
+      setChangeOpen(false);
+      toast('받을 계좌를 바꿨어요');
+    } catch (e) {
+      setChangeError(toUserError(e).message);
+    }
+  };
+
   if (isLoading) return null;
-  const showForm = !current || editing;
+  const showForm = !current;
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
-      <NavBar title="받을 계좌" onBack={editing ? () => setEditing(false) : undefined} />
+      <NavBar title="받을 계좌" />
       <ScrollView contentContainerClassName="gap-[22px] px-5 pt-3" contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         {showForm ? (
           <>
@@ -160,7 +174,14 @@ export default function PayoutAccountScreen() {
         {showForm ? (
           <PrimaryButton title="저장" disabled={!formState.isValid} loading={formState.isSubmitting} onPress={submit} />
         ) : (
-          <PrimaryButton title="계좌 변경하기" variant="muted" onPress={() => setEditing(true)} />
+          <PrimaryButton
+            title="계좌 변경하기"
+            variant="muted"
+            onPress={() => {
+              setChangeError(undefined);
+              setChangeOpen(true);
+            }}
+          />
         )}
       </BottomBar>
       <BottomSheet visible={bankOpen} onClose={() => setBankOpen(false)} title="은행 선택">
@@ -181,6 +202,16 @@ export default function PayoutAccountScreen() {
           ))}
         </ScrollView>
       </BottomSheet>
+      {current && (
+        <AccountChangeSheet
+          visible={changeOpen}
+          onClose={() => setChangeOpen(false)}
+          initialBankCode={current.bankCode}
+          saving={save.isPending}
+          error={changeError}
+          onSubmit={change}
+        />
+      )}
     </SafeAreaView>
   );
 }

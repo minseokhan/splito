@@ -11,7 +11,7 @@ export const BANKS = [
   { code: '023', name: 'SC제일은행' },
   { code: '027', name: '한국씨티은행' },
   { code: '002', name: 'KDB산업은행' },
-  { code: '031', name: 'iM뱅크' },
+  { code: '031', name: '대구은행(iM뱅크)' },
   { code: '032', name: '부산은행' },
   { code: '039', name: '경남은행' },
   { code: '034', name: '광주은행' },
@@ -32,6 +32,21 @@ export const BANKS = [
 ] as const;
 
 export type Bank = (typeof BANKS)[number];
+
+// 계좌 변경 시트 목록: 자주 쓰는 은행 4개 뒤에 전체 은행(노션 34번 순서). 증권사는 뺀다.
+const CHANGE_CODES = ['092', '090', '004', '088', '011', '020', '081', '003', '089', '023', '027', '007', '045', '048', '071', '032', '031', '039', '034', '037', '035', '002'];
+export const FAVORITE_BANK_COUNT = 4;
+export const CHANGE_BANKS: Bank[] = CHANGE_CODES.map((c) => BANKS.find((b) => b.code === c)!);
+
+// 공백 무시·대소문자 무시 부분 일치. 빈 검색어면 전체.
+export function searchBanks(q: string): Bank[] {
+  const key = (s: string) => s.replace(/\s/g, '').toLowerCase();
+  const k = key(q);
+  return k ? CHANGE_BANKS.filter((b) => key(b.name).includes(k)) : CHANGE_BANKS;
+}
+
+// 계좌번호 입력값: 숫자만 남기고 최대 14자리.
+export const accountDigits = (s: string) => s.replace(/\D/g, '').slice(0, 14);
 
 // 서버 set_payout_account와 같은 규칙: 숫자·하이픈만, 숫자 8~20자리.
 export const accountNumberSchema = z
