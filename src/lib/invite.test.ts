@@ -1,4 +1,4 @@
-import { INVITE_TOKEN_RE, buildInviteUrl, extractInviteToken, isPendingInviteValid, toSystemPath } from './invite';
+import { INVITE_TOKEN_RE, buildInviteUrl, extractInviteToken, isPendingInviteValid, normalizeInviteCode, toSystemPath } from './invite';
 
 const T = 'AbCdEfGhIjKlMnOpQr_-12'; // 22자
 const D = 'splito-trip.vercel.app';
@@ -96,4 +96,17 @@ describe('toSystemPath', () => {
     '/',
     '',
   ])('허용 목록 밖 %s → /', (input) => expect(toSystemPath(input, D)).toBe('/'));
+});
+
+describe('normalizeInviteCode', () => {
+  it.each([
+    ['K7Q2MX', 'K7Q2MX'],
+    [' k7q2mx ', 'K7Q2MX'], // 소문자·앞뒤 공백
+    ['K7Q-2MX', 'K7Q2MX'], // 붙여넣은 구분자
+    ['K7Q 2MX', 'K7Q2MX'],
+  ])('%s → %s', (input, code) => expect(normalizeInviteCode(input)).toBe(code));
+
+  it.each(['K7Q2M', 'K7Q2MXX', 'K7Q2M0', 'K7Q2MO', 'K7Q2M1', 'K7Q2MI', '', '가나다라마바'])('%s → null (6자리·허용 글자 아님)', (input) =>
+    expect(normalizeInviteCode(input)).toBeNull(),
+  );
 });

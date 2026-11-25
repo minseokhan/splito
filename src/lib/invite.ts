@@ -36,7 +36,13 @@ export function toSystemPath(path: string, domain: string): string {
   return '/';
 }
 
-export type PendingInvite = { token: string; savedAt: number };
+// 참여 코드 6자리(서버 _new_invite_code와 같은 글자: 0·O·1·I 제외). 소문자·공백·하이픈은 받아 준다.
+export function normalizeInviteCode(input: string): string | null {
+  const code = input.replace(/[\s-]/g, '').toUpperCase();
+  return /^[A-HJ-NP-Z2-9]{6}$/.test(code) ? code : null;
+}
+
+export type PendingInvite ={ token: string; savedAt: number };
 
 export function isPendingInviteValid(p: PendingInvite | null, now: number): boolean {
   if (!p || !INVITE_TOKEN_RE.test(p.token)) return false;
