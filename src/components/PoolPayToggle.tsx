@@ -55,7 +55,7 @@ export function PoolPayToggle({
           <View className="flex-1 gap-0.5">
             <Text className="font-semibold text-sm text-warning-deep">공금 잔액보다 {formatKrw(shortage.over)} 많아요</Text>
             <Text className="text-13 text-warning-deep">
-              기록하면 공금 잔액이 {shortage.after < 0 ? `−${formatKrw(-shortage.after)}` : formatKrw(shortage.after)}가 돼요. 부족분은
+              기록하면 공금 잔액이 {shortage.after < 0 ? `−${formatKrw(-shortage.after)}` : formatKrw(shortage.after)}이 돼요. 부족분은
               공금 참여자가 1/N로 채워요.
             </Text>
           </View>
