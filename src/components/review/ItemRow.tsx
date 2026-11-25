@@ -1,8 +1,9 @@
-import { EditPencil, GitMerge, Group, NavArrowDown, NavArrowUp, Scissor, Trash } from 'iconoir-react-native';
+import { GitMerge, Group, NavArrowDown, NavArrowUp, Scissor, Trash } from 'iconoir-react-native';
 import { useState, type ComponentType } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { SvgProps } from 'react-native-svg';
 
+import { formatAmountInput } from '@/lib/expenseForm';
 import { colors, memberColor } from '@/theme/tokens';
 
 import { AvatarStack } from '../AvatarStack';
@@ -38,9 +39,9 @@ type Props = {
 
 const TABULAR = { fontVariant: ['tabular-nums' as const] };
 
-// 영수증 티켓 안 품목 한 줄(18번 ④). 접힘: 이름·금액 두 줄. 펼침: 이름·금액 입력 + 사람 고르기 + 쪼개기/합치기·삭제.
+// 영수증 티켓 안 품목 한 줄(18번 ④). 접힘: 이름·금액 두 줄. 펼침(37번): 맨 위 품목명·금액 입력칸 → 사람 고르기 → 쪼개기/합치기·삭제.
 export function ItemRow(p: Props) {
-  const [amount, setAmount] = useState(p.amountText);
+  const [amount, setAmount] = useState(() => formatAmountInput(p.amountText));
   const open = p.expanded;
   const editing = open && !p.readOnly;
   const qty = p.quantity > 1 ? ` ×${p.quantity}` : '';
@@ -50,15 +51,15 @@ export function ItemRow(p: Props) {
   const noAmount = !p.amountText;
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
-  // 펼쳐서 금액을 고칠 때도 통화 기호를 붙여 둔다(¥·$ 등은 앞, 원화는 뒤 '원'). 기호는 amountLabel 앞부분이다.
+  // 금액 입력칸에도 통화 기호를 붙여 둔다(¥·$ 등은 왼쪽, 원화는 오른쪽 '원'). 기호는 amountLabel 앞부분이다.
   const prefix = p.isKrw ? '' : (/^-?(\D*)/.exec(p.amountLabel)?.[1] ?? '');
   // 지정이 없으면 전원
   const allOn = !p.people.some((m) => m.on);
   const selected = allOn ? p.people : p.people.filter((m) => m.on);
 
   return (
-    // 펼친 줄은 연회색 바탕 + 왼쪽 막대(시안 rowBg·openBar).
-    <View className={open ? 'bg-app' : 'bg-white'}>
+    // 펼친 줄은 왼쪽 막대(시안 openBar). 바탕은 흰색 — 입력칸이 연회색 채움이다(시안 rowBg #fff).
+    <View className={open && p.readOnly ? 'bg-app' : 'bg-white'}>
       {!p.first && <View className="mx-5 h-px bg-muted" />}
       {open && <View className="absolute bottom-0 left-0 top-0 w-0.5 bg-primary-text" />}
       <Pressable
@@ -72,51 +73,15 @@ export function ItemRow(p: Props) {
         <View className="flex-1 gap-0.5">
           <View className="flex-row items-center justify-between gap-2">
             <View className="flex-shrink flex-row items-center gap-1.5">
-              {editing ? (
-                // 고칠 수 있는 칸임을 보이게: 회색 밑줄 + 끝에 연필.
-                <View className="flex-shrink flex-row items-end">
-                  <TextInput
-                    value={p.nameKo}
-                    onChangeText={p.onChangeName}
-                    placeholder="품목명을 입력해 주세요"
-                    placeholderTextColor={colors.ink[300]}
-                    accessibilityLabel="품목 이름"
-                    className="flex-shrink border-b border-line-off p-0 pb-0.5 pr-1 font-semibold text-input-15 text-ink"
-                  />
-                  <PencilTip />
-                </View>
-              ) : (
-                <Text numberOfLines={1} className={`flex-shrink font-semibold text-15 ${unnamed ? 'text-ink-400' : 'text-ink'}`}>
-                  {name}
-                </Text>
-              )}
+              <Text numberOfLines={1} className={`flex-shrink font-semibold text-15 ${unnamed ? 'text-ink-400' : 'text-ink'}`}>
+                {name}
+              </Text>
               {!!qty && <Text className="font-semibold text-15 text-ink">{qty}</Text>}
               {p.needsReview && <Badge kind="review" onPress={p.onClearReview} accessibilityLabel="확인 필요 해제" />}
             </View>
-            {editing ? (
-              <View className="flex-row items-end">
-                <View className="flex-row items-center border-b border-line-off pb-0.5">
-                  {!!prefix && <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>{prefix}</Text>}
-                  <TextInput
-                    value={amount}
-                    onChangeText={(v) => {
-                      setAmount(v);
-                      p.onChangeAmount?.(v);
-                    }}
-                    keyboardType="numbers-and-punctuation"
-                    accessibilityLabel="품목 금액"
-                    style={TABULAR}
-                    className={`min-w-[40px] p-0 text-right font-semibold text-input-15 focus:bg-sky-50 ${mainCls}`}
-                  />
-                  {p.isKrw && <Text className={`font-semibold text-15 ${mainCls}`}>원</Text>}
-                </View>
-                <PencilTip />
-              </View>
-            ) : (
-              <Text style={TABULAR} className={`font-semibold text-15 ${noAmount ? 'text-ink-400' : mainCls}`}>
-                {noAmount ? '금액을 입력해 주세요' : mainLabel}
-              </Text>
-            )}
+            <Text style={TABULAR} className={`font-semibold text-15 ${noAmount ? 'text-ink-400' : mainCls}`}>
+              {noAmount ? '금액을 입력해 주세요' : mainLabel}
+            </Text>
           </View>
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
@@ -143,6 +108,36 @@ export function ItemRow(p: Props) {
 
       {open && (
         <View className="gap-3 pb-3.5 pl-[38px] pr-5 pt-0.5">
+          {editing && (
+            <View className="flex-row gap-2">
+              <TextInput
+                value={p.nameKo}
+                onChangeText={p.onChangeName}
+                placeholder="품목명을 입력해 주세요"
+                placeholderTextColor={colors.ink[300]}
+                accessibilityLabel="품목 이름"
+                className={`flex-1 ${INPUT_CLS}`}
+              />
+              <View className="w-[120px] justify-center">
+                <TextInput
+                  value={amount}
+                  onChangeText={(v) => {
+                    const t = formatAmountInput(v);
+                    setAmount(t);
+                    p.onChangeAmount?.(t);
+                  }}
+                  placeholder="0"
+                  placeholderTextColor={colors.ink[300]}
+                  keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="품목 금액"
+                  style={TABULAR}
+                  className={`w-full ${INPUT_CLS} text-right ${prefix ? 'pl-7' : ''} ${p.isKrw ? 'pr-7' : ''}`}
+                />
+                {!!prefix && <Text pointerEvents="none" className="absolute left-3 text-sm text-ink-500">{prefix}</Text>}
+                {p.isKrw && <Text pointerEvents="none" className="absolute right-3 text-sm text-ink-500">원</Text>}
+              </View>
+            </View>
+          )}
           {p.people.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
               <Pressable accessibilityRole="button" accessibilityLabel="전원" onPress={p.onAll} className="items-center gap-1">
@@ -199,14 +194,8 @@ export function ItemRow(p: Props) {
   );
 }
 
-// 밑줄 끝에 연필 촉(아이콘 왼쪽 아래 끝)이 닿게 — 연필로 슥 그은 느낌. 14px 아이콘의 촉은 모서리에서 약 2px 안쪽이다.
-function PencilTip() {
-  return (
-    <View style={{ marginLeft: -2, marginBottom: -2 }}>
-      <Icon as={EditPencil} size={14} color={colors.ink[300]} />
-    </View>
-  );
-}
+// 음성으로 기록과 같은 입력칸(37번): 44px·radius 12·#F8F9FB 채움·테두리 없음, 포커스 시 안쪽 1.5px primary-text.
+const INPUT_CLS = 'h-11 rounded-input border-[1.5px] border-transparent bg-app px-3 py-0 font-semibold text-input-15 text-ink focus:border-primary-text';
 
 // 13px 텍스트 버튼(아이콘 15). 테두리·배경 없음.
 function RowButton({ label, icon, onPress, danger }: { label: string; icon: ComponentType<SvgProps>; onPress: () => void; danger?: boolean }) {

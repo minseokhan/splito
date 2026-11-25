@@ -493,7 +493,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
                 nameKo={it.nameKo}
                 quantity={it.quantity}
                 amountLabel={formatForeign(it.amountOriginal, draft.currency)}
-                amountText={String(it.amountOriginal)}
+                amountText={it.amountOriginal ? String(it.amountOriginal) : ''}
                 krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
                 needsReview={it.needsReview}
                 isKrw={isKrw}
@@ -501,10 +501,12 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
                 splitLabel={multi ? itemSplitLabel(i) : ''}
                 expanded={openBox === it.id}
                 onToggleOpen={() => setOpenBox((o) => (o === it.id ? null : it.id))}
-                onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
+                // 품목명이나 금액을 채우면 '확인 필요'를 푼다(37번).
+                onChangeName={(nameKo) => update((d) => updateItem(d, it.id, nameKo.trim() ? { nameKo, needsReview: false } : { nameKo }))}
                 onChangeAmount={(text) => {
-                  const amountOriginal = parseAmountInput(text);
-                  if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
+                  // 비우면 0(총액에서 바로 빠진다)
+                  const amountOriginal = text ? parseAmountInput(text) : 0;
+                  if (amountOriginal !== null) update((d) => updateItem(d, it.id, amountOriginal ? { amountOriginal, needsReview: false } : { amountOriginal }));
                 }}
                 onToggle={(id) => toggleAssignee(it.id, id)}
                 onAll={() => allAssignees(it.id)}

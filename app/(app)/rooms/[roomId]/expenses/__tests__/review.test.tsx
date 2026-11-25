@@ -213,8 +213,29 @@ describe('영수증·품목 금액', () => {
   it('품목을 펼쳐도 금액 앞 통화 기호가 남는다', async () => {
     await renderWith(draft());
     await fireEvent.press(await screen.findByRole('button', { name: '라멘 품목' }));
-    expect(screen.getByDisplayValue('2000')).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('2,000')).toBeOnTheScreen();
     expect(screen.getByText('¥')).toBeOnTheScreen();
+  });
+
+  it('펼친 줄 입력칸에서 금액을 고치면 쉼표가 붙고 총액·저장 버튼이 바로 바뀌며 확인 필요가 풀린다', async () => {
+    const d = draft();
+    d.items[1] = { ...d.items[1], needsReview: true };
+    await renderWith(d);
+    await screen.findByRole('button', { name: '맥주 품목' });
+    expect(screen.getByRole('button', { name: '확인 필요 해제' })).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('품목 금액'), '2280');
+    expect(screen.getByDisplayValue('2,280')).toBeOnTheScreen();
+    // (2000 + 2280) × 9.1234 = 39048.15
+    expect(screen.getByRole('button', { name: /39,048.*기록하기$/ })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: '확인 필요 해제' })).toBeNull();
+  });
+
+  it('새 품목은 품목명 칸이 빈 채로 시작한다', async () => {
+    await renderWith(draft());
+    await fireEvent.press(await screen.findByRole('button', { name: /품목 추가/ }));
+    await fireEvent.press(screen.getByRole('button', { name: '품목명을 입력해 주세요 품목' }));
+    expect(screen.getByLabelText('품목 이름')).toHaveProp('value', '');
+    expect(screen.getByLabelText('품목 금액')).toHaveProp('value', '');
   });
 });
 
