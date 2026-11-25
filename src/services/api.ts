@@ -2,7 +2,7 @@ import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 
 import { type CategoryCode, toCategory } from '@/lib/category';
 import type { DupCandidate } from '@/lib/duplicate';
-import { toUserError } from '@/lib/errors';
+import { toUserError, type UserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
 import type { VoiceParse } from '@/lib/voice';
 import type { RoomEvent } from '@/lib/activity';
@@ -95,7 +95,18 @@ export type InvitePreview = {
   inviterNickname: string;
   memberCount: number;
   alreadyMember: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  baseCurrency: string;
+  expenseCount: number;
+  members: { name: string; guest: boolean }[]; // 방장 먼저, 참여 순
+  guests: { memberId: MemberId; name: string }[]; // 나 고르기 후보. 이 방에 내 행이 있으면 빈 배열
 };
+
+export type CurrentInvite = { token: string; code: string; expiresAt: string };
+
+// 서버 JOIN_UNAVAILABLE(게스트 삭제·이미 연결됨). 에러 표(lib/errors)에 없는 코드라 여기서 문구를 붙인다.
+const JOIN_UNAVAILABLE: UserError = { code: 'UNKNOWN', message: '참여할 수 없는 여행이에요.' };
 
 // supabase 응답의 error를 사용자 에러로 바꿔 throw한다.
 function unwrap<T>({ data, error }: { data: T | null; error: unknown }): T {
@@ -190,12 +201,18 @@ export const api = {
   },
 
   async previewInvite(token: string): Promise<InvitePreview> {
-    const r = unwrap(await supabase.rpc('preview_invite', { p_token: token })) as {
+    const r = unwrap(await supabase.rpc('preview_invite_detail', { p_token: token })) as {
       room_id: string;
       room_name: string;
       inviter_nickname: string | null;
       member_count: number;
       already_member: boolean;
+      start_date: string | null;
+      end_date: string | null;
+      base_currency: string;
+      expense_count: number;
+      members: { name: string; guest: boolean }[];
+      guests: { member_id: string; name: string }[];
     };
     return {
       roomId: r.room_id,
@@ -203,11 +220,36 @@ export const api = {
       inviterNickname: r.inviter_nickname ?? '',
       memberCount: r.member_count,
       alreadyMember: r.already_member,
+      startDate: r.start_date,
+      endDate: r.end_date,
+      baseCurrency: r.base_currency,
+      expenseCount: r.expense_count,
+      members: r.members,
+      guests: r.guests.map((g) => ({ memberId: g.member_id, name: g.name })),
     };
   },
 
-  async joinRoom(token: string): Promise<RoomId> {
-    return unwrap(await supabase.rpc('join_room', { p_token: token }));
+  // guestMemberId가 있으면 그 게스트를 내 계정으로 연결해 참여한다(나 고르기).
+  async joinRoom(input: { token: string; guestMemberId?: MemberId }): Promise<RoomId> {
+    const res = input.guestMemberId
+      ? await supabase.rpc('join_room_as_guest', { p_token: input.token, p_guest_member_id: input.guestMemberId })
+      : await supabase.rpc('join_room', { p_token: input.token });
+    if ((res.error as { message?: string } | null)?.message === 'JOIN_UNAVAILABLE') throw JOIN_UNAVAILABLE;
+    return unwrap(res);
+  },
+
+  // 참여 코드 6자리 → 초대 토큰. 서버는 없거나 만료된 코드에 null을 준다(실패 기록이 롤백되지 않게) → INVITE_INVALID.
+  // 1시간에 10번 틀리면 TOO_MANY_ATTEMPTS — 에러 표에 없어 UNKNOWN('잠시 후 다시 시도해 주세요')으로 보인다.
+  async resolveInviteCode(code: string): Promise<string> {
+    const token = unwrap(await supabase.rpc('resolve_invite_code', { p_code: code })) as string | null;
+    if (!token) throw toUserError({ message: 'INVITE_INVALID' });
+    return token;
+  },
+
+  // 초대 시트용 현재 링크·코드. 7일이 지났으면 서버가 새로 발급해 준다.
+  async currentInvite(roomId: RoomId): Promise<CurrentInvite> {
+    const r = unwrap(await supabase.rpc('current_invite', { p_room_id: roomId })) as { token: string; code: string; expires_at: string };
+    return { token: r.token, code: r.code, expiresAt: r.expires_at };
   },
 
   async myRooms(): Promise<MyRoom[]> {

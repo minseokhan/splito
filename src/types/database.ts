@@ -908,6 +908,9 @@ isOneToOne: false
 "create_room":
 { Args: { "p_base_currency": string,"p_end_date"?: string,"p_name": string,"p_start_date"?: string }; Returns: string
                            },
+"current_invite":
+{ Args: { "p_room_id": string }; Returns: Json
+                           },
 "delete_expense":
 { Args: { "p_expected_version": number,"p_id": string }; Returns: undefined
                            },
@@ -942,6 +945,9 @@ isOneToOne: false
 "join_room":
 { Args: { "p_token": string }; Returns: string
                            },
+"join_room_as_guest":
+{ Args: { "p_guest_member_id": string,"p_token": string }; Returns: string
+                           },
 "leave_room":
 { Args: { "p_room_id": string }; Returns: undefined
                            },
@@ -975,6 +981,9 @@ isOneToOne: false
 "preview_invite":
 { Args: { "p_token": string }; Returns: Json
                            },
+"preview_invite_detail":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "reconfirm_pending_fx":
 { Args: { "p_room_id": string }; Returns: number
                            },
@@ -1003,6 +1012,9 @@ isOneToOne: false
                            },
 "remove_member":
 { Args: { "p_member_id": string,"p_room_id": string }; Returns: undefined
+                           },
+"resolve_invite_code":
+{ Args: { "p_code": string }; Returns: string
                            },
 "rotate_invite":
 { Args: { "p_room_id": string }; Returns: string

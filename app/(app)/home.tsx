@@ -221,7 +221,7 @@ export default function Home() {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-white">
         <ScrollView
-          contentContainerStyle={{ paddingTop: 10, paddingHorizontal: PAD, paddingBottom: 140, gap: 28 }}
+          contentContainerStyle={{ paddingTop: 10, paddingHorizontal: PAD, paddingBottom: 200, gap: 28 }}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         >
@@ -240,6 +240,8 @@ export default function Home() {
         </ScrollView>
         <BottomBar fade>
           <PrimaryButton title="여행 만들기" icon={Plus} onPress={goCreate} />
+          {/* 참여 코드 6자리 → 초대 확인(join 시트가 코드 입력도 받는다). */}
+          <PrimaryButton title="초대받은 여행 참여하기" variant="sky" size="md" onPress={() => router.push({ pathname: '/join/[token]', params: { token: 'code' } })} />
         </BottomBar>
       </SafeAreaView>
     );
