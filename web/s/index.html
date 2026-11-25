@@ -13,10 +13,7 @@
   <div class="bar"><span class="lock" id="addr"></span></div>
 
   <main id="main" aria-busy="true">
-    <div class="brand">
-      <img src="/s/splito-mark.svg" alt="" width="26" height="26">
-      <span>Splito</span>
-    </div>
+    <img class="brand" src="/s/splito-wordmark.png" alt="Splito" height="26">
 
     <p class="state" id="state">불러오는 중…</p>
 
@@ -27,34 +24,41 @@
         <p class="sub" id="lead"></p>
       </div>
 
-      <section class="panel">
-        <div class="row-top">
-          <span class="tile" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M6 3v8a2 2 0 0 0 4 0V3M8 11v10M18 3c-1.5 2-2 4-2 6s.5 3 2 3v9"></path>
-            </svg>
+      <!-- 영수증 티켓(확인하고 나누기 18번 ③과 같은 모양). 세 단계 공통 -->
+      <section class="ticket">
+        <div class="t-top">
+          <span class="cat" id="cat" aria-hidden="true">
+            <svg id="catIcon" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></svg>
           </span>
-          <span class="who">
+          <div class="t-info">
             <strong id="merchant"></strong>
-            <span class="sub" id="when"></span>
-          </span>
+            <p class="amt"><span id="amtMain"></span><span class="krw" id="amtKrw"></span></p>
+            <p class="meta" id="when"></p>
+            <p class="meta sched" id="sched">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 4V2M15 4V6M15 4H10.5M3 10V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V10H3Z"></path>
+                <path d="M3 10V6C3 4.89543 3.89543 4 5 4H7"></path><path d="M7 2V6"></path>
+                <path d="M21 10V6C21 4.89543 20.1046 4 19 4H18.5"></path>
+              </svg>
+              <span id="schedTitle"></span>
+            </p>
+          </div>
         </div>
-        <dl>
-          <div><dt>전체 금액</dt><dd id="total"></dd></div>
-          <div><dt>함께한 사람</dt><dd id="people"></dd></div>
-        </dl>
+        <div class="perf" aria-hidden="true"></div>
+        <p class="t-count" id="itemCount"></p>
         <ul class="items" id="items"></ul>
-        <hr id="mineHr">
-        <div class="mine" id="mineRow"><span>내 몫</span><strong id="share"></strong></div>
-        <p class="sub note" id="shareNote"></p>
+        <div class="t-foot">
+          <div class="row"><span>함께한 사람</span><span class="people" id="people"></span></div>
+          <div class="row mine"><span>내 몫</span><strong id="share"></strong></div>
+        </div>
       </section>
+      <div class="wavy" aria-hidden="true"></div>
 
       <!-- 참여 -->
       <section id="joinBox" hidden>
-        <label class="label" for="name">이름</label>
+        <label class="label" for="name">내 이름</label>
         <input id="name" type="text" maxlength="12" autocomplete="name" enterkeyhint="done"
-               placeholder="함께한 사람들이 알아볼 이름">
-        <p class="sub">이 자리 정산에만 참여해요. 여행 장부는 보이지 않아요.</p>
+               placeholder="동행이 알아볼 이름을 입력해 주세요">
       </section>
 
       <!-- 송금 안내 -->
@@ -72,7 +76,7 @@
         <p class="sub">영수증 한 장이면 품목까지 나눠서 정산돼요.</p>
       </section>
 
-      <button type="button" id="cta" class="btn"></button>
+      <div class="cta-bar"><button type="button" id="cta" class="btn"></button></div>
     </div>
   </main>
 
