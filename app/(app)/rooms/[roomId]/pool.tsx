@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
-import { Coins, Settings, Wallet } from 'iconoir-react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Coins, Percentage, Settings, Wallet, WarningCircle } from 'iconoir-react-native';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -12,13 +12,14 @@ import { Icon } from '@/components/Icon';
 import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { BottomSheet } from '@/components/BottomSheet';
-import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useFeed } from '@/hooks/useFeed';
 import { usePoolDeposits, useSetPool, useUpsertPoolDeposits } from '@/hooks/usePool';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { categoryLabel } from '@/lib/category';
-import { fillEqual, poolRemaining } from '@/lib/pool';
+import { fillEqual, poolRemaining, refillPerPerson } from '@/lib/pool';
 import type { FeedRow, Room } from '@/services/api';
 import { colors } from '@/theme/tokens';
 import type { MemberId, RoomMember } from '@/types/domain';
@@ -35,14 +36,15 @@ const sum = (xs: number[]) => xs.reduce((a, x) => a + x, 0);
 
 // 공금 지갑(J7). 공금 상계는 서버 room_balances가 한다. 여기서는 설정·입금 기록과 남은 공금 표시만.
 export default function Pool() {
-  const { roomId } = useLocalSearchParams<{ roomId: string }>();
+  // setup=1: 기록 화면의 '공금 지갑 설정하기'로 들어왔다 → 설정 시트를 바로 열고, 저장하면 기록 화면으로 돌아간다.
+  const { roomId, setup } = useLocalSearchParams<{ roomId: string; setup?: string }>();
   const { data: room } = useRoom(roomId);
   const { data: members } = useRoomMembers(roomId);
   const { data: deposits } = usePoolDeposits(roomId);
   if (!room || !members || !deposits) return null;
   // 서버 값이 바뀌면(저장·Realtime) 폼을 새 값으로 다시 연다.
   const key = JSON.stringify([room.pool_enabled, room.pool_owner_member_id, room.pool_card_last4, deposits]);
-  return <PoolForm key={key} room={room} members={members} deposits={deposits} />;
+  return <PoolForm key={key} room={room} members={members} deposits={deposits} fromRecord={setup === '1'} />;
 }
 
 type Deposit = { memberId: MemberId; amountKrw: number };
@@ -178,12 +180,23 @@ function PoolRow({
   );
 }
 
-function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember[]; deposits: Deposit[] }) {
+function PoolForm({
+  room,
+  members,
+  deposits,
+  fromRecord,
+}: {
+  room: Room;
+  members: RoomMember[];
+  deposits: Deposit[];
+  fromRecord: boolean;
+}) {
   const roomId = room.id;
   const myId = useAuth().session?.user.id;
   const { data: feed = [] } = useFeed(roomId);
   const setPool = useSetPool(roomId);
   const upsert = useUpsertPoolDeposits(roomId);
+  const toast = useToast();
 
   const active = members.filter((m) => !m.leftAt);
   const users = active.filter((m) => m.kind === 'user'); // 통장 주인 후보: 게스트 제외(ADR-011)
@@ -191,12 +204,13 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
 
   const [owner, setOwner] = useState<MemberId | null>(room.pool_owner_member_id);
   const [cards, setCards] = useState(room.pool_card_last4.join(', '));
-  const [amounts, setAmounts] = useState<Record<MemberId, string>>(() =>
-    Object.fromEntries(deposits.map((d) => [d.memberId, String(d.amountKrw)])),
-  );
+  const savedAmounts = () => Object.fromEntries(deposits.map((d) => [d.memberId, String(d.amountKrw)]));
+  const [amounts, setAmounts] = useState<Record<MemberId, string>>(savedAmounts);
   const [bulk, setBulk] = useState('');
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(fromRecord && !room.pool_enabled);
+  // [더 모으기]로 연 시트: 1인 금액은 '기존 입금에 더할 돈'이다(공금 참여자에게만).
+  const [refill, setRefill] = useState(false);
 
   const enabled = room.pool_enabled;
   const busy = setPool.isPending || upsert.isPending;
@@ -212,17 +226,50 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
   const spent = collected - remaining;
   const paid = deposits.map((d) => d.amountKrw).filter((a) => a > 0);
   const sameAmount = paid.length > 1 && paid.every((a) => a === paid[0]);
+  // 공금 참여자 = 입금한 사람. 아직 아무도 안 냈으면 활동 참여자 전원.
+  const depositorIds = deposits.filter((d) => d.amountKrw > 0).map((d) => d.memberId);
+  const refillIds = depositorIds.length ? depositorIds : active.map((m) => m.id);
+  const perRefill = refillPerPerson(-remaining, refillIds.length);
+  const plus = (id: MemberId, amount: number) => String((deposits.find((d) => d.memberId === id)?.amountKrw ?? 0) + amount);
+  const fillAll = (amount: number) =>
+    setAmounts((a) => ({
+      ...a,
+      ...Object.fromEntries(
+        refill
+          ? refillIds.map((id) => [id, plus(id, amount)])
+          : fillEqual(active.map((m) => m.id), amount).map((r) => [r.memberId, String(r.amountKrw)]),
+      ),
+    }));
+  const openRefill = () => {
+    setRefill(true);
+    setBulk(String(perRefill));
+    setAmounts({ ...savedAmounts(), ...Object.fromEntries(refillIds.map((id) => [id, plus(id, perRefill)])) });
+    setSettingsOpen(true);
+  };
+  const closeSheet = () => {
+    setSettingsOpen(false);
+    if (!refill) return;
+    setRefill(false);
+    setAmounts(savedAmounts());
+    setBulk('');
+  };
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const colorIndex = new Map(members.map((m, i) => [m.id, i]));
 
   const save = async () => {
     if (!chosenOwner) return;
     try {
+      const rows = active.map((m) => ({ memberId: m.id, amountKrw: toKrw(amounts[m.id] ?? '') }));
       await setPool.mutateAsync({ roomId, enabled: true, ownerMemberId: chosenOwner, cardLast4: cardList });
-      if (enabled) {
-        await upsert.mutateAsync({ roomId, rows: active.map((m) => ({ memberId: m.id, amountKrw: toKrw(amounts[m.id] ?? '') })) });
-      }
+      // 켜는 저장에서도 입금을 같이 받는다(set_pool로 켜진 뒤라 upsert가 통과한다).
+      await upsert.mutateAsync({ roomId, rows });
       setSettingsOpen(false);
+      const added = sum(rows.map((r) => r.amountKrw)) - collected;
+      if (refill && added > 0) toast(`공금을 ${formatKrw(added)} 더 모았어요`);
+      if (!enabled && fromRecord) {
+        toast('공금을 켰어요 · 이제 공금 결제를 고를 수 있어요');
+        router.back();
+      }
     } catch (e) {
       showError(e);
     }
@@ -280,63 +327,57 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
           <Text className="text-xs text-ink-400">승인 문자의 끝자리가 같으면 결제자가 &lsquo;공금&rsquo;으로 선택돼요</Text>
         </View>
 
-        {enabled && (
-          <View className="gap-2.5">
-            <Text className="font-semibold text-sm text-ink-700">입금</Text>
-            <View className="flex-row gap-2">
-              <TextInput
-                accessibilityLabel="모두에게 같은 입금액"
-                placeholder="1인 금액"
-                placeholderTextColor={colors.ink[300]}
-                keyboardType="number-pad"
-                value={bulk ? toKrw(bulk).toLocaleString('ko-KR') : ''}
-                onChangeText={setBulk}
-                style={{ fontVariant: ['tabular-nums'] }}
-                className="h-[50px] flex-1 rounded-input border border-line bg-white px-3.5 font-semibold text-input-16 text-ink focus:border-sky-500"
-              />
-              <Pressable
-                accessibilityRole="button"
-                onPress={() =>
-                  setAmounts(
-                    Object.fromEntries(fillEqual(active.map((m) => m.id), toKrw(bulk)).map((r) => [r.memberId, String(r.amountKrw)])),
-                  )
-                }
-                className="h-[50px] items-center justify-center rounded-input bg-sky-100 px-3.5"
-              >
-                <Text className="font-semibold text-sm text-primary-text">같은 금액 일괄 입력</Text>
-              </Pressable>
-            </View>
-            <View className="rounded-card border border-card-line bg-white px-3.5">
-              {active.map((m, i) => (
-                <View key={m.id} className={`min-h-11 flex-row items-center gap-2.5 py-2.5 ${i > 0 ? 'border-t border-muted' : ''}`}>
-                  <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={36} />
-                  <View className="flex-1 flex-row items-center gap-2">
-                    <Text className="shrink font-semibold text-15 text-ink" numberOfLines={1}>
-                      {names[m.id]}
-                    </Text>
-                    {m.kind === 'guest' && <GuestChip />}
-                  </View>
-                  <TextInput
-                    accessibilityLabel={`${m.name} 입금액`}
-                    keyboardType="number-pad"
-                    value={toKrw(amounts[m.id] ?? '') ? toKrw(amounts[m.id] ?? '').toLocaleString('ko-KR') : ''}
-                    onChangeText={(t) => setAmounts((a) => ({ ...a, [m.id]: t }))}
-                    placeholder="0"
-                    placeholderTextColor={colors.ink[300]}
-                    style={{ fontVariant: ['tabular-nums'] }}
-                    className="h-[42px] w-[128px] rounded-chip bg-app px-3 text-right font-semibold text-input-15 text-ink"
-                  />
-                </View>
-              ))}
-            </View>
-            <View className="flex-row justify-between px-1">
-              <Text className="text-sm text-ink-400">모은 돈 합계</Text>
-              <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-sm text-success">
-                {formatKrw(sum(active.map((m) => toKrw(amounts[m.id] ?? ''))))}
-              </Text>
-            </View>
+        <View className="gap-2.5">
+          <Text className="font-semibold text-sm text-ink-700">입금</Text>
+          <View className="flex-row gap-2">
+            <TextInput
+              accessibilityLabel={refill ? '1인당 더 모을 금액' : '모두에게 같은 입금액'}
+              placeholder="1인 금액"
+              placeholderTextColor={colors.ink[300]}
+              keyboardType="number-pad"
+              value={bulk ? toKrw(bulk).toLocaleString('ko-KR') : ''}
+              onChangeText={setBulk}
+              style={{ fontVariant: ['tabular-nums'] }}
+              className="h-[50px] flex-1 rounded-input border border-line bg-white px-3.5 font-semibold text-input-16 text-ink focus:border-sky-500"
+            />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => fillAll(toKrw(bulk))}
+              className="h-[50px] items-center justify-center rounded-input bg-sky-100 px-3.5"
+            >
+              <Text className="font-semibold text-sm text-primary-text">같은 금액 일괄 입력</Text>
+            </Pressable>
           </View>
-        )}
+          <View className="rounded-card border border-card-line bg-white px-3.5">
+            {active.map((m, i) => (
+              <View key={m.id} className={`min-h-11 flex-row items-center gap-2.5 py-2.5 ${i > 0 ? 'border-t border-muted' : ''}`}>
+                <Avatar name={m.name} colorIndex={colorIndex.get(m.id) ?? 0} guest={m.kind === 'guest'} size={36} />
+                <View className="flex-1 flex-row items-center gap-2">
+                  <Text className="shrink font-semibold text-15 text-ink" numberOfLines={1}>
+                    {names[m.id]}
+                  </Text>
+                  {m.kind === 'guest' && <GuestChip />}
+                </View>
+                <TextInput
+                  accessibilityLabel={`${m.name} 입금액`}
+                  keyboardType="number-pad"
+                  value={toKrw(amounts[m.id] ?? '') ? toKrw(amounts[m.id] ?? '').toLocaleString('ko-KR') : ''}
+                  onChangeText={(t) => setAmounts((a) => ({ ...a, [m.id]: t }))}
+                  placeholder="0"
+                  placeholderTextColor={colors.ink[300]}
+                  style={{ fontVariant: ['tabular-nums'] }}
+                  className="h-[42px] w-[128px] rounded-chip bg-app px-3 text-right font-semibold text-input-15 text-ink"
+                />
+              </View>
+            ))}
+          </View>
+          <View className="flex-row justify-between px-1">
+            <Text className="text-sm text-ink-400">모은 돈 합계</Text>
+            <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-sm text-success">
+              {formatKrw(sum(active.map((m) => toKrw(amounts[m.id] ?? ''))))}
+            </Text>
+          </View>
+        </View>
 
         {enabled && <PrimaryButton title="공금 끄기" variant="danger" size="md" disabled={busy} onPress={turnOff} />}
     </>
@@ -345,12 +386,8 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <NavBar title="공금 지갑" />
-      <ScrollView
-        contentContainerClassName={enabled ? 'gap-3 px-4 pt-1' : 'gap-[22px] px-5 pt-2'}
-        contentContainerStyle={{ paddingBottom: enabled ? 40 : 140 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {enabled && (
+      {enabled ? (
+        <ScrollView contentContainerClassName="gap-3 px-4 pt-1" contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
           <PoolBalance
             remaining={remaining}
             collected={collected}
@@ -358,23 +395,57 @@ function PoolForm({ room, members, deposits }: { room: Room; members: RoomMember
             settingsOpen={settingsOpen}
             onToggleSettings={() => setSettingsOpen((v) => !v)}
           />
-        )}
 
-        {enabled && (paid.length > 0 || poolSpends.length > 0) && (
-          <PoolHistory spends={poolSpends} collected={collected} paid={paid} sameAmount={sameAmount} />
-        )}
+          {/* 잔액 마이너스: 부족분을 공금 참여자 1/N(100원 단위 올림)로 채우자고 안내한다(노션 39번 ③) */}
+          {remaining < 0 && (
+            <View accessibilityRole="alert" className="flex-row items-center gap-2.5 rounded-box bg-danger-bg px-4 py-3.5">
+              <Icon as={WarningCircle} size={20} color={colors.danger.DEFAULT} />
+              <View className="min-w-0 flex-1 gap-0.5">
+                <Text className="font-semibold text-sm text-ink">공금이 {formatKrw(-remaining)} 부족해요</Text>
+                <Text className="text-xs text-ink-500">
+                  {refillIds.length}명이 1인 {formatKrw(perRefill)}씩 채우면 돼요
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={openRefill}
+                className="h-[34px] items-center justify-center rounded-button bg-white px-3 active:opacity-80"
+              >
+                <Text className="font-semibold text-13 text-danger">더 모으기</Text>
+              </Pressable>
+            </View>
+          )}
 
-        {/* 공금이 꺼져 있을 때는 이 화면 자체가 '공금 켜기' 설정 화면이다 */}
-        {!enabled && form}
-      </ScrollView>
-      {!enabled && (
-        <BottomBar fade>
-          <PrimaryButton title="공금 켜기" disabled={busy || !chosenOwner} onPress={onSave} />
-        </BottomBar>
+          {(paid.length > 0 || poolSpends.length > 0) && (
+            <PoolHistory spends={poolSpends} collected={collected} paid={paid} sameAmount={sameAmount} />
+          )}
+        </ScrollView>
+      ) : (
+        // 공금 꺼짐: 잔액 카드·내역 대신 빈 상태. [공금 설정하기] → 설정 시트, 저장하면 일반 공금 지갑 화면이 된다.
+        <View className="flex-1 items-center justify-center gap-2.5 px-8 pb-20">
+          <View className="mb-1.5 h-[72px] w-[72px] items-center justify-center rounded-full bg-mint-50">
+            <Icon as={Wallet} size={34} color={colors.mint[600]} />
+          </View>
+          <Text className="font-semibold text-xl text-ink">아직 공금 지갑이 없어요</Text>
+          <Text className="text-center text-15 text-ink-500">{'동행과 여행 경비를 모아 관리하고,\n공금으로 쓴 돈은 따로 기록해요.'}</Text>
+          <View className="mt-2.5 gap-2 self-stretch rounded-box bg-app px-4 py-3.5">
+            <View className="flex-row items-center gap-2">
+              <Icon as={Coins} size={16} color={colors.mint[600]} />
+              <Text className="text-13 text-ink-700">동행마다 모을 금액을 정해요</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Icon as={Percentage} size={16} color={colors.mint[600]} />
+              <Text className="text-13 text-ink-700">공금이 부족하면 동행끼리 나눠 채워요</Text>
+            </View>
+          </View>
+          <View className="mt-3.5 self-stretch">
+            <PrimaryButton title="공금 설정하기" onPress={() => setSettingsOpen(true)} />
+          </View>
+        </View>
       )}
 
-      {/* 켜진 뒤 설정 변경은 시안 16대로 아래에서 올라오는 시트로 한다 */}
-      <BottomSheet visible={enabled && settingsOpen} onClose={() => setSettingsOpen(false)} title="공금 설정">
+      {/* 설정은 시안 16대로 아래에서 올라오는 시트로 한다(켜기 전·후 공통) */}
+      <BottomSheet visible={settingsOpen} onClose={closeSheet} title="공금 설정">
         <ScrollView
           style={{ maxHeight: 420 }}
           contentContainerClassName="gap-[22px] pb-1"

@@ -4,7 +4,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import { Calendar, Check, Microphone, NavArrowDown, NavArrowRight, Pause, Plus, User, Wallet, Xmark } from 'iconoir-react-native';
+import { Calendar, Check, Microphone, NavArrowDown, NavArrowRight, Pause, Plus, Xmark } from 'iconoir-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,18 +14,22 @@ import { CategoryCircle } from '@/components/CategoryCircle';
 import { DateSheet } from '@/components/DateSheet';
 import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
+import { PoolPayToggle } from '@/components/PoolPayToggle';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { ItemRow } from '@/components/review/ItemRow';
 import { Perforation, WavyBottom } from '@/components/review/TicketEdge';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useScheduleItems, useTripBooking } from '@/hooks/useBooking';
+import { useFxPreview } from '@/hooks/useFxPreview';
+import { usePoolBalance } from '@/hooks/usePool';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { addDays, shortDate, tripDayTag } from '@/lib/calendar';
 import { categoryLabel, type CategoryCode } from '@/lib/category';
 import { toUserError, type UserError } from '@/lib/errors';
 import { defaultScheduleId, parseAmountInput, perPersonOriginal, scheduleMatchesCategory, splitLabel } from '@/lib/expenseForm';
-import { floorDiv } from '@/lib/money';
+import { floorDiv, formatKrw } from '@/lib/money';
+import { poolShortage, sumKrw } from '@/lib/pool';
 import { dayIndexOfDate } from '@/lib/schedule';
 import { uuidV4 } from '@/lib/uuid';
 import {
@@ -73,6 +77,13 @@ export default function VoiceInput() {
   const [saving, setSaving] = useState(false);
   const [pool, setPool] = useState(false);
   const [date, setDate] = useState(localToday);
+  // 공금 잔액(원)과 비교할 이번 기록의 원화 합계. 외화는 결제일 환율로 환산한다(노션 39번).
+  const poolBalance = usePoolBalance(roomId);
+  // ponytail: 외화는 처음 나온 한 통화만 환산한다. 두 외화가 섞이면 경고를 띄우지 않는다.
+  const foreign = items.find((i) => i.currency !== 'KRW')?.currency ?? null;
+  const fx = useFxPreview(foreign ? date : null, foreign);
+  const needKrw = sumKrw(items, (a, c) => (c === foreign ? fx.toKrw(a) : null));
+  const poolShort = pool && poolBalance !== null && needKrw !== null ? poolShortage(poolBalance, needKrw) : null;
   const [dateOpen, setDateOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [schedOpen, setSchedOpen] = useState(false);
@@ -271,7 +282,7 @@ export default function VoiceInput() {
       qc.invalidateQueries({ queryKey: ['room', roomId, 'feed'] }),
       qc.invalidateQueries({ queryKey: ['rooms'] }),
     ]);
-    toast(`지출 ${n}건을 저장했어요`);
+    toast(poolShort ? `공금이 ${formatKrw(-poolShort.after)} 부족해요 · 공금 지갑에서 채워 주세요` : `지출 ${n}건을 저장했어요`);
     router.dismissTo({ pathname: '/rooms/[roomId]', params: { roomId } });
   };
 
@@ -354,26 +365,14 @@ export default function VoiceInput() {
         </View>
       ) : (
         <ScrollView contentContainerClassName="gap-3 px-5 pt-1" contentContainerStyle={{ paddingBottom: 170 }} keyboardShouldPersistTaps="handled">
-          {/* 개인/공금 토글(확인하고 나누기와 같다). 공금이 꺼진 여행에서는 공금을 고를 수 없다(save_expense가 거부). */}
-          <View className="flex-row gap-0.5 self-center rounded-chip bg-line p-[3px]">
-            {([false, true] as const).map((k) => {
-              const on = pool === k;
-              return (
-                <Pressable
-                  key={String(k)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={k ? '공금 결제' : '개인 결제'}
-                  onPress={() => (k && !room.pool_enabled ? toast('공금 지갑을 먼저 켜 주세요') : setPool(k))}
-                  style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
-                  className={`h-[34px] flex-row items-center justify-center gap-1.5 rounded-toggle px-[18px] ${on ? 'bg-white' : ''}`}
-                >
-                  <Icon as={k ? Wallet : User} size={16} color={on ? colors.primary.text : colors.ink[300]} />
-                  <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{k ? '공금 결제' : '개인 결제'}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {/* 개인/공금 토글(확인하고 나누기와 같다). 공금이 꺼진 여행에서 공금을 누르면 안내 시트(노션 39번). */}
+          <PoolPayToggle
+            value={pool ? 'pool' : 'member'}
+            poolEnabled={room.pool_enabled}
+            onChange={(k) => setPool(k === 'pool')}
+            onSetup={() => router.push({ pathname: '/rooms/[roomId]/pool', params: { roomId, setup: '1' } })}
+            shortage={poolShort}
+          />
 
           {/* 가게 칩(#21): 고른 가게는 진한 바탕. ×는 그 가게를 지운다. */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2" keyboardShouldPersistTaps="handled">
