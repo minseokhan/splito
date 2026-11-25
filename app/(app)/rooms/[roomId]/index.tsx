@@ -1,7 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  ArrowDown,
+  ArrowUp,
   Coins,
   DataTransferBoth,
+  EditPencil,
   MoreHoriz,
   NavArrowDown,
   NavArrowLeft,
@@ -10,6 +13,7 @@ import {
   Plus,
   Search,
   StatsUpSquare,
+  Trash,
   ViewGrid,
   Wallet,
   Xmark,
@@ -652,10 +656,10 @@ export default function RoomHome() {
         at={moreAt ? { top: moreAt.top, right: 30 } : null}
         width={172}
         items={[
-          { key: 'edit', label: '일정 수정', selected: false },
-          { key: 'above', label: '위에 일정 추가', selected: false },
-          { key: 'below', label: '아래에 일정 추가', selected: false },
-          { key: 'delete', label: '일정 삭제', selected: false, danger: true },
+          { key: 'edit', label: '일정 수정', icon: EditPencil, iconColor: colors.ink.DEFAULT, selected: false },
+          { key: 'above', label: '위에 일정 추가', icon: ArrowUp, iconColor: colors.ink.DEFAULT, selected: false },
+          { key: 'below', label: '아래에 일정 추가', icon: ArrowDown, iconColor: colors.ink.DEFAULT, selected: false },
+          { key: 'delete', label: '일정 삭제', icon: Trash, selected: false, danger: true },
         ]}
         onPick={(key) => {
           const it = moreAt?.item;
