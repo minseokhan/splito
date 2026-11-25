@@ -1,12 +1,14 @@
 import { Lock, NavArrowRight } from 'iconoir-react-native';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Svg, { Defs, FeGaussianBlur, Filter, G, Rect } from 'react-native-svg';
 
-import type { CategoryRow } from '@/lib/budget';
+import type { CategoryDiffRow, CategoryRow } from '@/lib/budget';
 import type { CategoryCode } from '@/lib/category';
 import { colors } from '@/theme/tokens';
 import type { Krw } from '@/types/domain';
 
+import { CATEGORY_ICON } from './categoryIcon';
 import { CategoryCircle } from './CategoryCircle';
 import { Icon } from './Icon';
 import { formatKrw } from './Money';
@@ -37,10 +39,12 @@ type CompareProps = {
   selected: number | null;
   /** 여행 패스 없음: 막대 위 금액을 흐리게 한다. */
   locked?: boolean;
+  /** 어제 대비 카테고리별 증감(노션 33번). 비면 영역을 숨긴다. 패스 없이도 보여준다. */
+  diffRows: CategoryDiffRow[];
 };
 
 /** 전날 대비 카드 + 일차별 막대(명세 §6-1). 숙소는 집계에서 빠져 있다. */
-export function CompareCard({ top, bottom, daily, baseline, d, selected, locked }: CompareProps) {
+export function CompareCard({ top, bottom, daily, baseline, d, selected, locked, diffRows }: CompareProps) {
   const max = Math.max(baseline, ...daily, 1);
   const h = (v: number) => Math.max(6, Math.round((v / max) * BAR_MAX));
 
@@ -69,8 +73,9 @@ export function CompareCard({ top, bottom, daily, baseline, d, selected, locked 
         {daily.map((v, i) => {
           const future = i > d - 1;
           const today = i === d - 1;
-          // 시안: 전체 보기면 오늘만 진하게(나머지 스카이 200), 일차를 고르면 그 날만 ink(나머지 회색).
-          const color = selected === null ? (today ? colors.primary.text : colors.sky[200]) : i === selected ? colors.ink.DEFAULT : colors.line.DEFAULT;
+          // 노션 33번: 전체 보기면 오늘만 스카이 700(나머지 스카이 200), 일차를 고르면 그 날만 스카이 700(나머지 회색).
+          const strong = selected === null ? today : i === selected;
+          const color = strong ? colors.primary.text : selected === null ? colors.sky[200] : colors.line.DEFAULT;
           return (
             <View key={i} className="h-full flex-1 items-center justify-end gap-1">
               <Text
@@ -92,13 +97,57 @@ export function CompareCard({ top, bottom, daily, baseline, d, selected, locked 
                 }}
                 className="w-full rounded-t-badge"
               />
-              <Text style={{ height: LABEL_H }} className={`text-xs ${today ? 'font-semibold text-ink' : 'text-ink-400'}`}>
+              <Text style={{ height: LABEL_H }} className={`text-xs ${strong ? 'font-semibold text-ink' : 'text-ink-400'}`}>
                 {today ? '오늘' : `${i + 1}일차`}
               </Text>
             </View>
           );
         })}
       </View>
+      {diffRows.length > 0 && <CategoryDiff rows={diffRows} />}
+    </View>
+  );
+}
+
+/** 어제 대비 카테고리별 증감(노션 33번). 증가 빨강 ↑ / 감소 스카이 700 ↓. */
+function CategoryDiff({ rows }: { rows: CategoryDiffRow[] }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <View className="border-t border-line-row pt-3">
+      <View className="flex-row items-center justify-between">
+        <Text className="font-semibold text-sm text-ink">어제 대비</Text>
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setOpen((v) => !v)}>
+          <Text className="font-semibold text-13 text-primary-text">{open ? '접기' : '카테고리별로 보기'}</Text>
+        </Pressable>
+      </View>
+      {open &&
+        rows.map((r, i) => {
+          const c = colors.cat[r.code];
+          const up = r.diff > 0;
+          const tone = up ? 'text-danger' : 'text-primary-text';
+          return (
+            <View key={r.code} className={`flex-row items-center gap-3 py-2.5 ${i < rows.length - 1 ? 'border-b border-line-row' : ''}`}>
+              <View style={{ backgroundColor: c.bg }} className="h-8 w-8 items-center justify-center rounded-full">
+                <Icon as={CATEGORY_ICON[r.code]} size={16} color={c.icon} />
+              </View>
+              <View className="min-w-0 flex-1 gap-1.5">
+                <View className="flex-row items-center justify-between">
+                  <Text className="font-semibold text-sm text-ink">{r.label}</Text>
+                  <Text className={`font-semibold text-sm ${tone}`}>
+                    {up ? '↑' : '↓'} {formatKrw(Math.abs(r.diff))}
+                    <Text className={`font-sans text-xs ${tone}`}>
+                      {' '}({up ? '+' : '−'}
+                      {Math.abs(r.pct)}%)
+                    </Text>
+                  </Text>
+                </View>
+                <View className="h-1.5 rounded-full bg-line-row">
+                  <View style={{ width: `${Math.round(r.width * 100)}%`, backgroundColor: c.chart }} className="h-full rounded-full" />
+                </View>
+              </View>
+            </View>
+          );
+        })}
     </View>
   );
 }

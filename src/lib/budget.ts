@@ -211,6 +211,36 @@ export function compareYesterday(daily: Krw[], d: number): { top: string; bottom
   return { top, bottom: `${word} 썼어요 (${pct > 0 ? '+' : '−'}${Math.abs(pct)}%)` };
 }
 
+export type CategoryDiffRow = { code: CategoryCode; label: string; diff: Krw; pct: number; width: number };
+
+/**
+ * 어제 대비 카테고리별 증감(노션 33번). d일차와 d−1일차를 비교한다. 숙소는 dailyTotals처럼 빼서
+ * 줄 합계가 compareYesterday 금액과 같다. 변화 없는 카테고리는 빼고 |증감| 큰 순. 어제 0원이면 +100%.
+ */
+export function categoryDiff(shares: MyShare[], startDate: string, d: number): CategoryDiffRow[] {
+  if (d <= 1) return [];
+  const sums = new Map<CategoryCode, [Krw, Krw]>();
+  for (const s of shares) {
+    if (!isBudgetTarget(s.category)) continue;
+    const slot = daysBetween(startDate, s.paidLocalDate) - (d - 2);
+    if (slot !== 0 && slot !== 1) continue;
+    const code: CategoryCode = s.category ?? 'other';
+    const pair = sums.get(code) ?? [0, 0];
+    pair[slot] += s.myShare;
+    sums.set(code, pair);
+  }
+  const rows = [...sums]
+    .map(([code, [yesterday, today]]) => {
+      const diff = today - yesterday;
+      const pct = yesterday === 0 ? 100 : roundHalfAwayFromZero((diff / yesterday) * 100);
+      return { code, label: categoryLabel(code), diff, pct, width: 0 };
+    })
+    .filter((r) => r.diff !== 0)
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  const max = Math.abs(rows[0]?.diff ?? 1);
+  return rows.map((r) => ({ ...r, width: Math.abs(r.diff) / max }));
+}
+
 // ─── 카테고리 배분 (명세 §4) ───
 
 /** 예산을 나눌 카테고리. 숙소는 예산에서 빠지므로 없다. */

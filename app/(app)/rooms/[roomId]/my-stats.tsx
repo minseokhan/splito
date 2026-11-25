@@ -20,6 +20,7 @@ import {
   ALLOC_CATEGORIES,
   budgetStats,
   categoryBreakdown,
+  categoryDiff,
   coachCard,
   compareYesterday,
   dailyBaseline,
@@ -94,6 +95,7 @@ export default function MyStats() {
   const selectedIndex = day === 'all' ? null : chips.findIndex((c) => c.key === day) - 1;
   const compareDay = selectedIndex === null ? stats.d : selectedIndex + 1;
   const compare = compareYesterday(daily, compareDay);
+  const diffRows = useMemo(() => categoryDiff(shares, startDate ?? today, compareDay), [shares, startDate, today, compareDay]);
 
   const coach = coachCard(stats, daily[stats.d - 2] ?? 0, budget?.appliedPlan?.title ?? null);
 
@@ -221,6 +223,7 @@ export default function MyStats() {
           baseline={dailyBaseline(stats.budget, stats.N)}
           d={stats.d}
           selected={selectedIndex}
+          diffRows={diffRows}
         />
         <CategoryCard rows={catRows} onPick={setCatSheet} locked={locked} onLocked={openPass} />
         {mates.length > 0 && <MatesCard rows={mates} onLocked={openPass} />}
