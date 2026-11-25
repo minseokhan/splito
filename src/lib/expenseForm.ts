@@ -250,6 +250,14 @@ export function parseAmountInput(text: string): number | null {
   return Number(s);
 }
 
+// 금액 입력칸 표시용: 숫자(·소수점 3자리·앞 '-')만 남기고 천 단위 쉼표. parseAmountInput으로 되읽는다.
+export function formatAmountInput(text: string): string {
+  const s = text.replace(/[^\d.-]/g, '');
+  const [int, ...dec] = s.replace(/-/g, '').split('.');
+  const grouped = int.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (s.startsWith('-') ? '-' : '') + grouped + (dec.length ? `.${dec.join('').slice(0, 3)}` : '');
+}
+
 // 미리보기 전용(확정은 save_expense). 청구액 > KRW > 환율 순. 원본 합계 ≤ 0이거나 환율이 없으면 null.
 export function previewKrw(d: ExpenseDraft, ratePerUnit: number | null): { totalKrw: number; boxKrw: number[] } | null {
   const milli = d.items.reduce((a, it) => a + toMilli(it.amountOriginal), 0);

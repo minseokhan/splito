@@ -12,11 +12,9 @@ import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
 import { ParsingState } from '@/components/ParsingState';
 import { PassSheet } from '@/components/PassSheets';
-import { ScheduleChip } from '@/components/ScheduleChip';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useScheduleItems } from '@/hooks/useBooking';
 import { useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
@@ -52,8 +50,6 @@ export default function NewExpense() {
   const roomId = params.roomId;
   // 일정 카드의 [+ 지출]로 들어오면 저장 뒤 그 일정에 연결한다(명세 §7). review까지 들고 간다.
   const scheduleId = params.scheduleId;
-  const { data: scheduleItems = [] } = useScheduleItems(roomId);
-  const scheduleTitle = scheduleItems.find((x) => x.id === scheduleId)?.title;
   // method 없이 열리면 방법 선택 화면을 먼저 보여준다.
   const [picked, setPicked] = useState<InputMethod | undefined>(undefined);
   const method = params.method ?? picked;
@@ -80,7 +76,6 @@ export default function NewExpense() {
             ? router.push({ pathname: '/rooms/[roomId]/expenses/voice', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } })
             : setPicked(m)
         }
-        scheduleTitle={scheduleTitle}
         owner={room?.owner_id === session?.user.id}
         memberCount={members?.filter((m) => !m.leftAt).length ?? 1}
         pass={passLoaded ? !!passRec : undefined}
@@ -351,7 +346,6 @@ const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typ
 // pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined.
 type PickerProps = {
   onSelect: (m: InputMethod) => void;
-  scheduleTitle?: string;
   owner: boolean;
   memberCount: number;
   pass?: boolean;
@@ -359,7 +353,7 @@ type PickerProps = {
 };
 
 // 지출 올리기 방법 선택. 11-18 시안에서 'AI 인식 N건 남음' 칩은 삭제됐다(한도를 다 쓰면 고를 때 패스 시트가 뜨는 것은 그대로).
-function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn, roomId }: PickerProps) {
+function MethodPicker({ onSelect, owner, memberCount, pass: passOn, roomId }: PickerProps) {
   const toast = useToast();
   // 무료 AI 인식 한도(방당 5건). ponytail: 건수 데이터가 아직 없어 시안 값(DEMO_AI_USED)을 쓴다.
   const used = DEMO_AI_USED;
@@ -385,7 +379,6 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
       >
         <View className="mb-4 h-[5px] w-10 self-center rounded-full bg-line" />
         <ScrollView contentContainerClassName="gap-4 px-5">
-          {!!scheduleTitle && <ScheduleChip title={scheduleTitle} />}
           <View className="gap-1">
             {/* 22·15는 시안 값(스케일 밖) */}
             <Text className="font-semibold text-22 text-ink">어떻게 기록할까요?</Text>
