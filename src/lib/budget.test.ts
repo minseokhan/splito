@@ -7,6 +7,7 @@ import {
   budgetStats,
   categoryBreakdown,
   coachCard,
+  categoryDiff,
   compareYesterday,
   dailyTotals,
   dayIndex,
@@ -297,6 +298,53 @@ describe('dailyTotals / compareYesterday', () => {
 
   it('어제와 같으면 비교 문구를 바꾼다', () => {
     expect(compareYesterday([30_000, 30_000], 2)).toEqual({ top: '어제와 같은 금액이에요', bottom: '' });
+  });
+});
+
+describe('categoryDiff', () => {
+  // 노션 33번 예시: 어제 126,300원 → 오늘 91,000원(숙소 제외), 합계 −35,300원.
+  const D2 = '2026-10-21';
+  const shares = [
+    share(START, 51_200, 'sightseeing'),
+    share(START, 43_200, 'food'),
+    share(START, 18_000, 'shopping'),
+    share(START, 12_000, 'transport'),
+    share(START, 1_900, 'other'),
+    share(START, 100_000, 'lodging'),
+    share(D2, 19_200, 'sightseeing'),
+    share(D2, 35_200, 'food'),
+    share(D2, 25_700, 'shopping'),
+    share(D2, 9_000, 'transport'),
+    share(D2, 1_900, 'other'),
+    share(D2, 50_000, 'lodging'),
+  ];
+
+  it('증감 큰 순, 변화 없는 카테고리·숙소는 뺀다', () => {
+    const rows = categoryDiff(shares, START, 2);
+    expect(rows.map((r) => [r.code, r.diff, r.pct])).toEqual([
+      ['sightseeing', -32_000, -63],
+      ['food', -8_000, -19],
+      ['shopping', 7_700, 43],
+      ['transport', -3_000, -25],
+    ]);
+    expect(rows.reduce((a, r) => a + r.diff, 0)).toBe(-35_300);
+    expect(rows[0].width).toBe(1);
+    expect(rows[3].width).toBeCloseTo(3_000 / 32_000);
+  });
+
+  it('줄 합계가 전날 대비 문구 금액과 같다', () => {
+    const daily = dailyTotals(shares, START, 4);
+    expect(compareYesterday(daily, 2).top).toBe('어제보다 35,300원');
+  });
+
+  it('어제 0원이면 +100%', () => {
+    expect(categoryDiff([share(D2, 5_000, 'food')], START, 2)).toEqual([
+      { code: 'food', label: '식비', diff: 5_000, pct: 100, width: 1 },
+    ]);
+  });
+
+  it('1일차·첫날은 빈 목록', () => {
+    expect(categoryDiff(shares, START, 1)).toEqual([]);
   });
 });
 
