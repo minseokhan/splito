@@ -135,7 +135,7 @@ begin
     'guests', case when v_has_row then '[]'::jsonb else
                 coalesce((select jsonb_agg(jsonb_build_object('member_id', m.id, 'name', m.guest_name) order by m.joined_at, m.id)
                           from public.room_members m
-                          where m.room_id = v_room.id and m.kind = 'guest' and m.left_at is null), '[]'::jsonb) end
+                          where m.room_id = v_room.id and m.kind = 'guest' and not m.spot_only and m.left_at is null), '[]'::jsonb) end
   );
 end;
 $$;
@@ -157,7 +157,7 @@ begin
   end if;
 
   select guest_name into v_name from public.room_members
-  where id = p_guest_member_id and room_id = v_room_id and kind = 'guest' and left_at is null for update;
+  where id = p_guest_member_id and room_id = v_room_id and kind = 'guest' and not spot_only and left_at is null for update;
   if not found then raise exception using errcode = 'P0001', message = 'JOIN_UNAVAILABLE'; end if;
 
   update public.room_members
@@ -190,6 +190,8 @@ declare
   v_token text;
 begin
   if auth.uid() is null then raise exception using errcode = 'P0001', message = 'FORBIDDEN'; end if;
+  -- 같은 사용자의 동시 호출이 카운트를 함께 통과하지 못하게 사용자별로 줄 세운다.
+  perform pg_advisory_xact_lock(hashtext('invite_code:' || auth.uid()::text));
   if (select count(*) from public.invite_code_attempts
       where user_id = auth.uid() and attempted_at > now() - interval '1 hour') >= 10 then
     raise exception using errcode = 'P0001', message = 'TOO_MANY_ATTEMPTS';
