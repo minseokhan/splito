@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Calendar, Check, Copy, InfoCircle, NavArrowDown, NavArrowRight, Plus, User, Wallet, Xmark } from 'iconoir-react-native';
+import { Calendar, Check, Copy, InfoCircle, NavArrowDown, NavArrowRight, Plus, Xmark } from 'iconoir-react-native';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { DateSheet } from '@/components/DateSheet';
 import { Icon } from '@/components/Icon';
 import { CategoryCircle } from '@/components/CategoryCircle';
 import { NavBar } from '@/components/NavBar';
+import { PoolPayToggle } from '@/components/PoolPayToggle';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
@@ -22,6 +23,7 @@ import { useScheduleItems, useTripBooking } from '@/hooks/useBooking';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
+import { usePoolBalance } from '@/hooks/usePool';
 import { useMyBudget, useMyShares } from '@/hooks/useBudget';
 import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { addDays, shortDate, tripDayTag } from '@/lib/calendar';
@@ -54,6 +56,7 @@ import {
   type ExpenseDraft,
 } from '@/lib/expenseForm';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
+import { poolShortage } from '@/lib/pool';
 import { dayIndexOfDate } from '@/lib/schedule';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
@@ -108,6 +111,8 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
   // 예산 안내(명세 §8). 예산이 없으면 아무것도 안 뜨고, 저장을 막지도 않는다.
   const { data: budget } = useMyBudget(roomId);
   const { data: myShares } = useMyShares(roomId);
+  // 공금 잔액 경고(노션 39번). 편집 중인 지출은 빼고 새 금액으로 비교한다.
+  const poolBalance = usePoolBalance(roomId, edit);
   const { stored, setStored, loaded } = useDraft(roomId);
   const save = useSaveExpense(roomId);
   const updateExpense = useUpdateExpense();
@@ -222,6 +227,10 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
   const visibility = previewVisibility(draft, meMemberId, activeIds);
   const preview = previewKrw(draft, fx.fx?.rate ?? null);
   const fxPending = fxNeeded && !fx.isFetching && !fx.fx;
+  // 기록은 막지 않는다. 저장하면 공금이 마이너스가 된다는 경고와 저장 후 토스트에만 쓴다.
+  const poolShort = draft.payerKind === 'pool' && poolBalance !== null && preview ? poolShortage(poolBalance, preview.totalKrw) : null;
+  const savedToast = (fallback: string) =>
+    poolShort ? `공금이 ${formatKrw(-poolShort.after)} 부족해요 · 공금 지갑에서 채워 주세요` : fallback;
   const sumOriginal = toDupInput(draft, null).amountOriginal;
 
   const dup = dupDismissed || edit
@@ -284,7 +293,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
           await api.setExpenseMeta({ expenseId: edit, scheduleId: linkTo });
           void qc.invalidateQueries({ queryKey: ['room', roomId] });
         }
-        toast('지출을 수정했어요');
+        toast(savedToast('지출을 수정했어요'));
         router.back();
       } catch (err) {
         const e = asUserError(err);
@@ -302,7 +311,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
       // 금액·배분은 save_expense가 확정했다. 연결은 표시용 메타라 따로 붙인다.
       if (linkTo) await api.setExpenseMeta({ expenseId: saved.id, scheduleId: linkTo });
       const linked = scheduleItems.find((x) => x.id === linkTo);
-      toast(linked ? `‘${linked.title}’에 연결했어요` : '지출을 저장했어요');
+      toast(savedToast(linked ? `‘${linked.title}’에 연결했어요` : '지출을 저장했어요'));
       leave();
     } catch (err) {
       setError(asUserError(err).message);
@@ -385,32 +394,16 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
         contentContainerStyle={{ paddingBottom: 170 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ② 개인/공금 토글(시안: 항상 보인다). 개인 = 올린 사람(나)이 결제. 공금이 꺼진 여행에서는 공금을 고를 수 없다(save_expense가 거부). */}
-        <View className="flex-row gap-0.5 self-center rounded-chip bg-line p-[3px]">
-          {(['member', 'pool'] as const).map((k) => {
-            const on = draft.payerKind === k;
-            return (
-              <Pressable
-                key={k}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
-                accessibilityLabel={k === 'pool' ? '공금 결제' : '개인 결제'}
-                onPress={() =>
-                  k === 'pool' && !room?.pool_enabled && draft.payerKind !== 'pool'
-                    ? toast('공금 지갑을 먼저 켜 주세요')
-                    : update((d) =>
-                        k === 'pool' ? { ...d, payerKind: 'pool', payerMemberId: null } : { ...d, payerKind: 'member', payerMemberId: meMemberId },
-                      )
-                }
-                style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
-                className={`h-[34px] flex-row items-center justify-center gap-1.5 rounded-toggle px-[18px] ${on ? 'bg-white' : ''}`}
-              >
-                <Icon as={k === 'pool' ? Wallet : User} size={16} color={on ? colors.primary.text : colors.ink[300]} />
-                <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{k === 'pool' ? '공금 결제' : '개인 결제'}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {/* ② 개인/공금 토글(시안: 항상 보인다). 개인 = 올린 사람(나)이 결제. 공금이 꺼진 여행에서 공금을 누르면 안내 시트(노션 39번). */}
+        <PoolPayToggle
+          value={draft.payerKind}
+          poolEnabled={!!room?.pool_enabled}
+          onChange={(k) =>
+            update((d) => (k === 'pool' ? { ...d, payerKind: 'pool', payerMemberId: null } : { ...d, payerKind: 'member', payerMemberId: meMemberId }))
+          }
+          onSetup={() => router.push({ pathname: '/rooms/[roomId]/pool', params: { roomId, setup: '1' } })}
+          shortage={poolShort}
+        />
 
         {/* ③ 영수증 티켓: 요약 + 중복 배너 + 절취선 + 품목 */}
         <View onLayout={(e) => setY('top', e)} className="overflow-hidden rounded-t-box bg-white">
