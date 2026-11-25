@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ChatBubble, SendDiagonal, WarningCircle, Xmark } from 'iconoir-react-native';
-import { Modal, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
@@ -26,6 +26,7 @@ import { colors } from '@/theme/tokens';
 import type { RoomMember } from '@/types/domain';
 
 import { ExpenseEditor } from './review';
+import { Input } from '@/components/Input';
 
 const asUserError = (err: unknown): UserError =>
   typeof err === 'object' && err !== null && 'code' in err ? (err as UserError) : toUserError(err);
@@ -322,10 +323,9 @@ function CommentsSheet({
           )}
           {commentError && <Text className="text-13 text-danger-text">{commentError}</Text>}
           <View className="flex-row items-center gap-2">
-            <TextInput
+            <Input
               accessibilityLabel="댓글 입력"
               placeholder="댓글을 입력해 주세요"
-              placeholderTextColor={colors.ink[300]}
               value={draft}
               onChangeText={setDraft}
               maxLength={500}

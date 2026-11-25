@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Calendar, Check, Copy, InfoCircle, NavArrowDown, NavArrowRight, Plus, Xmark } from 'iconoir-react-native';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { AvatarPerson } from '@/components/AvatarStack';
@@ -63,6 +63,7 @@ import { api } from '@/services/api';
 import { copyReceipt, signedUrl } from '@/services/storage';
 import { colors } from '@/theme/tokens';
 import type { RoomMember, SaveExpensePayload } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const DUP_WINDOW_MS = 72 * 3600_000;
 // 서명 URL은 10분짜리라 9분 지나면 다시 받는다(ARCHITECTURE §4).
@@ -413,11 +414,10 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
             </Pressable>
             <View className="flex-1 gap-0.5">
               <View className="flex-row items-center gap-1.5">
-                <TextInput
+                <Input
                   value={draft.merchant}
                   onChangeText={(merchant) => update((d) => ({ ...d, merchant }))}
                   placeholder="어디서 사용했나요? (선택)"
-                  placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="가맹점"
                   className="flex-shrink p-0 font-semibold text-input-16 text-ink"
                 />

@@ -6,7 +6,7 @@ import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-spe
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Calendar, Check, Microphone, NavArrowDown, NavArrowRight, Pause, Plus, Xmark } from 'iconoir-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
@@ -38,6 +38,7 @@ import {
 } from '@/lib/voice';
 import { api } from '@/services/api';
 import { colors } from '@/theme/tokens';
+import { Input } from '@/components/Input';
 
 const VOICE_LIMIT_MS = 60_000;
 // 카테고리 시트 3열 순서(시안, 확인하고 나누기와 같다): 식비·교통·숙소 / 쇼핑·관광·기타
@@ -593,12 +594,11 @@ export default function VoiceInput() {
 function StoreNameInput({ store, onDone }: { store: string; onDone: (to: string) => void }) {
   const [name, setName] = useState(store);
   return (
-    <TextInput
+    <Input
       value={name}
       onChangeText={setName}
       onEndEditing={() => onDone(name)}
       placeholder="어디서 사용했나요? (선택)"
-      placeholderTextColor={colors.ink[400]}
       maxLength={80}
       returnKeyType="done"
       accessibilityLabel="가게 이름"

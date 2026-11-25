@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import type { ScheduleItem } from '@/lib/schedule';
 import { colors } from '@/theme/tokens';
+import { Input } from './Input';
 
 // 명세 §6 포함 사항 목록. 순서도 시안 그대로다.
 export const INCLUDE_OPTIONS = [
@@ -99,11 +100,10 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
         <View className="gap-1.5">
           <Text className="font-semibold text-13 text-ink-500">일정 이름</Text>
           {/* 시안 높이 48 → 사용자 요청으로 52(2026-11-25) · 좌우 12 · 16px · 테두리 line, 포커스 primary-text. 공용 TextField(54·17px)보다 작다. */}
-          <TextInput
+          <Input
             value={title}
             onChangeText={setTitle}
             placeholder="예: 오사카성 공원"
-            placeholderTextColor={colors.ink[300]}
             maxLength={60}
             autoFocus={!editing}
             accessibilityLabel="일정 이름"
@@ -179,11 +179,10 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
           <View className="flex-row items-center gap-2.5">
             <Text className="flex-1 text-sm text-ink-500">예정 금액</Text>
             <View className="h-11 w-40 flex-row items-center gap-1 rounded-chip border border-line px-3">
-              <TextInput
+              <Input
                 value={est}
                 onChangeText={(t) => setEst(withCommas(Number(t.replace(/[^0-9]/g, '')) || 0))}
                 placeholder="0"
-                placeholderTextColor={colors.ink[300]}
                 keyboardType="number-pad"
                 accessibilityLabel="예정 금액"
                 className="min-w-0 flex-1 text-right font-semibold text-input-15 text-ink"

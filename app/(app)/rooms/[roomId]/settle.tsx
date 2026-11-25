@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
@@ -42,6 +42,7 @@ import {
 import { uuidV4 } from '@/lib/uuid';
 import type { PayoutAccount, PrivateExpenseRow } from '@/services/api';
 import type { ExpenseId, MemberId, RoomId } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const CLIPBOARD_NOTICE_KEY = 'clipboard_sync_notice_shown';
 const CARD_SHADOW = { boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' };
@@ -359,7 +360,7 @@ function SendSheet({ item, toName, busy, onClose, onSubmit }: SendSheetProps) {
       title={`${toName}님에게 보냈어요`}
       subtitle={`정산 금액 ${formatKrw(item.amount)} · 일부만 보냈으면 금액을 고쳐 주세요`}
     >
-      <TextInput
+      <Input
         accessibilityLabel="보낸 금액"
         keyboardType="number-pad"
         value={amount ? amount.toLocaleString('ko-KR') : ''}

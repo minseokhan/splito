@@ -1,6 +1,6 @@
 import { Check, InfoCircle, NavArrowDown, NavArrowUp, Search } from 'iconoir-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BANKS, FAVORITE_BANK_COUNT, accountDigits, searchBanks } from '@/lib/bank';
 import { colors } from '@/theme/tokens';
@@ -8,6 +8,7 @@ import { colors } from '@/theme/tokens';
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
 import { TextField } from './TextField';
+import { Input } from './Input';
 
 type Props = {
   visible: boolean;
@@ -65,12 +66,11 @@ function Body({ initialBankCode, saving, error, onSubmit }: Omit<Props, 'visible
           <View className="overflow-hidden rounded-input border border-line">
             <View className="h-11 flex-row items-center gap-2 border-b border-line-row px-3">
               <Icon as={Search} size={16} color={colors.ink[300]} />
-              <TextInput
+              <Input
                 accessibilityLabel="은행 검색"
                 value={q}
                 onChangeText={setQ}
                 placeholder="은행 이름 검색"
-                placeholderTextColor={colors.ink[300]}
                 className="h-full flex-1 text-input-15 text-ink"
               />
             </View>

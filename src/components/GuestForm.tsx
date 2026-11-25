@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useAddGuest, useRemoveGuest, useUpdateGuest } from '@/hooks/useGuests';
 import { useRoomMembers } from '@/hooks/useRooms';
 import { repChangeWarning } from '@/lib/guestView';
-import { colors } from '@/theme/tokens';
 import type { MemberId, RoomMember } from '@/types/domain';
+import { Input } from './Input';
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
 
@@ -61,10 +61,9 @@ export function GuestForm({ roomId, guest, onClose }: Props) {
 
   return (
     <View className="gap-[18px]">
-      <TextInput
+      <Input
         accessibilityLabel="게스트 이름"
         placeholder="이름(예: 엄마)"
-        placeholderTextColor={colors.ink[300]}
         value={name}
         onChangeText={setName}
         maxLength={12}

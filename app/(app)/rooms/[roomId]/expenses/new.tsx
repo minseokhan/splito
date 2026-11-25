@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
-import { Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,6 +28,7 @@ import { recognizeReceipt } from '@/services/ocr';
 import { preparePhoto, uploadReceipt } from '@/services/storage';
 import { colors } from '@/theme/tokens';
 import type { ExpenseSource } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const TEXT_LIMIT = 4000;
 
@@ -281,13 +282,12 @@ export default function NewExpense() {
             <Title title="결제 문자 붙여넣기" sub="카드 승인 문자를 그대로 붙여넣어 주세요" />
             <View className="gap-2">
               <Text className="font-semibold text-sm text-ink-500">승인 문자</Text>
-              <TextInput
+              <Input
                 multiline
                 value={text}
                 onChangeText={setText}
                 maxLength={TEXT_LIMIT}
                 placeholder="카드 승인 문자를 붙여넣어 주세요"
-                placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="카드 승인 문자"
                 textAlignVertical="top"
                 className="min-h-40 rounded-input border border-line bg-white p-4 text-input-17 text-ink focus:border-primary"

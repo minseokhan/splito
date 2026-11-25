@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Coins, Percentage, Settings, Wallet, WarningCircle } from 'iconoir-react-native';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 
@@ -23,6 +23,7 @@ import { fillEqual, poolRemaining, refillPerPerson } from '@/lib/pool';
 import type { FeedRow, Room } from '@/services/api';
 import { colors } from '@/theme/tokens';
 import type { MemberId, RoomMember } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const showError = (e: unknown) => Alert.alert((e as { message?: string }).message ?? '잠시 후 다시 시도해 주세요');
 const toKrw = (text: string) => Number(text.replace(/\D/g, '') || '0');
@@ -314,10 +315,9 @@ function PoolForm({
           <Text className="font-semibold text-sm text-ink-700">
             공금 카드 끝자리<Text className="font-medium text-ink-300"> (선택)</Text>
           </Text>
-          <TextInput
+          <Input
             accessibilityLabel="공금 카드 끝자리 4자리"
             placeholder="예: 1234, 5678"
-            placeholderTextColor={colors.ink[300]}
             keyboardType="numbers-and-punctuation"
             value={cards}
             onChangeText={setCards}
@@ -330,10 +330,9 @@ function PoolForm({
         <View className="gap-2.5">
           <Text className="font-semibold text-sm text-ink-700">입금</Text>
           <View className="flex-row gap-2">
-            <TextInput
+            <Input
               accessibilityLabel={refill ? '1인당 더 모을 금액' : '모두에게 같은 입금액'}
               placeholder="1인 금액"
-              placeholderTextColor={colors.ink[300]}
               keyboardType="number-pad"
               value={bulk ? toKrw(bulk).toLocaleString('ko-KR') : ''}
               onChangeText={setBulk}
@@ -358,13 +357,12 @@ function PoolForm({
                   </Text>
                   {m.kind === 'guest' && <GuestChip />}
                 </View>
-                <TextInput
+                <Input
                   accessibilityLabel={`${m.name} 입금액`}
                   keyboardType="number-pad"
                   value={toKrw(amounts[m.id] ?? '') ? toKrw(amounts[m.id] ?? '').toLocaleString('ko-KR') : ''}
                   onChangeText={(t) => setAmounts((a) => ({ ...a, [m.id]: t }))}
                   placeholder="0"
-                  placeholderTextColor={colors.ink[300]}
                   style={{ fontVariant: ['tabular-nums'] }}
                   className="h-[42px] w-[128px] rounded-chip bg-app px-3 text-right font-semibold text-input-15 text-ink"
                 />

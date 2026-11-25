@@ -1,6 +1,6 @@
 import { GitMerge, Group, NavArrowDown, NavArrowUp, Scissor, Trash } from 'iconoir-react-native';
 import { useState, type ComponentType } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { SvgProps } from 'react-native-svg';
 
 import { formatAmountInput } from '@/lib/expenseForm';
@@ -10,6 +10,7 @@ import { AvatarStack } from '../AvatarStack';
 import { Badge } from '../Badge';
 import type { BoxPerson } from '../ItemBox';
 import { Icon } from '../Icon';
+import { Input } from '@/components/Input';
 
 type Props = {
   first: boolean; // 첫 줄은 위 구분선이 없다
@@ -110,16 +111,15 @@ export function ItemRow(p: Props) {
         <View className="gap-3 pb-3.5 pl-[38px] pr-5 pt-0.5">
           {editing && (
             <View className="flex-row gap-2">
-              <TextInput
+              <Input
                 value={p.nameKo}
                 onChangeText={p.onChangeName}
                 placeholder="품목명을 입력해 주세요"
-                placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="품목 이름"
                 className={`flex-1 ${INPUT_CLS}`}
               />
               <View className="w-[120px] justify-center">
-                <TextInput
+                <Input
                   value={amount}
                   onChangeText={(v) => {
                     const t = formatAmountInput(v);
@@ -127,7 +127,6 @@ export function ItemRow(p: Props) {
                     p.onChangeAmount?.(t);
                   }}
                   placeholder="0"
-                  placeholderTextColor={colors.ink[300]}
                   keyboardType="numbers-and-punctuation"
                   accessibilityLabel="품목 금액"
                   style={TABULAR}
