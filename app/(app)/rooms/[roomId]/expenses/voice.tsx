@@ -443,6 +443,7 @@ export default function VoiceInput() {
                     const amount = parseAmountInput(text);
                     if (amount !== null && amount >= 0) update(c.key, { amount });
                   }}
+                  onChangeQuantity={(quantity) => update(c.key, { quantity })}
                   onToggle={(id) => update(c.key, { memberIds: toggleMember(c.memberIds, id) })}
                   // [전원]: 누르면 전원, 이미 전원이면 나만 남긴다.
                   onAll={() => update(c.key, { memberIds: n === people.length ? [me.id] : people.map((p) => p.id) })}

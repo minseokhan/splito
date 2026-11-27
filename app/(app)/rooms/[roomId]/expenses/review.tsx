@@ -501,6 +501,7 @@ export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedSchedul
                   const amountOriginal = text ? parseAmountInput(text) : 0;
                   if (amountOriginal !== null) update((d) => updateItem(d, it.id, amountOriginal ? { amountOriginal, needsReview: false } : { amountOriginal }));
                 }}
+                onChangeQuantity={(quantity) => update((d) => updateItem(d, it.id, { quantity }))}
                 onToggle={(id) => toggleAssignee(it.id, id)}
                 onAll={() => allAssignees(it.id)}
                 onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}

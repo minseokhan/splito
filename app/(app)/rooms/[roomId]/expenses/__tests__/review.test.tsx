@@ -217,6 +217,16 @@ describe('영수증·품목 금액', () => {
     expect(screen.getByText('¥')).toBeOnTheScreen();
   });
 
+  it('펼치면 개수는 × 없이 숫자만 고치고, 접으면 ×N으로 보인다', async () => {
+    await renderWith(draft());
+    await fireEvent.press(await screen.findByRole('button', { name: '라멘 품목' }));
+    expect(screen.queryByText(/×/)).toBeNull();
+    await fireEvent.changeText(screen.getAllByLabelText('품목 개수')[0], '3x');
+    expect(screen.getByDisplayValue('3')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: '라멘 품목' }));
+    expect(screen.getByText(' ×3')).toBeOnTheScreen();
+  });
+
   it('펼친 줄 입력칸에서 금액을 고치면 쉼표가 붙고 총액·저장 버튼이 바로 바뀌며 확인 필요가 풀린다', async () => {
     const d = draft();
     d.items[1] = { ...d.items[1], needsReview: true };
