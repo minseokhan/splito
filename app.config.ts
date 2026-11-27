@@ -15,6 +15,8 @@ const config: ExpoConfig = {
     // 루트 icon.png(새 브랜드 마크)를 쓴다. Icon Composer 번들(assets/expo.icon)은 Expo 기본 심볼이라 지웠다.
     bundleIdentifier: APP_ID,
     associatedDomains: [`applinks:${LINK_DOMAIN}`],
+    // 표준 HTTPS(TLS)만 쓴다. 이 값이 없으면 TestFlight 업로드마다 수출 규정 질문에 답해야 한다.
+    infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
   android: {
     package: APP_ID,

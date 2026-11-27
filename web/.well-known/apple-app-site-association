@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["TEAMID_PLACEHOLDER.com.hanms.splito"],
+        "appIDs": ["ASB395VWPK.com.hanms.splito"],
         "components": [{ "/": "/i/*" }]
       }
     ]
