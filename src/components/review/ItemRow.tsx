@@ -216,8 +216,8 @@ export function ItemRow(p: Props) {
   );
 }
 
-// 펼친 줄의 고칠 수 있는 칸: 연한 하늘 바탕(sky-50) · 왼쪽 막대와 같은 파랑 테두리(primary-text) · radius 8. 누르면 바로 커서가 생긴다.
-const BOX_WRAP = 'rounded-badge border border-primary-text bg-sky-50 px-2 py-1';
+// 펼친 줄의 고칠 수 있는 칸: 흰 바탕 · 얇은 회색 테두리(line) · radius 8. 누르면 바로 커서가 생긴다.
+const BOX_WRAP = 'rounded-badge border border-line bg-white px-2 py-1';
 const BOX = `${BOX_WRAP} font-semibold text-input-15`;
 
 // 13px 텍스트 버튼(아이콘 15). 테두리·배경 없음.
