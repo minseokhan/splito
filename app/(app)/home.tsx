@@ -1,27 +1,32 @@
 import { router } from 'expo-router';
-import { NavArrowRight, Plus } from 'iconoir-react-native';
+import { Airplane, CheckCircle, NavArrowRight, Plus } from 'iconoir-react-native';
 import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, Pattern, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { CategoryCircle } from '@/components/CategoryCircle';
-import { FlightIcon } from '@/components/FlightIcon';
 import { Icon } from '@/components/Icon';
 import { InvitePasteBox } from '@/components/InvitePasteBox';
-import { Wordmark } from '@/components/Logo';
+import { BrandWordmark } from '@/components/Logo';
 import { formatKrw } from '@/components/Money';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { roomPeriod } from '@/components/RoomCard';
-import { STATUS_LABEL } from '@/components/StatusChip';
+import { useAuth } from '@/hooks/useAuth';
 import { useRecentExpenses } from '@/hooks/useRecentExpenses';
 import { useMyRooms } from '@/hooks/useRooms';
 import { kstToday } from '@/lib/expenseForm';
 import { currencyFlag } from '@/lib/flag';
 import { formatForeign } from '@/lib/money';
-import { isActiveTrip } from '@/lib/roomList';
+import { dDay, homeTrips, tripPhase } from '@/lib/roomList';
 import { colors } from '@/theme/tokens';
 import type { MyRoom } from '@/types/domain';
+
+// 노션 29번 홈 리디자인(2026-11-23 시안): 카드·구분선 대신 여백과 글자 크기로 위계를 만든다. 좌우 여백 24.
+const PAD = 24;
+const CARD_W = 296; // 카드가 2장 이상일 때 폭. 1장이면 콘텐츠 폭을 꽉 채운다.
+const CARD_GAP = 12;
+const TAB = { fontVariant: ['tabular-nums' as const] };
 
 const goRoom = (roomId: string) => router.push({ pathname: '/rooms/[roomId]', params: { roomId } });
 const goCreate = () => router.push('/rooms/start');
@@ -40,21 +45,21 @@ const MeGlyph = () => (
   </Svg>
 );
 
+// 상단: 워드마크 34(노션 30번) / 오른쪽 + · 프로필, 터치 44×44.
 function Header() {
   return (
     <View className="flex-row items-center justify-between">
-      <Wordmark size={28} />
+      <BrandWordmark height={34} />
       <View className="flex-row items-center gap-1.5">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="새 여행 만들기"
           onPress={goCreate}
-          style={{ marginRight: 4 }}
-          className="h-[38px] w-[38px] items-center justify-center rounded-chip border border-line bg-white active:bg-app"
+          className="h-11 w-11 items-center justify-center rounded-input border border-line bg-white active:bg-app"
         >
           <PlusGlyph />
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="내 정보" onPress={() => router.push('/settings')} className="p-1.5">
+        <Pressable accessibilityRole="button" accessibilityLabel="내 정보" onPress={() => router.push('/settings')} className="h-11 w-11 items-center justify-center">
           <MeGlyph />
         </Pressable>
       </View>
@@ -62,125 +67,181 @@ function Header() {
   );
 }
 
-const tripMeta = (r: MyRoom) => [roomPeriod(r), `${r.memberCount}명`].filter(Boolean).join(' · ');
+// 진행 중은 스카이, 예정·지난 여행은 민트. 장식 도형 3개(큰 사각 · 작은 사각 2개)는 색만 다르다.
+const TONE = {
+  sky: { bg: colors.sky[50], s1: colors.sky[100], s2: '#9DEBD5', s3: '#80CCFF' }, // TODO(token): 민트 200·스카이 300 토큰 없음
+  mint: { bg: colors.mint[50], s1: colors.mint[100], s2: colors.sky[200], s3: '#66DDBD' }, // TODO(token): 민트 300
+};
 
-// 히어로: 대표 진행 중 방. 원본 is.home — min-h 176, sky-50→sky-100 세로 그라데이션 + 24px 흰 격자(30%).
-// TODO(token): 원본 radius 24 → 토큰 없음, 기존 홈 카드의 hero(28) 유지. 우하단 로고 워터마크(#80CCFF 35%)는 새 심볼 에셋이 없어 생략.
-function Hero({ room }: { room: MyRoom }) {
-  // Svg 퍼센트 크기는 기본 300×150 기준으로 잡혀 카드를 다 못 덮는다 — 카드 실측 크기를 숫자로 넘긴다.
-  const [box, setBox] = useState({ w: 0, h: 0 });
+function badgeOf(room: MyRoom, today: string) {
+  const phase = tripPhase(room, today);
+  if (phase === 'live') return { label: '진행 중', box: 'bg-primary-text', text: 'text-white' };
+  if (phase === 'upcoming' && room.startDate) return { label: dDay(room.startDate, today), box: 'bg-white', text: 'text-primary-text' };
+  return { label: '정산 남음', box: 'bg-warning-bg', text: 'text-warning-text' };
+}
+
+const cardMeta = (r: MyRoom) => [roomPeriod(r), r.memberCount > 1 ? `${r.memberCount}명과 함께` : null].filter(Boolean).join(' · ');
+
+// 여행 카드: radius 28 · 여백 20 · 최소 높이 208, 테두리·그림자 없음. 위는 여행, 아래 흰 박스는 내 지출 금액. 둘 다 누르면 여행 장부.
+function TripCard({ room, today, width }: { room: MyRoom; today: string; width: number }) {
+  const tone = tripPhase(room, today) === 'live' ? TONE.sky : TONE.mint;
+  const badge = badgeOf(room, today);
+  const flag = currencyFlag(room.baseCurrency);
   return (
-    <View
-      className="min-h-[176px] overflow-hidden rounded-hero p-5"
-      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-    >
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Svg width={box.w} height={box.h}>
-        <Defs>
-          <LinearGradient id="heroBg" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={colors.sky[50]} />
-            <Stop offset="1" stopColor={colors.sky[100]} />
-          </LinearGradient>
-          <Pattern id="heroGrid" width={24} height={24} patternUnits="userSpaceOnUse">
-            <Line x1={0} y1={0.5} x2={24} y2={0.5} stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
-            <Line x1={0.5} y1={0} x2={0.5} y2={24} stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
-          </Pattern>
-        </Defs>
-        <Rect width={box.w} height={box.h} fill="url(#heroBg)" />
-        <Rect width={box.w} height={box.h} fill="url(#heroGrid)" />
-      </Svg>
-      </View>
-      <View className="max-w-[65%] items-start">
-        <Text className="text-13 text-ink-500">{tripMeta(room)}</Text>
-        <Text style={{ lineHeight: 31 }} className="mt-1 font-semibold text-22 text-ink" numberOfLines={2}>
-          {room.name}
+    <View style={{ width, backgroundColor: tone.bg }} className="min-h-[208px] justify-between gap-5 overflow-hidden rounded-hero p-5">
+      <View pointerEvents="none" style={{ position: 'absolute', top: -18, right: -14, width: 84, height: 84, borderRadius: 22, backgroundColor: tone.s1, transform: [{ rotate: '14deg' }] }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: 30, right: 58, width: 14, height: 14, borderRadius: 4, backgroundColor: tone.s2, transform: [{ rotate: '18deg' }] }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: 72, right: 22, width: 9, height: 9, borderRadius: 3, backgroundColor: tone.s3 }} />
+
+      <Pressable accessibilityRole="button" accessibilityLabel={`${room.name} 장부 보기`} onPress={() => goRoom(room.roomId)} className="gap-3.5 pr-10">
+        <View className={`h-[22px] justify-center self-start rounded-full px-[9px] ${badge.box}`}>
+          <Text className={`font-semibold text-11 ${badge.text}`}>{badge.label}</Text>
+        </View>
+        <View className="flex-row items-center gap-3">
+          {/* 시안 44·국기 22에서 사용자 요청으로 52·28로 키움(2026-11-25). */}
+          <View className="h-[52px] w-[52px] items-center justify-center rounded-box bg-white" style={{ boxShadow: '0 1px 3px rgba(23,32,58,.06)' }}>
+            {flag ? <Text style={{ fontSize: 28, lineHeight: 34 }}>{flag}</Text> : <Icon as={Airplane} size={26} color={colors.primary.text} />}
+          </View>
+          <View className="min-w-0 flex-1 gap-0.5">
+            <Text numberOfLines={1} className="font-semibold text-lg text-ink">
+              {room.name}
+            </Text>
+            <Text className="text-13 text-ink-500">{cardMeta(room)}</Text>
+          </View>
+        </View>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`내 지출 금액 ${formatKrw(room.mySpent)}`}
+        onPress={() => goRoom(room.roomId)}
+        className="min-h-[54px] flex-row items-center gap-2 rounded-[18px] bg-white px-4 py-3 active:bg-app"
+      >
+        <Text className="flex-1 font-semibold text-sm text-ink-500">내 지출 금액</Text>
+        <Text style={[TAB, { letterSpacing: -0.3 }]} className="font-semibold text-xl text-ink">
+          {formatKrw(room.mySpent)}
         </Text>
-        {room.mySpent > 0 && (
-          <Text style={{ fontVariant: ['tabular-nums'] }} className="mt-1 font-semibold text-xl text-ink">
-            내 지출 {formatKrw(room.mySpent)}
-          </Text>
-        )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${room.name} 여행 보기`}
-          onPress={() => goRoom(room.roomId)}
-          className="mt-4 h-11 flex-row items-center gap-2 rounded-full bg-ink pl-5 pr-4 active:scale-[0.98]"
-        >
-          <Text className="font-semibold text-15 text-white">여행 보기</Text>
-          <Icon as={NavArrowRight} size={16} color="#FFFFFF" />
-        </Pressable>
-      </View>
+        <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+      </Pressable>
     </View>
   );
 }
 
-// 여행 목록 한 줄: 60h, radius 16, 흰 배경 + muted 테두리, 누르면 scale .99.
-function TripRow({ room }: { room: MyRoom }) {
-  const flag = currencyFlag(room.baseCurrency);
-  // 오른쪽 값: 보낼 돈 ink / 받을 돈 mint-600 / 없으면 상태 글자.
-  const right =
-    room.myNet < 0
-      ? { text: formatKrw(-room.myNet), cls: 'font-semibold text-ink' }
-      : room.myNet > 0
-        ? { text: formatKrw(room.myNet), cls: 'font-semibold text-mint-600' }
-        : { text: STATUS_LABEL[room.status], cls: 'text-ink-300' };
+// 섹션 제목 17/700 + 오른쪽 '전체 보기' 13/600 회색. 제목 아래 6.
+function SectionHead({ title, onMore, moreLabel = '전체 보기' }: { title: string; onMore?: () => void; moreLabel?: string }) {
+  return (
+    <View className="mb-1.5 flex-row items-baseline justify-between">
+      <Text style={{ letterSpacing: -0.2 }} className="font-semibold text-17 text-ink">
+        {title}
+      </Text>
+      {onMore && (
+        <Pressable accessibilityRole="button" onPress={onMore} hitSlop={8}>
+          <Text className="font-semibold text-13 text-ink-500">{moreLabel}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// 목록 한 줄(내 여행·최근 기록 공통): 최소 64 · 위아래 12 · 아이콘 40 원, 첫 줄 위에는 구분선 없음.
+function ListRow({ first, onPress, label, children }: { first: boolean; onPress: () => void; label: string; children: React.ReactNode }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={room.name}
-      onPress={() => goRoom(room.roomId)}
-      className="h-[60px] flex-row items-center gap-2.5 rounded-box border border-muted bg-white px-3 active:scale-[0.99]"
+      accessibilityLabel={label}
+      onPress={onPress}
+      className={`min-h-[64px] flex-row items-center gap-3 bg-white py-3 active:bg-app ${first ? '' : 'border-t border-line-row'}`}
     >
-      <View className="h-9 w-9 items-center justify-center rounded-toggle bg-app">
-        {flag ? <Text className="text-xl">{flag}</Text> : <FlightIcon size={20} />}
-      </View>
-      <View className="flex-1 gap-0.5">
-        <Text style={{ lineHeight: 20 }} className="font-semibold text-15 text-ink" numberOfLines={1}>
-          {room.name}
-        </Text>
-        <Text style={{ lineHeight: 16 }} className="text-xs text-ink-300">
-          {tripMeta(room)}
-        </Text>
-      </View>
-      <Text style={{ fontVariant: ['tabular-nums'] }} className={`text-sm ${right.cls}`}>
-        {right.text}
-      </Text>
-      <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+      {children}
     </Pressable>
   );
 }
 
+function TripRow({ room, today, first }: { room: MyRoom; today: string; first: boolean }) {
+  const phase = tripPhase(room, today);
+  const done = phase === 'done';
+  const right =
+    phase === 'upcoming' && room.startDate
+      ? { text: dDay(room.startDate, today), cls: 'font-semibold text-primary-text' }
+      : done
+        ? { text: '정산 완료', cls: 'font-semibold text-mint-600' }
+        : phase === 'settle'
+          ? { text: '정산 남음', cls: 'font-semibold text-warning-text' }
+          : { text: '진행 중', cls: 'font-semibold text-primary-text' };
+  return (
+    <ListRow first={first} label={room.name} onPress={() => goRoom(room.roomId)}>
+      <View className={`h-10 w-10 items-center justify-center rounded-full ${done ? 'bg-app' : 'bg-sky-50'}`}>
+        <Icon as={done ? CheckCircle : Airplane} size={20} color={done ? colors.ink[300] : colors.primary.text} />
+      </View>
+      <View className="min-w-0 flex-1 gap-0.5">
+        <Text numberOfLines={1} className="font-semibold text-15 text-ink">
+          {room.name}
+        </Text>
+        <Text className="text-xs text-ink-300">{[roomPeriod(room), `${room.memberCount}명`].filter(Boolean).join(' · ')}</Text>
+      </View>
+      <Text className={`text-15 ${right.cls}`}>{right.text}</Text>
+      <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+    </ListRow>
+  );
+}
+
+const Empty = ({ text }: { text: string }) => <Text className="py-6 text-center text-sm text-ink-300">{text}</Text>;
+
+// 로딩 중: 0건으로 확정되기 전에는 빈 상태 문구를 띄우지 않는다.
+function Skeleton() {
+  return (
+    <View className="gap-4">
+      <View className="h-[52px] w-48 rounded-input bg-app" />
+      <View className="h-[208px] rounded-hero bg-app" />
+      <View className="mt-5 h-16 rounded-input bg-app" />
+      <View className="h-16 rounded-input bg-app" />
+    </View>
+  );
+}
+
+const LIST_MAX = 3;
+
 export default function Home() {
   const { data: rooms, isLoading, error, refetch, isRefetching } = useMyRooms();
-  const [showPast, setShowPast] = useState(false);
-  const active = (rooms ?? []).filter((r) => r.status !== 'settled');
-  // 진행 중 = isActiveTrip 하나뿐(review의 '정산할 곳'과 같은 집합).
+  const { profile } = useAuth();
+  const { width } = useWindowDimensions();
+  const [allTrips, setAllTrips] = useState(false);
   const today = kstToday(new Date());
-  const live = (rooms ?? []).filter((r) => isActiveTrip(r, today));
-  // 지난 여행은 여집합이다. 그래야 어느 쪽에도 안 드는 방이 생기지 않는다.
-  const past = (rooms ?? []).filter((r) => !live.includes(r));
-  const featured = live.find((r) => r.status === 'settling') ?? live[0];
-  const recent = useRecentExpenses(active);
-  const trips = showPast ? [...live, ...past] : live;
-
+  const home = homeTrips(rooms ?? [], today);
+  // 최근 기록은 아직 안 끝난 여행에서만(기존 규칙).
+  const recent = useRecentExpenses((rooms ?? []).filter((r) => tripPhase(r, today) !== 'done'));
+  const trips = allTrips ? home.others : home.others.slice(0, LIST_MAX);
+  // 내 여행 '전체 보기' ↔ '접기'. 넘치는 게 없으면 버튼도 없다.
+  const tripsMore = home.others.length > LIST_MAX ? { onMore: () => setAllTrips((v) => !v), moreLabel: allTrips ? '접기' : '전체 보기' } : {};
   const refresh = () => Promise.all([refetch(), recent.refetch()]);
-  if (rooms?.length === 0) {
+  const cardW = home.cards.length > 1 ? CARD_W : width - PAD * 2;
+
+  // 첫 이용자 · 지난 여행만: 기존 '새 여행 만들기' 화면을 쓴다. 지난 여행이 있으면 아래에 목록.
+  if (rooms && !home.kind) {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-white">
         <ScrollView
-          contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 28 }}
+          contentContainerStyle={{ paddingTop: 10, paddingHorizontal: PAD, paddingBottom: 200, gap: 28 }}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         >
           <Header />
-          <Text className="font-semibold text-2xl text-ink">
-            첫 여행을 만들어 볼까요?
-          </Text>
+          <Text className="font-semibold text-2xl text-ink">{rooms.length ? '다음 여행을 준비해 볼까요?' : '첫 여행을 만들어 볼까요?'}</Text>
           {/* 로그인 상태: 저장 후 '/'로 보내면 resolveEntryRoute가 합류 확인으로 보낸다. */}
           <InvitePasteBox onSaved={() => router.replace('/')} />
+          {home.others.length > 0 && (
+            <View>
+              <SectionHead title="지난 여행" {...tripsMore} />
+              {trips.map((r, i) => (
+                <TripRow key={r.roomId} room={r} today={today} first={i === 0} />
+              ))}
+            </View>
+          )}
         </ScrollView>
         <BottomBar fade>
           <PrimaryButton title="여행 만들기" icon={Plus} onPress={goCreate} />
+          {/* 참여 코드 6자리 → 초대 확인(join 시트가 코드 입력도 받는다). */}
+          <PrimaryButton title="초대받은 여행 참여하기" variant="sky" size="md" onPress={() => router.push({ pathname: '/join/[token]', params: { token: 'code' } })} />
         </BottomBar>
       </SafeAreaView>
     );
@@ -189,80 +250,82 @@ export default function Home() {
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
       <ScrollView
-        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 28 }}
+        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: PAD, paddingBottom: 40, gap: 16 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refresh} />}
       >
         <Header />
         {error && <Text className="text-base text-danger">{error.message}</Text>}
-        {!isLoading && !error && (
+        {isLoading && <Skeleton />}
+        {!isLoading && !error && home.title && (
           <>
-            <View style={{ marginTop: -12 }}>
-              {featured && <Hero room={featured} />}
-              <View className={`${featured ? 'mt-6' : ''} flex-row items-center justify-between`}>
-                <Text className="font-semibold text-15 text-ink">{showPast ? '모든 여행' : '진행 중인 여행'}</Text>
-                {past.length > 0 && (
-                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: showPast }} onPress={() => setShowPast((v) => !v)} hitSlop={8}>
-                    <Text className="font-semibold text-sm text-primary-text">{showPast ? '접기' : `지난 여행 ${past.length}`}</Text>
-                  </Pressable>
-                )}
-              </View>
-              <View className="mt-2.5 gap-2">
-                {trips.map((r) => (
-                  <TripRow key={r.roomId} room={r} />
-                ))}
-                {trips.length === 0 && <Text className="py-3 text-sm text-ink-300">진행 중인 여행이 없어요</Text>}
-              </View>
+            <View className="gap-1 pt-1.5">
+              <Text className="text-sm text-ink-500">{profile?.nickname ? `${profile.nickname}님, 안녕하세요` : '안녕하세요'}</Text>
+              <Text style={{ lineHeight: 31 }} className="font-semibold text-22 text-ink">
+                {home.title[0]}
+                {'\n'}
+                {home.title[1]}
+              </Text>
             </View>
 
-            {recent.data.length > 0 && (
-              <View>
-                <View className="mb-1.5 flex-row items-center justify-between">
-                  <Text className="font-semibold text-15 text-ink">최근 기록</Text>
-                  {active[0] && (
-                    <Pressable accessibilityRole="button" onPress={() => goRoom(active[0].roomId)} hitSlop={8}>
-                      <Text className="font-semibold text-sm text-primary-text">전체 보기</Text>
-                    </Pressable>
-                  )}
-                </View>
-                {recent.data.map((e, i) => (
-                  <View key={e.id}>
-                    {i > 0 && <View className="h-px bg-muted" />}
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => goRoom(e.roomId)}
-                      className="-mx-2 flex-row items-center gap-2.5 rounded-button px-2 py-3 active:bg-muted"
-                    >
-                      <CategoryCircle code={e.category} size={40} />
-                      <View className="flex-1 gap-[3px]">
-                        <Text className="font-semibold text-base text-ink" numberOfLines={1}>
-                          {e.merchant ?? '지출'}
-                        </Text>
-                        <Text className="text-13 text-ink-400" numberOfLines={1}>
-                          {e.payerName} 결제 · {e.roomName}
-                        </Text>
-                      </View>
-                      {/* 금액 표시 규칙(17번): 외화는 현지 통화 크게 + 원화 작게, 원화 결제는 원화만. */}
-                      {e.currency === 'KRW' ? (
-                        <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-ink">
-                          {e.krwAmount !== null ? formatKrw(e.krwAmount) : formatForeign(e.amountOriginal, e.currency)}
-                        </Text>
-                      ) : (
-                        <View className="items-end gap-0.5">
-                          <Text style={{ fontVariant: ['tabular-nums'] }} className="font-semibold text-base text-local">
-                            {formatForeign(e.amountOriginal, e.currency)}
-                          </Text>
-                          {e.krwAmount !== null && (
-                            <Text style={{ fontVariant: ['tabular-nums'] }} className="text-xs text-ink-300">
-                              {formatKrw(e.krwAmount)}
-                            </Text>
-                          )}
-                        </View>
-                      )}
-                    </Pressable>
+            {/* 가로 스크롤, 화면 끝까지. 2장 이상이면 296 폭으로 다음 카드가 살짝 보인다. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={cardW + CARD_GAP}
+              decelerationRate="fast"
+              style={{ marginHorizontal: -PAD }}
+              contentContainerStyle={{ paddingHorizontal: PAD, paddingTop: 2, paddingBottom: 4, gap: CARD_GAP }}
+            >
+              {home.cards.map((r) => (
+                <TripCard key={r.roomId} room={r} today={today} width={cardW} />
+              ))}
+            </ScrollView>
+
+            {/* 카드 → 내 여행 36, 내 여행 → 최근 기록 38(여백만, 구분선 없음). gap 16 + 20/22. */}
+            <View style={{ marginTop: 20 }}>
+              <SectionHead title="내 여행" {...tripsMore} />
+              {trips.length === 0 && <Empty text="아직 기록된 여행이 없어요" />}
+              {trips.map((r, i) => (
+                <TripRow key={r.roomId} room={r} today={today} first={i === 0} />
+              ))}
+            </View>
+
+            <View style={{ marginTop: 22 }}>
+              <SectionHead title="최근 기록" onMore={recent.data[0] ? () => goRoom(recent.data[0].roomId) : undefined} />
+              {!recent.isLoading && recent.data.length === 0 && <Empty text="최근 기록이 없어요" />}
+              {recent.data.map((e, i) => (
+                <ListRow key={e.id} first={i === 0} label={e.merchant ?? '지출'} onPress={() => goRoom(e.roomId)}>
+                  <CategoryCircle code={e.category} size={40} />
+                  <View className="min-w-0 flex-1 gap-0.5">
+                    <Text numberOfLines={1} className="font-semibold text-15 text-ink">
+                      {e.merchant ?? '지출'}
+                    </Text>
+                    <Text numberOfLines={1} className="text-xs text-ink-300">
+                      {e.payerName} 결제 · {e.roomName}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            )}
+                  {/* 금액 표시 규칙(17번): 외화는 현지 통화 크게 + 원화 작게, 원화 결제는 원화만. */}
+                  <View className="items-end gap-0.5">
+                    {e.currency === 'KRW' ? (
+                      <Text style={TAB} className="font-semibold text-15 text-ink">
+                        {e.krwAmount !== null ? formatKrw(e.krwAmount) : formatForeign(e.amountOriginal, e.currency)}
+                      </Text>
+                    ) : (
+                      <>
+                        <Text style={TAB} className="font-semibold text-15 text-primary-text">
+                          {formatForeign(e.amountOriginal, e.currency)}
+                        </Text>
+                        {e.krwAmount !== null && (
+                          <Text style={TAB} className="text-xs text-ink-300">
+                            {formatKrw(e.krwAmount)}
+                          </Text>
+                        )}
+                      </>
+                    )}
+                  </View>
+                </ListRow>
+              ))}
+            </View>
           </>
         )}
       </ScrollView>

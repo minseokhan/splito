@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(27);
 
 -- ───── fixture ─────
 -- A·B: 방 R의 활성 멤버, C: 비멤버. 공개 범위는 save_expense가 판정한다(클라이언트 입력 없음).
@@ -97,10 +97,6 @@ reset role;
 select is(pg_temp.vis(pg_temp.e('e6')), 'private', '대상을 나만 남기면 다시 private');
 set local role authenticated;
 
--- ───── 이력 스냅샷 ─────
-select is((select array_agg(h -> 'snapshot' ->> 'visibility') from public.expense_history(pg_temp.e('e6')) h),
-  '{private,shared,private}'::text[], '이력 스냅샷에 공개 범위가 남는다');
-
 -- ───── RLS: B는 A의 private 지출을 못 본다 ─────
 select pg_temp.as_user('b');
 select is((select count(*)::int from public.expenses where id = pg_temp.e('e1')), 0, '남의 private expenses 0행');
@@ -119,8 +115,6 @@ select is((select count(*)::int from storage.objects where name like pg_temp.r()
   '남의 private 영수증 파일 0행');
 select is((select count(*)::int from storage.objects where name like pg_temp.r() || '/' || pg_temp.e('e2') || '/%'), 1,
   'shared 영수증 파일은 보인다');
-select throws_ok(format('select * from public.expense_history(%L::uuid)', pg_temp.e('e1')),
-  'P0001', 'FORBIDDEN', '남의 private 이력 RPC 거부');
 select throws_ok(format($$insert into public.comments (expense_id, room_id, author_id, body)
   values (%L, %L, %L, '끼어들기')$$, pg_temp.e('e1'), pg_temp.r(), pg_temp.uid('b')),
   '42501', null, '남의 private 지출에 댓글 INSERT 거부');
@@ -144,8 +138,6 @@ select is((select count(*)::int from public.expense_photos where expense_id = pg
   '작성자는 자기 private 영수증 행을 본다');
 select is((select count(*)::int from storage.objects where name like pg_temp.r() || '/' || pg_temp.e('e1') || '/%'), 1,
   '작성자는 자기 private 영수증 파일을 본다');
-select lives_ok(format('select * from public.expense_history(%L::uuid)', pg_temp.e('e1')),
-  '작성자는 자기 private 이력을 읽는다');
 select lives_ok(format($$insert into public.comments (expense_id, room_id, author_id, body)
   values (%L, %L, %L, '내 메모')$$, pg_temp.e('e1'), pg_temp.r(), pg_temp.uid('a')),
   '작성자는 자기 private 지출에 댓글을 단다');

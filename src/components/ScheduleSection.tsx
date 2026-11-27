@@ -36,7 +36,6 @@ type Props = {
   spots: Map<string, SpotCardState>;
   onSpot: (scheduleId: string) => void;
   /** 날짜 탭 바로가기용: 날짜 블록의 y(이 컴포넌트 기준)와 높이. */
-  onDayLayout: (key: string, y: number, height: number) => void;
 };
 
 function Tag({ label }: { label: string }) {
@@ -115,7 +114,6 @@ export function ScheduleSection({
   onOpenExpense,
   spots,
   onSpot,
-  onDayLayout,
 }: Props) {
   return (
     <View className="gap-3 px-5">
@@ -123,11 +121,7 @@ export function ScheduleSection({
       {days
         .filter((d) => d.dayIndex > 0 || d.extra.length > 0)
         .map((d) => (
-          <View
-            key={d.key}
-            className="gap-2.5"
-            onLayout={(e) => onDayLayout(d.key, e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
-          >
+          <View key={d.key} className="gap-2.5">
             {/* 합계는 날짜 줄에만(원화). 지출 없는 날은 숨긴다 */}
             <View className="flex-row items-center justify-between gap-2 pt-1.5">
               <Text className="font-semibold text-13 text-ink-500">{d.header}</Text>

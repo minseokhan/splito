@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { TextInput, View, type TextInputProps } from 'react-native';
+import { View, type TextInputProps } from 'react-native';
 
 import { colors } from '@/theme/tokens';
+import { Input } from './Input';
 
 type Props = TextInputProps & { invalid?: boolean; right?: ReactNode };
 
@@ -14,8 +15,7 @@ export function TextField({ invalid, right, onFocus, onBlur, ...input }: Props) 
       className="h-[54px] flex-row items-center gap-2 rounded-input bg-white px-4"
       style={{ borderWidth: 1, borderColor: border, boxShadow: focused && !invalid ? '0 0 0 4px rgba(18,114,191,.16)' : undefined }}
     >
-      <TextInput
-        placeholderTextColor={colors.ink[300]}
+      <Input
         {...input}
         onFocus={(e) => {
           setFocused(true);

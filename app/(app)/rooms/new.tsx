@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SplitoMark } from '@/components/Logo';
+import { BrandSymbol } from '@/components/Logo';
 import { NavBar } from '@/components/NavBar';
 import { RoomForm } from '@/components/RoomForm';
 import { useCreateRoom } from '@/hooks/useRooms';
@@ -28,7 +28,7 @@ export default function NewRoom() {
         }}
       >
         <View className="flex-row items-center gap-2 rounded-chip bg-sky-100 px-3 py-2">
-          <SplitoMark size={24} />
+          <BrandSymbol height={24} />
           <Text className="flex-1 text-13 leading-[21px] text-ink">생성 후 함께하는 동행을 초대할 수 있어요!</Text>
         </View>
       </RoomForm>

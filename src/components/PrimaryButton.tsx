@@ -82,15 +82,18 @@ export function BottomBar({ children, bg = '#FFFFFF', fade, shadow, row }: BarPr
       ]}
     >
       {fade && (
-        <Svg pointerEvents="none" width="100%" height={28} style={{ position: 'absolute', top: -28, left: 0, right: 0 }}>
-          <Defs>
-            <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={bg} stopOpacity={0} />
-              <Stop offset="1" stopColor={bg} stopOpacity={1} />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" fill="url(#fade)" />
-        </Svg>
+        // Svg width="100%"는 부모 패딩(px-5)을 뺀 폭이 돼 오른쪽이 끊긴다. left·right 0인 View로 감싼다.
+        <View pointerEvents="none" style={{ position: 'absolute', top: -28, left: 0, right: 0, height: 28 }}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={bg} stopOpacity={0} />
+                <Stop offset="1" stopColor={bg} stopOpacity={1} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#fade)" />
+          </Svg>
+        </View>
       )}
       {children}
     </View>

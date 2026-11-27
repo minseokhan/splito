@@ -1,14 +1,16 @@
 import { GitMerge, Group, NavArrowDown, NavArrowUp, Scissor, Trash } from 'iconoir-react-native';
 import { useState, type ComponentType } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { SvgProps } from 'react-native-svg';
 
+import { formatAmountInput } from '@/lib/expenseForm';
 import { colors, memberColor } from '@/theme/tokens';
 
 import { AvatarStack } from '../AvatarStack';
 import { Badge } from '../Badge';
 import type { BoxPerson } from '../ItemBox';
 import { Icon } from '../Icon';
+import { Input } from '@/components/Input';
 
 type Props = {
   first: boolean; // 첫 줄은 위 구분선이 없다
@@ -26,9 +28,12 @@ type Props = {
   splitLabel: string;
   onToggle: (memberId: string) => void;
   onAll: () => void;
-  onChangeName: (v: string) => void;
-  onChangeAmount: (v: string) => void;
-  onClearReview: () => void;
+  /** 지출 상세: 이름·금액은 글자로만 보이고, 펼치면 사람 고르기만 한다. */
+  readOnly?: boolean;
+  onChangeName?: (v: string) => void;
+  onChangeAmount?: (v: string) => void;
+  onChangeQuantity?: (n: number) => void; // 펼쳤을 때 개수(숫자만) 고치기
+  onClearReview?: () => void;
   onSplit?: () => void;
   onMerge?: () => void;
   onRemove?: () => void;
@@ -36,14 +41,21 @@ type Props = {
 
 const TABULAR = { fontVariant: ['tabular-nums' as const] };
 
-// 영수증 티켓 안 품목 한 줄(18번 ④). 접힘: 이름·금액 두 줄. 펼침: 이름·금액 입력 + 사람 고르기 + 쪼개기/합치기·삭제.
+// 영수증 티켓 안 품목 한 줄(18번 ④). 접힘: 이름·금액 두 줄. 펼침: 이름·개수·금액이 흰 박스(테두리 없음)로 바뀌어 누르면 바로 고친다 + 사람 고르기 + 쪼개기/합치기·삭제.
 export function ItemRow(p: Props) {
-  const [amount, setAmount] = useState(p.amountText);
+  const [amount, setAmount] = useState(() => formatAmountInput(p.amountText));
+  const [qtyText, setQtyText] = useState(String(p.quantity));
   const open = p.expanded;
+  const editing = open && !p.readOnly;
   const qty = p.quantity > 1 ? ` ×${p.quantity}` : '';
-  const name = p.nameKo || p.nameOriginal || '품목';
+  // 비어 있으면 회색 안내 글자(28번 UX 라이팅). 금액 입력값이 비면 금액도 안내 글자.
+  const name = p.nameKo || p.nameOriginal || '품목명을 입력해 주세요';
+  const unnamed = !p.nameKo && !p.nameOriginal;
+  const noAmount = !p.amountText;
   const mainCls = p.isKrw ? 'text-ink' : 'text-local';
   const mainLabel = p.isKrw ? (p.krwLabel ?? p.amountLabel) : p.amountLabel;
+  // 금액 입력칸에도 통화 기호를 붙여 둔다(¥·$ 등은 왼쪽, 원화는 오른쪽 '원'). 기호는 amountLabel 앞부분이다.
+  const prefix = p.isKrw ? '' : (/^-?(\D*)/.exec(p.amountLabel)?.[1] ?? '');
   // 지정이 없으면 전원
   const allOn = !p.people.some((m) => m.on);
   const selected = allOn ? p.people : p.people.filter((m) => m.on);
@@ -64,46 +76,70 @@ export function ItemRow(p: Props) {
         <View className="flex-1 gap-0.5">
           <View className="flex-row items-center justify-between gap-2">
             <View className="flex-shrink flex-row items-center gap-1.5">
-              {open ? (
-                <TextInput
-                  value={p.nameKo}
-                  onChangeText={p.onChangeName}
-                  placeholder="품목 이름"
-                  placeholderTextColor={colors.ink[300]}
-                  accessibilityLabel="품목 이름"
-                  className="flex-shrink p-0 font-semibold text-input-15 text-ink"
-                />
+              {editing ? (
+                <>
+                  <Input
+                    value={p.nameKo}
+                    onChangeText={p.onChangeName}
+                    placeholder="품목명을 입력해 주세요"
+                    accessibilityLabel="품목 이름"
+                    className={`flex-shrink ${BOX} text-ink`}
+                  />
+                  {!!p.onChangeQuantity && (
+                    // 개수는 숫자만(× 없이). 1 이상일 때만 반영한다.
+                    <Input
+                      value={qtyText}
+                      onChangeText={(v) => {
+                        const t = v.replace(/\D/g, '');
+                        setQtyText(t);
+                        const n = Number(t);
+                        if (n >= 1) p.onChangeQuantity?.(n);
+                      }}
+                      onBlur={() => setQtyText(String(p.quantity))}
+                      keyboardType="number-pad"
+                      accessibilityLabel="품목 개수"
+                      style={TABULAR}
+                      className={`min-w-[32px] text-center ${BOX} text-ink`}
+                    />
+                  )}
+                </>
               ) : (
-                <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
+                <Text numberOfLines={1} className={`flex-shrink font-semibold text-15 ${unnamed ? 'text-ink-400' : 'text-ink'}`}>
                   {name}
                 </Text>
               )}
-              {!!qty && <Text className="font-semibold text-15 text-ink">{qty}</Text>}
+              {!!qty && !editing && <Text className="font-semibold text-15 text-ink">{qty}</Text>}
               {p.needsReview && <Badge kind="review" onPress={p.onClearReview} accessibilityLabel="확인 필요 해제" />}
             </View>
-            {open ? (
-              <TextInput
-                value={amount}
-                onChangeText={(v) => {
-                  setAmount(v);
-                  p.onChangeAmount(v);
-                }}
-                keyboardType="numbers-and-punctuation"
-                accessibilityLabel="품목 금액"
-                style={TABULAR}
-                className={`min-w-[56px] p-0 text-right font-semibold text-input-15 focus:bg-sky-50 ${mainCls}`}
-              />
+            {editing ? (
+              <View className={`flex-row items-center ${BOX_WRAP}`}>
+                {!!prefix && <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>{prefix}</Text>}
+                <Input
+                  value={amount}
+                  onChangeText={(v) => {
+                    const t = formatAmountInput(v);
+                    setAmount(t);
+                    p.onChangeAmount?.(t);
+                  }}
+                  placeholder="0"
+                  keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="품목 금액"
+                  style={TABULAR}
+                  className={`min-w-[40px] p-0 text-right font-semibold text-input-15 ${mainCls}`}
+                />
+                {p.isKrw && <Text className={`font-semibold text-15 ${mainCls}`}>원</Text>}
+              </View>
             ) : (
-              <Text style={TABULAR} className={`font-semibold text-15 ${mainCls}`}>
-                {mainLabel}
+              <Text style={TABULAR} className={`font-semibold text-15 ${noAmount ? 'text-ink-400' : mainCls}`}>
+                {noAmount ? '금액을 입력해 주세요' : mainLabel}
               </Text>
             )}
           </View>
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
               {!!p.nameOriginal && (
-                <Text numberOfLines={1} className="flex-shrink text-xs text-ink-500">
-                  {p.nameOriginal + qty}
+                <Text numberOfLines={open ? undefined : 1} className="flex-shrink text-xs text-ink-500">
+                  {p.nameOriginal + (editing ? "" : qty)}
                 </Text>
               )}
               {!!p.nameOriginal && p.people.length > 0 && <Text className="text-xs text-line-off">·</Text>}
@@ -179,6 +215,10 @@ export function ItemRow(p: Props) {
     </View>
   );
 }
+
+// 펼친 줄의 고칠 수 있는 칸: 흰 바탕 · 얇은 회색 테두리(line) · radius 8. 누르면 바로 커서가 생긴다.
+const BOX_WRAP = 'rounded-badge border border-line bg-white px-2 py-1';
+const BOX = `${BOX_WRAP} font-semibold text-input-15`;
 
 // 13px 텍스트 버튼(아이콘 15). 테두리·배경 없음.
 function RowButton({ label, icon, onPress, danger }: { label: string; icon: ComponentType<SvgProps>; onPress: () => void; danger?: boolean }) {

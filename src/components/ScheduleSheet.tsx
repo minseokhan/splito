@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { PrimaryButton } from '@/components/PrimaryButton';
-import { TextField } from '@/components/TextField';
-import { isValidScheduleTime, normalizeScheduleTime, type ScheduleItem } from '@/lib/schedule';
+import type { ScheduleItem } from '@/lib/schedule';
 import { colors } from '@/theme/tokens';
+import { Input } from './Input';
 
 // 명세 §6 포함 사항 목록. 순서도 시안 그대로다.
 export const INCLUDE_OPTIONS = [
@@ -22,7 +22,7 @@ export const INCLUDE_OPTIONS = [
 export type ScheduleDraft = {
   id?: string;
   dayIndex: number;
-  startTime: string; // '' = 시간 없음
+  startTime: string; // '' = 시간 없음. 시트에서는 고치지 않는다(예약에서 불러온 시간만 있다, 노션 27번)
   position?: number; // 새 일정을 넣을 자리([위에/아래에 일정 추가]). 없으면 그날 맨 아래
   title: string;
   includes: string[];
@@ -34,7 +34,7 @@ type Props = {
   draft: ScheduleDraft | null;
   /** 날짜 칩(수정)·제목 옆 날짜 표시용. 여행 전은 넣지 않는다. */
   days: { dayIndex: number; label: string }[];
-  /** 패키지 방: 수정에서 시간·포함 사항·선택관광까지. 자유여행은 이름·날짜만. */
+  /** 패키지 방: 수정에서 포함 사항·선택관광까지. 자유여행은 이름·날짜만. */
   pkg: boolean;
   saving?: boolean;
   onClose: () => void;
@@ -76,19 +76,18 @@ export function ScheduleSheet({ draft, onClose, ...rest }: Props) {
   );
 }
 
-// [+ 일정 추가]·위/아래에 추가는 이름만 받는다. 수정은 이름 / 날짜 칩 / (패키지) 시간·포함 사항·선택관광(노션 9번).
+// [+ 일정 추가]·위/아래에 추가는 이름만 받는다. 수정은 이름 / 날짜 칩 / (패키지) 포함 사항·선택관광(노션 9·27번).
+// 시간 입력은 없다 — 예약에서 불러온 시간은 그대로 넘기고, 직접 추가한 일정은 시간 없이 둔다(노션 27번).
 function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'draft'> & { draft: ScheduleDraft }) {
   const editing = !!draft.id;
   const [dayIndex, setDayIndex] = useState(draft.dayIndex);
-  const [time, setTime] = useState(draft.startTime);
   const [title, setTitle] = useState(draft.title);
+  const [focused, setFocused] = useState(false);
   const [includes, setIncludes] = useState<string[]>(draft.includes);
   const [optional, setOptional] = useState(draft.optional);
   const [est, setEst] = useState(withCommas(draft.estAmount));
 
-  // 시간은 선택이다. 비우면 시간 없는 일정.
-  const timeInvalid = time.length > 0 && !isValidScheduleTime(time);
-  const canSave = !timeInvalid && title.trim().length > 0;
+  const canSave = title.trim().length > 0;
   const full = editing && pkg;
 
   return (
@@ -100,13 +99,18 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
 
         <View className="gap-1.5">
           <Text className="font-semibold text-13 text-ink-500">일정 이름</Text>
-          <TextField
+          {/* 시안 높이 48 → 사용자 요청으로 52(2026-11-25) · 좌우 12 · 16px · 테두리 line, 포커스 primary-text. 공용 TextField(54·17px)보다 작다. */}
+          <Input
             value={title}
             onChangeText={setTitle}
             placeholder="예: 오사카성 공원"
             maxLength={60}
             autoFocus={!editing}
             accessibilityLabel="일정 이름"
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            className="h-[52px] rounded-input bg-white px-3 font-medium text-input-16 text-ink"
+            style={{ borderWidth: 1, borderColor: focused ? colors.primary.text : colors.line.DEFAULT }}
           />
         </View>
 
@@ -122,32 +126,15 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
                     accessibilityRole="radio"
                     accessibilityState={{ checked: on }}
                     onPress={() => setDayIndex(d.dayIndex)}
-                    className={`h-8 justify-center rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-white'}`}
-                    style={{ borderWidth: 1, borderColor: on ? colors.primary.DEFAULT : colors.line.DEFAULT }}
+                    // 시안: 높이 34 · 고른 칩은 테두리 없이 sky-100, 나머지는 흰 바탕 + 아주 옅은 테두리(line-row).
+                    className={`h-[34px] justify-center rounded-full px-3 ${on ? 'bg-sky-100' : 'bg-white'}`}
+                    style={{ borderWidth: 1, borderColor: on ? colors.sky[100] : colors.line.row }}
                   >
                     <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink-500'}`}>{d.label}</Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
-          </View>
-        )}
-
-        {full && (
-          <View className="gap-1.5">
-            <Text className="font-semibold text-13 text-ink-500">시간 (선택)</Text>
-            <View className="w-28">
-              <TextField
-                value={time}
-                onChangeText={setTime}
-                onBlur={() => setTime((t) => normalizeScheduleTime(t))}
-                placeholder="9:00"
-                keyboardType="numbers-and-punctuation"
-                invalid={timeInvalid}
-                accessibilityLabel="시간"
-              />
-            </View>
-            {timeInvalid && <Text className="text-13 text-danger">시간은 0:00~23:59로 적어주세요.</Text>}
           </View>
         )}
 
@@ -192,11 +179,10 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
           <View className="flex-row items-center gap-2.5">
             <Text className="flex-1 text-sm text-ink-500">예정 금액</Text>
             <View className="h-11 w-40 flex-row items-center gap-1 rounded-chip border border-line px-3">
-              <TextInput
+              <Input
                 value={est}
                 onChangeText={(t) => setEst(withCommas(Number(t.replace(/[^0-9]/g, '')) || 0))}
                 placeholder="0"
-                placeholderTextColor={colors.ink[300]}
                 keyboardType="number-pad"
                 accessibilityLabel="예정 금액"
                 className="min-w-0 flex-1 text-right font-semibold text-input-15 text-ink"
@@ -216,7 +202,6 @@ function Form({ draft, days, pkg, saving, onSave }: Omit<Props, 'onClose' | 'dra
               onSave({
                 ...draft,
                 dayIndex,
-                startTime: normalizeScheduleTime(time),
                 title: title.trim(),
                 includes,
                 optional,

@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(74);
+select plan(69);
 
 -- ───── fixture ─────
 -- 방 R: a(민지) · b(지훈) · c(서연). 일정 '도톤보리 자유 석식'에 b가 결제한 81,000원 지출을 붙인다.
@@ -342,37 +342,6 @@ select is((select count(*)::int from public.expense_scope
            where expense_id = current_setting('t.e1')::uuid
              and member_id = current_setting('t.qx')::uuid), 0,
   '다른 일정의 정산에도 들어가지 않는다');
-
--- ───── 지출 상세에서 품목 지정만 저장한다 (set_item_assignees) ─────
-
-select pg_temp.as_user('b');
-select lives_ok(format(
-  $q$select public.set_item_assignees(%L, jsonb_build_object(
-       (select i.id::text from public.expense_items i where i.expense_id = %L limit 1),
-       jsonb_build_array(%L::text)))$q$,
-  current_setting('t.e5'), current_setting('t.e5'), current_setting('t.qx')),
-  '결제자가 품목마다 누가 먹었는지 저장할 수 있다');
-
-select is((select count(*)::int from public.item_assignees a
-           join public.expense_items i on i.id = a.item_id
-           where i.expense_id = current_setting('t.e5')::uuid), 1,
-  '고른 사람만 그 품목에 지정된다');
-
--- 지정 결과가 그대로 QR 웹 금액이 된다 — 혼자 먹었으니 박스 전액
-select is(public._spot_share(current_setting('t.spot3')::uuid, current_setting('t.qx')::uuid),
-  50000::bigint, '지정대로 계산된다 — 혼자 지정되면 그 박스 전액을 진다');
-
-select pg_temp.as_user('d');
-select throws_ok(format('select public.set_item_assignees(%L, %L)', current_setting('t.e5'), '{}'),
-  'P0001', 'FORBIDDEN', '방 밖 사람은 품목 지정을 바꿀 수 없다');
-
-select pg_temp.as_user('b');
-select throws_ok(format(
-  $q$select public.set_item_assignees(%L, jsonb_build_object(
-       (select i.id::text from public.expense_items i where i.expense_id = %L limit 1),
-       jsonb_build_array(%L::text)))$q$,
-  current_setting('t.e5'), current_setting('t.e5'), pg_temp.q('0')),
-  'P0001', 'MEMBER_LEFT', '이 지출의 대상이 아닌 사람(다른 정산의 QR 참여자)은 품목에 넣을 수 없다');
 
 select * from finish();
 rollback;

@@ -77,40 +77,57 @@ export const parsedExpenseJsonSchema = {
 } as const;
 
 // kind 'voice' 응답: 한 발화를 가게·사람·품목·금액 여러 건으로 나눈 것. who는 그 품목을 나눠 쓴 참여자 이름들(빈 배열 = 말한 사람 본인).
-// store는 가게 이름, 어느 가게인지 판단이 안 되면 null(화면이 '어디서 쓴 건지 모르는 품목'으로 따로 보여 준다).
+// store는 가게 이름, 어느 가게인지 판단이 안 되면 null(화면이 지금 보고 있는 가게에 넣는다).
+// 이어 말하기: key = 요청 current의 품목을 고친 것(그 key), null = 새 품목. renames = 가게 이름 변경.
+// key·renames는 모델이 빼먹어도 새 품목·변경 없음으로 받는다. quantity는 그 건의 개수(빠지거나 1 이상 정수가 아니면 1).
 export const ParsedVoice = z.object({
   items: z.array(z.object({
+    key: z.string().nullable().catch(null),
     store: z.string().max(80).nullable(),
     who: z.array(z.string()),
     title: z.string().max(80),
+    quantity: z.number().int().min(1).catch(1),
     amount: z.number(),
     currency: z.string().regex(/^[A-Z]{3}$/).nullable().catch(null),
     category: z.enum(CATEGORIES).catch('other'),
     part: z.string().max(200),
   })),
+  renames: z.array(z.object({ from: z.string(), to: z.string() })).catch([]),
 });
 export type ParsedVoice = z.infer<typeof ParsedVoice>;
 
 export const parsedVoiceJsonSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['items'],
+  required: ['items', 'renames'],
   properties: {
     items: {
       type: 'array',
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['store', 'who', 'title', 'amount', 'currency', 'category', 'part'],
+        required: ['key', 'store', 'who', 'title', 'quantity', 'amount', 'currency', 'category', 'part'],
         properties: {
+          key: nullable(str('<current>의 품목을 고친 것이면 그 key 그대로. 새 품목이면 null')),
           store: nullable(str('가게 이름. 80자 이하. <stores>에 같은 가게가 있으면 그 이름 그대로. 어느 가게인지 판단이 안 되면 null')),
           who: { type: 'array', items: { type: 'string' }, description: '이 품목을 먹거나 쓴 사람들. <names>의 이름 그대로. 모두·다 같이면 <names> 전부. 말한 사람 본인만이거나 사람을 말하지 않았으면 빈 배열' },
           title: str('품목 이름, 짧게. 80자 이하'),
-          amount: { type: 'number', description: '말한 금액을 숫자로. 못 들었으면 0' },
+          quantity: { type: 'integer', description: '이 건의 개수(잔·개·병). 1 이상. 말하지 않았거나 여러 사람이 같은 양씩이면 1' },
+          amount: { type: 'number', description: '이 건의 전체 금액(단가 × quantity). 못 들었으면 0' },
           currency: nullable(str('쓰지 않는다. 항상 null(앱이 방 기본 통화로 채운다)')),
           category: { type: 'string', enum: [...CATEGORIES] },
           part: str('이 건에 해당하는 원문 부분 그대로'),
         },
+      },
+    },
+    renames: {
+      type: 'array',
+      description: '가게 이름을 바꾸라고 했을 때만. from은 <current>의 가게 이름 그대로',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['from', 'to'],
+        properties: { from: str('지금 가게 이름'), to: str('새 가게 이름. 80자 이하') },
       },
     },
   },

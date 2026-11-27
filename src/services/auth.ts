@@ -48,6 +48,13 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
+// 회원 탈퇴(노션 26번). 서버가 계정·계좌·푸시 토큰을 지운 뒤라 세션도 무효 — 로컬 세션만 정리한다.
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) throw error;
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+}
+
 async function myId(): Promise<string> {
   const { data } = await supabase.auth.getSession();
   const id = data.session?.user.id;

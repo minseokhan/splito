@@ -1,16 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Calendar, Check, Copy, InfoCircle, NavArrowDown, NavArrowRight, NavArrowUp, Plus, User, Wallet, Xmark } from 'iconoir-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Calendar, Check, Copy, InfoCircle, NavArrowDown, NavArrowRight, Plus, Xmark } from 'iconoir-react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { AvatarPerson } from '@/components/AvatarStack';
 import { Badge } from '@/components/Badge';
 import { DateSheet } from '@/components/DateSheet';
 import { Icon } from '@/components/Icon';
-import { CATEGORY_ICON } from '@/components/categoryIcon';
+import { CategoryCircle } from '@/components/CategoryCircle';
 import { NavBar } from '@/components/NavBar';
+import { PoolPayToggle } from '@/components/PoolPayToggle';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ReceiptThumb } from '@/components/ReceiptThumb';
@@ -22,12 +23,12 @@ import { useScheduleItems, useTripBooking } from '@/hooks/useBooking';
 import { useDraft, useSaveExpense } from '@/hooks/useDraft';
 import { useUpdateExpense } from '@/hooks/useExpense';
 import { useFxPreview } from '@/hooks/useFxPreview';
+import { usePoolBalance } from '@/hooks/usePool';
 import { useMyBudget, useMyShares } from '@/hooks/useBudget';
-import { useMyRooms, useRoom, useRoomMembers } from '@/hooks/useRooms';
+import { useRoom, useRoomMembers } from '@/hooks/useRooms';
 import { addDays, shortDate, tripDayTag } from '@/lib/calendar';
 import { budgetStats, myShareOfDraft, overRecWarning } from '@/lib/budget';
-import { CATEGORIES } from '@/lib/category';
-import { CURRENCIES } from '@/lib/currency';
+import { categoryLabel, type CategoryCode } from '@/lib/category';
 import { describeDuplicate, findDuplicate, type DupCandidate } from '@/lib/duplicate';
 import { toUserError, type UserError } from '@/lib/errors';
 import {
@@ -55,26 +56,26 @@ import {
   type ExpenseDraft,
 } from '@/lib/expenseForm';
 import { floorDiv, formatForeign, formatKrw, fxBasisLabel } from '@/lib/money';
-import { isActiveTrip } from '@/lib/roomList';
+import { poolShortage } from '@/lib/pool';
 import { dayIndexOfDate } from '@/lib/schedule';
 import { uuidV4 } from '@/lib/uuid';
 import { api } from '@/services/api';
-import { clearDraft, keepPhoto, saveDraft } from '@/services/drafts';
 import { copyReceipt, signedUrl } from '@/services/storage';
 import { colors } from '@/theme/tokens';
-import type { RoomMember } from '@/types/domain';
+import type { RoomMember, SaveExpensePayload } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const DUP_WINDOW_MS = 72 * 3600_000;
 // 서명 URL은 10분짜리라 9분 지나면 다시 받는다(ARCHITECTURE §4).
 const SIGNED_URL_STALE_MS = 9 * 60_000;
 
-type Section = 'top' | 'date' | 'currency' | 'items';
+type Section = 'top' | 'items';
 const FIELD_SECTION: Record<string, Section> = {
-  currency: 'currency',
-  paidLocalDate: 'date',
   items: 'items',
   krwCharged: 'items',
 };
+// 카테고리 시트 3열 순서(시안): 식비·교통·숙소 / 쇼핑·관광·기타
+const CATEGORY_GRID: CategoryCode[] = ['food', 'transport', 'lodging', 'shopping', 'sightseeing', 'other'];
 
 // 기기 현지 날짜(중복 배너의 "오늘·어제" 기준).
 function localToday(): string {
@@ -86,23 +87,39 @@ const asUserError = (err: unknown): UserError =>
   typeof err === 'object' && err !== null && 'code' in err ? (err as UserError) : toUserError(err);
 
 export default function ReviewExpense() {
-  // edit가 있으면 저장된 지출을 고치는 편집 모드. 편집 draft는 메모리에만 두고 기기의 작성 중 지출과 섞지 않는다.
-  const { roomId, edit, version, scheduleId } = useLocalSearchParams<{
-    roomId: string;
-    edit?: string;
-    version?: string;
-    scheduleId?: string;
-  }>();
+  const { roomId, scheduleId } = useLocalSearchParams<{ roomId: string; scheduleId?: string }>();
+  return <ExpenseEditor roomId={roomId} scheduleId={scheduleId} />;
+}
+
+type EditorProps = {
+  roomId: string;
+  scheduleId?: string;
+  // 아래는 지출 상세(노션 12번): 저장된 지출을 그 자리에서 고친다. 편집 draft는 메모리에만 두고 기기의 작성 중 지출과 섞지 않는다.
+  edit?: string;
+  /** 상세에서 본 version. 바뀌면(환율 재확정 등) 저장된 지출을 다시 불러온다. */
+  version?: number;
+  linkedScheduleId?: string | null;
+  navRight?: ReactNode;
+  deleteButton?: ReactNode;
+  /** 상세 전용 시트·다이얼로그 */
+  children?: ReactNode;
+};
+
+export function ExpenseEditor({ roomId, scheduleId, edit, version, linkedScheduleId = null, navRight, deleteButton, children }: EditorProps) {
   const { session } = useAuth();
   const { data: members } = useRoomMembers(roomId);
   const { data: room } = useRoom(roomId);
   // 예산 안내(명세 §8). 예산이 없으면 아무것도 안 뜨고, 저장을 막지도 않는다.
   const { data: budget } = useMyBudget(roomId);
   const { data: myShares } = useMyShares(roomId);
+  // 공금 잔액 경고(노션 39번). 편집 중인 지출은 빼고 새 금액으로 비교한다.
+  const poolBalance = usePoolBalance(roomId, edit);
   const { stored, setStored, loaded } = useDraft(roomId);
   const save = useSaveExpense(roomId);
   const updateExpense = useUpdateExpense();
-  const [editing, setEditing] = useState<{ draft: ExpenseDraft; version: number } | null>(null);
+  const qc = useQueryClient();
+  // scope = 저장된 대상 인원. QR로 들어온 사람이 품목 지정 없이 대상에만 있어도 고칠 때 떨어지지 않게 한다.
+  const [editing, setEditing] = useState<{ draft: ExpenseDraft; version: number; initial: string; scope: string[] } | null>(null);
   const meMemberId = members?.find((m) => m.userId === session?.user.id && !m.leftAt)?.id ?? null;
   const rawDraft = edit ? (editing?.draft ?? null) : (stored?.draft ?? null);
   // 올릴 곳을 바꾼 직후에는 결제자가 비어 있다(참여자 id가 방마다 다르다). 새 방의 내 id로 채운다.
@@ -113,12 +130,8 @@ export default function ReviewExpense() {
 
   const toast = useToast();
   const [dateOpen, setDateOpen] = useState(false);
-  // 올릴 곳 바꾸기: 홈에서 바로 올리면 어느 여행인지 고를 수 있어야 한다. 정산 끝난 여행은 뺀다.
-  const { data: myRooms } = useMyRooms();
-  // 홈 카드와 같은 집합(정산 중인 여행)만 고를 수 있다. 지금 방은 기준에 안 맞아도 목록에 남긴다.
-  const pickableRooms = (myRooms ?? []).filter((r) => isActiveTrip(r, kstToday(new Date())) || r.roomId === roomId);
-  const [roomOpen, setRoomOpen] = useState(false);
-  const [moving, setMoving] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [zoom, setZoom] = useState(false);
   // 품목 줄은 한 번에 하나만 펼친다. 처음 들어오면 '확인필요' 중 첫 줄을 펼친다(18번 ④).
   const [openBox, setOpenBox] = useState<string | null>(null);
   const [autoOpened, setAutoOpened] = useState(false);
@@ -129,7 +142,7 @@ export default function ReviewExpense() {
   const { data: booking } = useTripBooking(roomId);
   const [entry, setEntry] = useState<string | null>(scheduleId ?? null);
   // undefined = 기본값 규칙을 따른다, null = [일정 없음]을 직접 골랐다
-  const [pickedSchedule, setPickedSchedule] = useState<string | null | undefined>(undefined);
+  const [pickedSchedule, setPickedSchedule] = useState<string | null | undefined>(edit ? linkedScheduleId : undefined);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const target = scheduleItems.find((x) => x.id === entry) ?? null;
   // 포함 사항에 식사가 있으면 '따로 결제한 게 맞나요?' 한 줄만 보여주고 저장은 막지 않는다.
@@ -172,14 +185,19 @@ export default function ReviewExpense() {
     if (!edit && loaded && !stored) router.back();
   }, [edit, loaded, stored]);
 
-  // 편집 모드: 상세 화면에서 본 version을 기대값으로 쓴다. 그 사이 바뀌었으면 저장 때 VERSION_CONFLICT가 난다.
+  // 편집 모드: 불러온 version을 기대값으로 쓴다. 그 사이 바뀌었으면 저장 때 VERSION_CONFLICT가 난다.
+  const loadEditing = useCallback((payload: SaveExpensePayload, v: number) => {
+    const d = draftFromExpense(payload);
+    setEditing({ draft: d, version: v, initial: JSON.stringify(d), scope: payload.scope_member_ids });
+    setSplitRev((r) => r + 1);
+  }, []);
   useEffect(() => {
     if (!edit) return;
     api.expensePayload(edit).then(
-      ({ payload }) => setEditing({ draft: draftFromExpense(payload), version: Number(version) }),
+      ({ payload, version: v }) => loadEditing(payload, v),
       (err: unknown) => setError(asUserError(err).message),
     );
-  }, [edit, version]);
+  }, [edit, version, loadEditing]);
 
   if (!draft || !members) return null;
 
@@ -199,7 +217,7 @@ export default function ReviewExpense() {
   // QR로 들어온 사람은 동행이 아니라 그 한 자리의 사람이다 — 새 지출에서는 고를 수 없다.
   // 다만 **이미 이 지출에 들어 있으면** 고를 수 있어야 한다. 못 고르면 effScope가 그 사람을
   // 대상 인원에서 떨어뜨려(지정 없는 박스는 '활동 참여자 전원'으로 채워진다) 금액이 조용히 바뀐다.
-  const inThisExpense = new Set(draft.items.flatMap((it) => it.assigneeMemberIds));
+  const inThisExpense = new Set([...draft.items.flatMap((it) => it.assigneeMemberIds), ...(editing?.scope ?? [])]);
   const spotOnly = new Set(
     members.filter((m) => m.spotOnly && !inThisExpense.has(m.id)).map((m) => m.id),
   );
@@ -210,42 +228,15 @@ export default function ReviewExpense() {
   const visibility = previewVisibility(draft, meMemberId, activeIds);
   const preview = previewKrw(draft, fx.fx?.rate ?? null);
   const fxPending = fxNeeded && !fx.isFetching && !fx.fx;
+  // 기록은 막지 않는다. 저장하면 공금이 마이너스가 된다는 경고와 저장 후 토스트에만 쓴다.
+  const poolShort = draft.payerKind === 'pool' && poolBalance !== null && preview ? poolShortage(poolBalance, preview.totalKrw) : null;
+  const savedToast = (fallback: string) =>
+    poolShort ? `공금이 ${formatKrw(-poolShort.after)} 부족해요 · 공금 지갑에서 채워 주세요` : fallback;
   const sumOriginal = toDupInput(draft, null).amountOriginal;
 
   const dup = dupDismissed || edit
     ? null
     : findDuplicate(toDupInput(draft, preview?.totalKrw ?? null), (recent ?? []).filter((c) => c.id !== draft.id), new Date());
-
-  // 사진은 방 폴더 아래에 산다(스토리지 `<roomId>/...`, 기기 `drafts/<roomId>/`). 둘 다 옮긴 뒤에 옛 방 draft를 지운다.
-  const moveRoom = async (nextRoomId: string) => {
-    setRoomOpen(false);
-    if (!draft || !stored || nextRoomId === roomId) return;
-    setMoving(true);
-    setError(null);
-    try {
-      const photos = await Promise.all(
-        draft.photos.map(async (ph) => ({ ...ph, storagePath: await copyReceipt(ph.storagePath, nextRoomId, draft.id) })),
-      );
-      const localPhotos = await Promise.all(stored.localPhotos.map((u) => keepPhoto(nextRoomId, u)));
-      await saveDraft(nextRoomId, {
-        // 참여자 id는 방마다 다르다 — 결제자와 먹은 사람 지정은 비우고 새 방에서 다시 잡는다.
-        draft: {
-          ...draft,
-          roomId: nextRoomId,
-          payerKind: 'member',
-          payerMemberId: null,
-          photos,
-          items: draft.items.map((it) => ({ ...it, assigneeMemberIds: [] })),
-        },
-        localPhotos,
-      });
-      await clearDraft(roomId);
-      router.replace({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId: nextRoomId } });
-    } catch (err) {
-      setError(asUserError(err).message);
-      setMoving(false);
-    }
-  };
 
   // 작성 모드는 방법 선택 화면이 스택에 남아 있을 수 있다(직접 입력). 저장 후에는 그 위까지 걷어내고 장부로 돌아간다.
   const leave = () => (edit ? router.back() : router.dismissTo({ pathname: '/rooms/[roomId]', params: { roomId } }));
@@ -266,6 +257,8 @@ export default function ReviewExpense() {
       ? pickedSchedule
       : defaultScheduleId({ dayItems, entryId: entry, isPackage: !!booking, paidTime: draft.paidLocalTime });
   const selItem = scheduleItems.find((x) => x.id === scheduleSel) ?? null;
+  // 편집 모드는 불러온 그대로면 저장할 게 없다. 처음 불러온 draft·일정과 다를 때만 [수정하기]를 켠다.
+  const unchanged = !!editing && JSON.stringify(editing.draft) === editing.initial && scheduleSel === linkedScheduleId;
 
   // 일정 상세에서 들어온 일정의 날짜가 결제일과 다르면 어디에 넣을지 먼저 묻는다(명세 §7).
   const onSave = async () => {
@@ -296,7 +289,12 @@ export default function ReviewExpense() {
     if (edit && editing) {
       try {
         await updateExpense.mutateAsync({ payload: toSavePayload(draft, meMemberId, activeIds), expectedVersion: editing.version });
-        toast('지출을 저장했어요');
+        // 일정 연결은 save_expense가 건드리지 않는 표시용 메타라 바뀌었을 때만 따로 붙인다(새 지출과 같은 RPC).
+        if (linkTo !== linkedScheduleId) {
+          await api.setExpenseMeta({ expenseId: edit, scheduleId: linkTo });
+          void qc.invalidateQueries({ queryKey: ['room', roomId] });
+        }
+        toast(savedToast('지출을 수정했어요'));
         router.back();
       } catch (err) {
         const e = asUserError(err);
@@ -304,10 +302,7 @@ export default function ReviewExpense() {
         // 덮어쓰지 않는다: 최신 지출과 version으로 draft를 바꾸고, 사용자가 다시 고쳐 저장한다.
         if (e.code === 'VERSION_CONFLICT') {
           const latest = await api.expensePayload(edit).catch(() => null);
-          if (latest) {
-            setEditing({ draft: draftFromExpense(latest.payload), version: latest.version });
-            setSplitRev((r) => r + 1);
-          }
+          if (latest) loadEditing(latest.payload, latest.version);
         }
       }
       return;
@@ -317,7 +312,7 @@ export default function ReviewExpense() {
       // 금액·배분은 save_expense가 확정했다. 연결은 표시용 메타라 따로 붙인다.
       if (linkTo) await api.setExpenseMeta({ expenseId: saved.id, scheduleId: linkTo });
       const linked = scheduleItems.find((x) => x.id === linkTo);
-      toast(linked ? `‘${linked.title}’에 연결했어요` : '지출을 저장했어요');
+      toast(savedToast(linked ? `‘${linked.title}’에 연결했어요` : '지출을 저장했어요'));
       leave();
     } catch (err) {
       setError(asUserError(err).message);
@@ -392,52 +387,37 @@ export default function ReviewExpense() {
   const itemName = (it: ExpenseDraft['items'][number]) => it.nameKo || it.nameOriginal || '품목';
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      <NavBar title={edit ? '지출 수정' : '확인하고 나누기'} align="center" />
+    <SafeAreaView className="flex-1 bg-canvas" edges={['top']}>
+      <NavBar title={edit ? '지출 상세' : '확인하고 나누기'} align="center" right={navRight} />
       <ScrollView
         ref={scrollRef}
         contentContainerClassName="gap-3 px-5 pt-1"
         contentContainerStyle={{ paddingBottom: 170 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ② 개인/공금 토글. 공금이 켜진 여행에서만(꺼진 뒤 열린 공금 지출도). 개인 = 올린 사람(나)이 결제. */}
-        {(room?.pool_enabled || draft.payerKind === 'pool') && (
-          <View className="flex-row gap-0.5 self-center rounded-chip bg-muted p-[3px]">
-            {(['member', 'pool'] as const).map((k) => {
-              const on = draft.payerKind === k;
-              return (
-                <Pressable
-                  key={k}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={k === 'pool' ? '공금' : '개인'}
-                  onPress={() =>
-                    update((d) =>
-                      k === 'pool' ? { ...d, payerKind: 'pool', payerMemberId: null } : { ...d, payerKind: 'member', payerMemberId: meMemberId },
-                    )
-                  }
-                  style={on ? { boxShadow: '0 1px 3px rgba(19,25,39,.12)' } : undefined}
-                  className={`h-[34px] flex-row items-center justify-center gap-1.5 rounded-toggle px-[18px] ${on ? 'bg-white' : ''}`}
-                >
-                  <Icon as={k === 'pool' ? Wallet : User} size={16} color={k === 'pool' ? colors.warning.DEFAULT : colors.primary.text} />
-                  <Text className={`font-semibold text-sm ${on ? 'text-ink' : 'text-ink-400'}`}>{k === 'pool' ? '공금' : '개인'}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
+        {/* ② 개인/공금 토글(시안: 항상 보인다). 개인 = 올린 사람(나)이 결제. 공금이 꺼진 여행에서 공금을 누르면 안내 시트(노션 39번). */}
+        <PoolPayToggle
+          value={draft.payerKind}
+          poolEnabled={!!room?.pool_enabled}
+          onChange={(k) =>
+            update((d) => (k === 'pool' ? { ...d, payerKind: 'pool', payerMemberId: null } : { ...d, payerKind: 'member', payerMemberId: meMemberId }))
+          }
+          onSetup={() => router.push({ pathname: '/rooms/[roomId]/pool', params: { roomId, setup: '1' } })}
+          shortage={poolShort}
+        />
 
         {/* ③ 영수증 티켓: 요약 + 중복 배너 + 절취선 + 품목 */}
         <View onLayout={(e) => setY('top', e)} className="overflow-hidden rounded-t-box bg-white">
           <View className="flex-row items-center gap-3.5 px-5 pb-3 pt-5">
-            <ReceiptThumb uri={thumb} />
+            <Pressable accessibilityRole="imagebutton" accessibilityLabel="영수증 크게 보기" disabled={!thumb} onPress={() => setZoom(true)}>
+              <ReceiptThumb uri={thumb} />
+            </Pressable>
             <View className="flex-1 gap-0.5">
               <View className="flex-row items-center gap-1.5">
-                <TextInput
+                <Input
                   value={draft.merchant}
                   onChangeText={(merchant) => update((d) => ({ ...d, merchant }))}
-                  placeholder="가맹점"
-                  placeholderTextColor={colors.ink[300]}
+                  placeholder="어디서 사용했나요? (선택)"
                   accessibilityLabel="가맹점"
                   className="flex-shrink p-0 font-semibold text-input-16 text-ink"
                 />
@@ -506,7 +486,7 @@ export default function ReviewExpense() {
                 nameKo={it.nameKo}
                 quantity={it.quantity}
                 amountLabel={formatForeign(it.amountOriginal, draft.currency)}
-                amountText={String(it.amountOriginal)}
+                amountText={it.amountOriginal ? String(it.amountOriginal) : ''}
                 krwLabel={preview ? formatKrw(preview.boxKrw[i]) : null}
                 needsReview={it.needsReview}
                 isKrw={isKrw}
@@ -514,11 +494,14 @@ export default function ReviewExpense() {
                 splitLabel={multi ? itemSplitLabel(i) : ''}
                 expanded={openBox === it.id}
                 onToggleOpen={() => setOpenBox((o) => (o === it.id ? null : it.id))}
-                onChangeName={(nameKo) => update((d) => updateItem(d, it.id, { nameKo }))}
+                // 품목명이나 금액을 채우면 '확인 필요'를 푼다(37번).
+                onChangeName={(nameKo) => update((d) => updateItem(d, it.id, nameKo.trim() ? { nameKo, needsReview: false } : { nameKo }))}
                 onChangeAmount={(text) => {
-                  const amountOriginal = parseAmountInput(text);
-                  if (amountOriginal !== null) update((d) => updateItem(d, it.id, { amountOriginal }));
+                  // 비우면 0(총액에서 바로 빠진다)
+                  const amountOriginal = text ? parseAmountInput(text) : 0;
+                  if (amountOriginal !== null) update((d) => updateItem(d, it.id, amountOriginal ? { amountOriginal, needsReview: false } : { amountOriginal }));
                 }}
+                onChangeQuantity={(quantity) => update((d) => updateItem(d, it.id, { quantity }))}
                 onToggle={(id) => toggleAssignee(it.id, id)}
                 onAll={() => allAssignees(it.id)}
                 onClearReview={() => update((d) => updateItem(d, it.id, { needsReview: false }))}
@@ -563,15 +546,29 @@ export default function ReviewExpense() {
           <WavyBottom />
         </View>
 
-        {/* ⑤ 일정 카드. 결제일에 일정이 없으면 숨긴다(일정 상세에서 들어온 경우는 그 일정을 보여준다). */}
-        {!edit && (dayItems.length > 0 || !!target) && (
+        {/* ⑤ 카테고리·일정 카드(시안). 일정 연결은 저장 뒤 메타로 붙인다. */}
+        <View className="overflow-hidden rounded-box bg-white">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`카테고리 · ${categoryLabel(draft.category)}`}
+            onPress={() => setCategoryOpen(true)}
+            className="h-[52px] flex-row items-center justify-between gap-3 pl-4 pr-3 active:bg-app"
+          >
+            <Text className="text-15 text-ink-500">카테고리</Text>
+            <View className="flex-row items-center gap-1.5">
+              <CategoryCircle code={draft.category} />
+              <Text className="font-semibold text-15 text-ink">{categoryLabel(draft.category)}</Text>
+              <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
+            </View>
+          </Pressable>
+          <View className="mx-4 h-px bg-muted" />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="일정 고르기"
             onPress={() => setScheduleOpen(true)}
-            className="h-[52px] flex-row items-center justify-between gap-3 rounded-box bg-white pl-4 pr-3 active:bg-app"
+            className="h-[52px] flex-row items-center justify-between gap-3 pl-4 pr-3 active:bg-app"
           >
-            <Text className="text-15 text-ink-500">일정</Text>
+            <Text className="text-15 text-ink-500">연결할 일정</Text>
             <View className="flex-shrink flex-row items-center gap-1.5">
               <Text numberOfLines={1} className="flex-shrink font-semibold text-15 text-ink">
                 {selItem?.title ?? '일정 없음'}
@@ -580,107 +577,9 @@ export default function ReviewExpense() {
               <Icon as={NavArrowRight} size={16} color={colors.ink[300]} />
             </View>
           </Pressable>
-        )}
-
-        <View onLayout={(e) => setY('date', e)} className="gap-4 rounded-card bg-white p-4">
-          {!edit && pickableRooms.length > 0 && (
-            <View className="gap-2" style={{ zIndex: 20 }}>
-              <Text className="font-semibold text-13 text-ink-500">정산할 곳</Text>
-              <View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="정산할 여행 고르기"
-                  accessibilityState={{ expanded: roomOpen }}
-                  disabled={moving}
-                  onPress={() => setRoomOpen((v) => !v)}
-                  className={`h-[54px] flex-row items-center gap-2 rounded-input border bg-white px-4 ${
-                    roomOpen ? 'border-primary' : 'border-line'
-                  }`}
-                >
-                  <Text className="flex-1 text-base text-ink" numberOfLines={1}>
-                    {moving ? '옮기는 중…' : (room?.name ?? '여행 고르기')}
-                  </Text>
-                  <Icon as={roomOpen ? NavArrowUp : NavArrowDown} size={18} color={colors.ink[300]} />
-                </Pressable>
-                {/* 아래 내용을 밀지 않도록 필드 위에 겹쳐 띄운다. 바깥 View의 zIndex가 뒤 형제보다 위로 올린다. */}
-                {roomOpen && (
-                  <View
-                    style={{ elevation: 8, boxShadow: '0 10px 24px -8px rgba(19,25,39,.22)' }}
-                    className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-input border border-line bg-white"
-                  >
-                    {pickableRooms.map((r, i) => {
-                      const on = r.roomId === roomId;
-                      return (
-                        <Pressable
-                          key={r.roomId}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: on }}
-                          onPress={() => void moveRoom(r.roomId)}
-                          className={`min-h-[50px] flex-row items-center gap-2 px-4 py-3 active:bg-app ${
-                            i > 0 ? 'border-t border-muted' : ''
-                          } ${on ? 'bg-sky-50' : ''}`}
-                        >
-                          <Text
-                            className={`flex-1 text-base ${on ? 'font-semibold text-primary-text' : 'text-ink'}`}
-                            numberOfLines={1}
-                          >
-                            {r.name}
-                          </Text>
-                          {on && <Icon as={Check} size={18} color={colors.primary.text} />}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-          <View onLayout={(e) => setY('currency', e)} className="gap-2">
-            <Text className="font-semibold text-13 text-ink-500">통화</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-              {CURRENCIES.map((c) => {
-                const on = draft.currency === c.code;
-                return (
-                  <Pressable
-                    key={c.code}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: on }}
-                    onPress={() => update((d) => ({ ...d, currency: c.code }))}
-                    className={`h-11 justify-center rounded-chip border px-3.5 ${on ? 'border-primary-text bg-sky-100' : 'border-line bg-white active:border-sky-200 active:bg-app'}`}
-                  >
-                    <Text className={`font-semibold text-base ${on ? 'text-primary-text' : 'text-ink-500'}`}>{c.code}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-          <View className="gap-2">
-            <Text className="font-semibold text-13 text-ink-500">카테고리</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-              {CATEGORIES.map((c) => {
-                const on = draft.category === c.code;
-                return (
-                  <Pressable
-                    key={c.code}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: on }}
-                    onPress={() => update((d) => ({ ...d, category: c.code }))}
-                    className={`h-11 flex-row items-center gap-1.5 rounded-chip border px-3.5 ${on ? 'border-ink bg-ink' : 'border-line bg-white active:border-sky-200 active:bg-app'}`}
-                  >
-                    <Icon as={CATEGORY_ICON[c.code]} size={17} color={on ? '#FFFFFF' : colors.ink[400]} />
-                    <Text className={`font-semibold text-base ${on ? 'text-white' : 'text-ink-500'}`}>{c.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
         </View>
 
-        {multi && (
-          <Text className={`px-1 text-right text-13 ${visibility === 'private' ? 'text-ink-400' : 'text-primary-text'}`}>
-            {visibility === 'private' ? '나만 보기 · 정산에서 빠져요' : '공동 지출'}
-          </Text>
-        )}
+        {multi && visibility === 'private' && <Text className="px-1 text-right text-13 text-ink-400">나만 보기 · 정산에서 빠져요</Text>}
       </ScrollView>
 
       <BottomBar fade>
@@ -692,11 +591,18 @@ export default function ReviewExpense() {
         )}
         {!!budgetWarn && <Text className="text-13 text-warning-accent">{budgetWarn}</Text>}
         {error && <Text className="text-13 text-danger-text">{error}</Text>}
-        <PrimaryButton
-          title={total ? `${total} 저장하기` : '저장하기'}
-          onPress={() => void onSave()}
-          disabled={save.isPending || updateExpense.isPending}
-        />
+        {edit ? (
+          <View className="flex-row gap-2">
+            {deleteButton}
+            <PrimaryButton title="수정하기" grow onPress={() => void onSave()} disabled={updateExpense.isPending || unchanged} />
+          </View>
+        ) : (
+          <PrimaryButton
+            title={total ? `${total} 기록하기` : '기록하기'}
+            onPress={() => void onSave()}
+            disabled={save.isPending}
+          />
+        )}
       </BottomBar>
 
       <BottomSheet
@@ -783,6 +689,44 @@ export default function ReviewExpense() {
           </Pressable>
         </View>
       </BottomSheet>
+
+      <BottomSheet visible={categoryOpen} onClose={() => setCategoryOpen(false)} title="카테고리">
+        <View className="flex-row flex-wrap justify-between gap-y-2.5">
+          {CATEGORY_GRID.map((code) => {
+            const on = draft.category === code;
+            return (
+              <Pressable
+                key={code}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={categoryLabel(code)}
+                onPress={() => {
+                  update((d) => ({ ...d, category: code }));
+                  setCategoryOpen(false);
+                }}
+                style={{ width: '31.5%' }}
+                className={`h-[88px] items-center justify-center gap-2 rounded-button border ${on ? 'border-primary bg-sky-50' : 'border-line bg-white active:bg-app'}`}
+              >
+                <CategoryCircle code={code} size={36} />
+                <Text className={`font-semibold text-13 ${on ? 'text-primary-text' : 'text-ink'}`}>{categoryLabel(code)}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </BottomSheet>
+
+      {/* 영수증 크게 보기. 핀치 줌은 ScrollView 줌(iOS)으로 한다. 지출 상세의 원본 사진 보기와 같은 모양. */}
+      <Modal visible={zoom && !!thumb} onRequestClose={() => setZoom(false)} animationType="fade">
+        <SafeAreaView className="flex-1 bg-black">
+          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={() => setZoom(false)} className="self-end p-3">
+            <Icon as={Xmark} size={26} color="#FFFFFF" />
+          </Pressable>
+          <ScrollView maximumZoomScale={4} minimumZoomScale={1} centerContent contentContainerClassName="flex-1">
+            {!!thumb && <Image source={{ uri: thumb }} resizeMode="contain" className="h-full w-full" />}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+      {children}
     </SafeAreaView>
   );
 }

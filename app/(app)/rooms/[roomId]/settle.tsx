@@ -2,13 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { InviteSheet } from '@/components/InviteSheet';
-import { SplitoMark } from '@/components/Logo';
+import { BrandSymbol } from '@/components/Logo';
 import { formatKrw } from '@/components/Money';
 import { NavBar } from '@/components/NavBar';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -42,6 +42,7 @@ import {
 import { uuidV4 } from '@/lib/uuid';
 import type { PayoutAccount, PrivateExpenseRow } from '@/services/api';
 import type { ExpenseId, MemberId, RoomId } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const CLIPBOARD_NOTICE_KEY = 'clipboard_sync_notice_shown';
 const CARD_SHADOW = { boxShadow: '0 2px 4px -2px rgba(19,25,39,.06)' };
@@ -95,7 +96,7 @@ export default function Settle() {
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-white">
         <NavBar title="정산" align="center" />
         <View className="flex-1 items-center justify-center gap-4 px-5">
-          <SplitoMark size={64} />
+          <BrandSymbol height={64} />
           <Text className="text-center font-semibold text-xl text-ink">동행을 초대하면 정산을 할 수 있어요</Text>
           <View className="self-stretch">
             <PrimaryButton title="초대하기" onPress={() => setInviteOpen(true)} />
@@ -172,7 +173,7 @@ export default function Settle() {
       )}
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 16 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
-          <SplitoMark size={48} />
+          <BrandSymbol height={48} />
           <View className="flex-1 gap-1">
             <Text className="font-semibold text-xl text-ink">{head.title}</Text>
             <Text className="text-sm text-ink-500">{head.sub}</Text>
@@ -359,7 +360,7 @@ function SendSheet({ item, toName, busy, onClose, onSubmit }: SendSheetProps) {
       title={`${toName}님에게 보냈어요`}
       subtitle={`정산 금액 ${formatKrw(item.amount)} · 일부만 보냈으면 금액을 고쳐 주세요`}
     >
-      <TextInput
+      <Input
         accessibilityLabel="보낸 금액"
         keyboardType="number-pad"
         value={amount ? amount.toLocaleString('ko-KR') : ''}
@@ -409,7 +410,7 @@ function PrivateCheckStep({ roomId, rows, me, companions, onDone }: PrivateCheck
       <NavBar title="정산" align="center" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 12 }}>
         <View className="flex-row items-center gap-3.5 px-1 pb-1 pt-1.5">
-          <SplitoMark size={48} />
+          <BrandSymbol height={48} />
           <Text className="flex-1 font-semibold text-xl text-ink">
             나만 보기로 저장된 지출 {rows.length}건 중 동행과 함께한 건 없나요?
           </Text>

@@ -9,6 +9,10 @@ type Props = { visible: boolean; onClose: () => void; children: ReactNode; title
 const ENTER_MS = 320;
 const EXIT_MS = 200;
 
+// 시트를 닫자마자 다른 시트(Modal)를 띄우면 iOS가 앞 Modal이 내려가는 중이라 새 Modal을 못 띄우고
+// 화면 전체가 터치를 먹은 채 멈춘다(2026-11-24 실기기, 지출 메뉴 → 수정 내역). 앞 시트가 내려간 뒤에 연다.
+export const afterSheet = (open: () => void) => setTimeout(open, EXIT_MS + 150);
+
 // 키보드 들어올림(iOS): 네이티브 키보드 추적값으로 시트를 translateY한다. JS 키보드 이벤트 + margin 재배치로는
 // 실기기에서 autoFocus 시트가 키보드에 통째로 가려졌다(2026-11-20·21 재현). 시트 바닥 여백(홈 인디케이터 + 16)은
 // 키보드 밑으로 들어가 키보드 둥근 모서리 사이 틈을 흰색으로 메운다. Android는 들어올리지 않는다(기존 동작).

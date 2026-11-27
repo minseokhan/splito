@@ -9,6 +9,7 @@ import {
   perPersonOriginal,
   splitLabel,
   mergePayload,
+  formatAmountInput,
   parseAmountInput,
   previewKrw,
   previewVisibility,
@@ -358,6 +359,21 @@ describe('parseAmountInput', () => {
     ['0.125', 0.125],
   ])('%s → %s', (s, v) => expect(parseAmountInput(s)).toBe(v));
   it.each(['', '-', 'abc', '1.2345', '1..2'])('%s → null', (s) => expect(parseAmountInput(s)).toBeNull());
+});
+
+describe('formatAmountInput', () => {
+  it.each([
+    ['2000', '2,000'],
+    ['1234567', '1,234,567'],
+    ['12a3,4', '1,234'],
+    ['1234.5', '1,234.5'],
+    ['1.23456', '1.234'],
+    ['-1000', '-1,000'],
+    ['007', '7'],
+    ['0', '0'],
+    ['', ''],
+  ])('%s → %s', (s, v) => expect(formatAmountInput(s)).toBe(v));
+  it('되돌려 읽으면 같은 값', () => expect(parseAmountInput(formatAmountInput('98765.4'))).toBe(98765.4));
 });
 
 describe('previewKrw', () => {

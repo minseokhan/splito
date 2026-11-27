@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Calendar, Check, NavArrowDown } from 'iconoir-react-native';
 import { Fragment, useState, type ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { z } from 'zod';
 
 import { BottomSheet } from '@/components/BottomSheet';
@@ -13,6 +13,7 @@ import { CURRENCIES, isCurrencyCode } from '@/lib/currency';
 import { currencyFlag } from '@/lib/flag';
 import { unitName } from '@/lib/money';
 import { colors } from '@/theme/tokens';
+import { Input } from './Input';
 
 const date = z
   .string()
@@ -99,7 +100,7 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
               control={control}
               name="name"
               render={({ field }) => (
-                <TextInput
+                <Input
                   accessibilityLabel="여행 이름"
                   value={field.value}
                   onChangeText={field.onChange}
@@ -107,7 +108,6 @@ export function RoomForm({ heading, submitLabel, defaultValues, onSubmit, childr
                   onBlur={() => setNameFocus(false)}
                   maxLength={30}
                   placeholder="예: 오사카 먹방 여행"
-                  placeholderTextColor={colors.ink[300]}
                   style={nameFocus ? FOCUS_RING : undefined}
                   className={`h-[54px] rounded-input border bg-white px-4 font-semibold text-input-17 text-ink ${
                     nameFocus ? 'border-primary-text' : errs.name && field.value ? 'border-danger' : 'border-line'

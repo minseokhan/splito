@@ -91,8 +91,8 @@ describe('settleHeadline', () => {
 
   it('건수와 보낼 총액을 말한다', () => {
     expect(settleHeadline([item('send', 'need', 196000), item('send', 'need', 48920), item('recv', 'confirm', 15380)])).toEqual({
-      title: '보낼 돈 2건, 받을 돈 1건',
-      sub: '총 244,920원을 보내주세요',
+      title: '보낼 정산 2건 · 받을 정산 1건',
+      sub: '총 244,920원을 보내야 해요',
       send: 2,
       recv: 1,
     });
@@ -100,7 +100,7 @@ describe('settleHeadline', () => {
 
   it('보낼 게 없으면 받을 돈을 말한다', () => {
     expect(settleHeadline([item('recv', 'confirm', 5000)])).toEqual({
-      title: '보낼 돈 0건, 받을 돈 1건',
+      title: '보낼 정산 0건 · 받을 정산 1건',
       sub: '총 5,000원을 받을 차례예요',
       send: 0,
       recv: 1,
@@ -109,7 +109,7 @@ describe('settleHeadline', () => {
 
   it('보낸 뒤 확인만 남으면 기다린다고 말한다', () => {
     expect(settleHeadline([item('send', 'waiting', 3000)])).toEqual({
-      title: '보낼 돈 1건, 받을 돈 0건',
+      title: '보낼 정산 1건 · 받을 정산 0건',
       sub: '상대 확인을 기다리고 있어요',
       send: 1,
       recv: 0,

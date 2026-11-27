@@ -1,12 +1,13 @@
 import { GitMerge, NavArrowDown, NavArrowUp, Scissor, Xmark } from 'iconoir-react-native';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { colors, memberColor } from '@/theme/tokens';
 
 import type { AvatarPerson } from './AvatarStack';
 import { Badge } from './Badge';
 import { Icon } from './Icon';
+import { Input } from './Input';
 
 export type BoxPerson = AvatarPerson & { on: boolean };
 
@@ -71,11 +72,10 @@ export function ItemBox(p: Props) {
           <View className="flex-row items-center gap-1.5">
             {editable ? (
               <View className="flex-shrink flex-row items-center">
-                <TextInput
+                <Input
                   value={p.nameKo}
                   onChangeText={p.onChangeName}
                   placeholder="품목 이름"
-                  placeholderTextColor={colors.ink[300]}
                   accessibilityLabel="품목 이름"
                   className="flex-shrink p-0 font-semibold text-input-16 text-ink"
                 />
@@ -90,7 +90,7 @@ export function ItemBox(p: Props) {
         </View>
         <View className="items-end gap-0.5">
           {editable ? (
-            <TextInput
+            <Input
               value={amount}
               onChangeText={(v) => {
                 setAmount(v);

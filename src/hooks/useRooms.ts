@@ -63,6 +63,15 @@ export function useJoinRoom() {
   });
 }
 
-export function useInvitePreview(token: string) {
-  return useQuery({ queryKey: ['invite', token], queryFn: () => api.previewInvite(token), retry: false });
+export function useInvitePreview(token: string, enabled = true) {
+  return useQuery({ queryKey: ['invite', token], queryFn: () => api.previewInvite(token), retry: false, enabled });
+}
+
+export function useResolveInviteCode() {
+  return useMutation({ mutationFn: api.resolveInviteCode });
+}
+
+// 초대 시트(링크·QR·코드)가 쓴다. 7일이 지난 링크는 서버가 이 호출에서 새로 발급한다.
+export function useCurrentInvite(roomId: RoomId) {
+  return useQuery({ queryKey: ['room', roomId, 'invite'], queryFn: () => api.currentInvite(roomId) });
 }

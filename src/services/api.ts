@@ -2,11 +2,10 @@ import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 
 import { type CategoryCode, toCategory } from '@/lib/category';
 import type { DupCandidate } from '@/lib/duplicate';
-import { toUserError } from '@/lib/errors';
+import { toUserError, type UserError } from '@/lib/errors';
 import type { ParseResult } from '@/lib/expenseForm';
-import type { VoiceParseItem } from '@/lib/voice';
+import type { VoiceParse } from '@/lib/voice';
 import type { RoomEvent } from '@/lib/activity';
-import type { Snapshot } from '@/lib/history';
 import type { TransferRecord } from '@/lib/settleView';
 import type { ScheduleItem } from '@/lib/schedule';
 import type { SpotExpense, SpotParticipant } from '@/lib/spotSettle';
@@ -70,15 +69,6 @@ export type ExpenseDetail = Tables<'expenses'> & {
   expense_photos: { storage_path: string; kind: string }[];
 };
 
-export type HistoryRow = {
-  id: string;
-  action: string;
-  actorId: string | null;
-  actorNickname: string | null;
-  at: string;
-  snapshot: Snapshot;
-};
-
 // 정산 전 확인 단계(명세 4)용 한 줄. RLS가 남의 '나만 보기' 지출은 돌려주지 않는다.
 export type PrivateExpenseRow = {
   id: ExpenseId;
@@ -105,7 +95,18 @@ export type InvitePreview = {
   inviterNickname: string;
   memberCount: number;
   alreadyMember: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  baseCurrency: string;
+  expenseCount: number;
+  members: { name: string; guest: boolean }[]; // 방장 먼저, 참여 순
+  guests: { memberId: MemberId; name: string }[]; // 나 고르기 후보. 이 방에 내 행이 있으면 빈 배열
 };
+
+export type CurrentInvite = { token: string; code: string; expiresAt: string };
+
+// 서버 JOIN_UNAVAILABLE(게스트 삭제·이미 연결됨). 에러 표(lib/errors)에 없는 코드라 여기서 문구를 붙인다.
+const JOIN_UNAVAILABLE: UserError = { code: 'UNKNOWN', message: '참여할 수 없는 여행이에요.' };
 
 // supabase 응답의 error를 사용자 에러로 바꿔 throw한다.
 function unwrap<T>({ data, error }: { data: T | null; error: unknown }): T {
@@ -200,12 +201,18 @@ export const api = {
   },
 
   async previewInvite(token: string): Promise<InvitePreview> {
-    const r = unwrap(await supabase.rpc('preview_invite', { p_token: token })) as {
+    const r = unwrap(await supabase.rpc('preview_invite_detail', { p_token: token })) as {
       room_id: string;
       room_name: string;
       inviter_nickname: string | null;
       member_count: number;
       already_member: boolean;
+      start_date: string | null;
+      end_date: string | null;
+      base_currency: string;
+      expense_count: number;
+      members: { name: string; guest: boolean }[];
+      guests: { member_id: string; name: string }[];
     };
     return {
       roomId: r.room_id,
@@ -213,11 +220,36 @@ export const api = {
       inviterNickname: r.inviter_nickname ?? '',
       memberCount: r.member_count,
       alreadyMember: r.already_member,
+      startDate: r.start_date,
+      endDate: r.end_date,
+      baseCurrency: r.base_currency,
+      expenseCount: r.expense_count,
+      members: r.members,
+      guests: r.guests.map((g) => ({ memberId: g.member_id, name: g.name })),
     };
   },
 
-  async joinRoom(token: string): Promise<RoomId> {
-    return unwrap(await supabase.rpc('join_room', { p_token: token }));
+  // guestMemberId가 있으면 그 게스트를 내 계정으로 연결해 참여한다(나 고르기).
+  async joinRoom(input: { token: string; guestMemberId?: MemberId }): Promise<RoomId> {
+    const res = input.guestMemberId
+      ? await supabase.rpc('join_room_as_guest', { p_token: input.token, p_guest_member_id: input.guestMemberId })
+      : await supabase.rpc('join_room', { p_token: input.token });
+    if ((res.error as { message?: string } | null)?.message === 'JOIN_UNAVAILABLE') throw JOIN_UNAVAILABLE;
+    return unwrap(res);
+  },
+
+  // 참여 코드 6자리 → 초대 토큰. 서버는 없거나 만료된 코드에 null을 준다(실패 기록이 롤백되지 않게) → INVITE_INVALID.
+  // 1시간에 10번 틀리면 TOO_MANY_ATTEMPTS — 에러 표에 없어 UNKNOWN('잠시 후 다시 시도해 주세요')으로 보인다.
+  async resolveInviteCode(code: string): Promise<string> {
+    const token = unwrap(await supabase.rpc('resolve_invite_code', { p_code: code })) as string | null;
+    if (!token) throw toUserError({ message: 'INVITE_INVALID' });
+    return token;
+  },
+
+  // 초대 시트용 현재 링크·코드. 7일이 지났으면 서버가 새로 발급해 준다.
+  async currentInvite(roomId: RoomId): Promise<CurrentInvite> {
+    const r = unwrap(await supabase.rpc('current_invite', { p_room_id: roomId })) as { token: string; code: string; expires_at: string };
+    return { token: r.token, code: r.code, expiresAt: r.expires_at };
   },
 
   async myRooms(): Promise<MyRoom[]> {
@@ -338,15 +370,30 @@ export const api = {
     return data!;
   },
 
-  // 말로 입력: 한 발화 → 가게·사람·품목·금액 여러 건(parse-expense kind 'voice'). names = 사람 인식에 쓸 참여자 이름,
-  // stores = 화면에 이미 있는 가게(같은 가게를 같은 이름으로 묶게).
-  async parseVoice(req: { roomId: RoomId; text: string; names: string[]; stores: string[]; baseCurrency: string }): Promise<VoiceParseItem[]> {
-    const { data, error } = await supabase.functions.invoke<{ items: VoiceParseItem[] }>('parse-expense', {
-      body: { room_id: req.roomId, kind: 'voice', text: req.text, names: req.names, stores: req.stores, base_currency: req.baseCurrency },
+  // 음성으로 입력: 한 발화 → 가게·사람·품목·금액 여러 건(parse-expense kind 'voice'). names = 사람 인식에 쓸 참여자 이름,
+  // stores = 화면에 이미 있는 가게(같은 가게를 같은 이름으로 묶게), current = 화면의 품목(이어 말하기로 고치기·가게 이름 바꾸기).
+  async parseVoice(req: {
+    roomId: RoomId;
+    text: string;
+    names: string[];
+    stores: string[];
+    baseCurrency: string;
+    current: { key: string; store: string | null; title: string; quantity: number; amount: number; who: string[] }[];
+  }): Promise<VoiceParse> {
+    const { data, error } = await supabase.functions.invoke<VoiceParse>('parse-expense', {
+      body: {
+        room_id: req.roomId,
+        kind: 'voice',
+        text: req.text,
+        names: req.names,
+        stores: req.stores,
+        base_currency: req.baseCurrency,
+        ...(req.current.length ? { current: req.current } : {}),
+      },
       timeout: PARSE_TIMEOUT_MS,
     });
     if (error) throw await functionError(error);
-    return data!.items;
+    return data!;
   },
 
   // AI 예산 코칭(내 통계). kind='alloc'이면 카테고리 배분 비율, 'plans'면 조정안 2~3개.
@@ -465,25 +512,6 @@ export const api = {
     }));
   },
 
-  async expenseHistory(id: ExpenseId): Promise<HistoryRow[]> {
-    const rows = unwrap(await supabase.rpc('expense_history', { p_expense_id: id })) as {
-      id: string;
-      action: string;
-      actor_id: string | null;
-      actor_nickname: string | null;
-      at: string;
-      snapshot: Snapshot;
-    }[];
-    return rows.map((r) => ({
-      id: r.id,
-      action: r.action,
-      actorId: r.actor_id,
-      actorNickname: r.actor_nickname,
-      at: r.at,
-      snapshot: r.snapshot,
-    }));
-  },
-
   // 방 활동 시스템 메시지. INSERT는 RPC 안에서만 한다(ARCHITECTURE §3). 최근 200건만 읽는다.
   async roomEvents(roomId: RoomId): Promise<RoomEvent[]> {
     const rows = unwrap(
@@ -519,6 +547,11 @@ export const api = {
         .from('comments')
         .insert({ id: input.id, expense_id: input.expenseId, room_id: input.roomId, author_id: input.authorId, body: input.body }),
     );
+  },
+
+  // 본문만 고칠 수 있다(컬럼 권한 body·deleted_at). RLS가 본인 행만 허용한다.
+  async editComment(id: string, body: string): Promise<void> {
+    unwrap(await supabase.from('comments').update({ body }).eq('id', id));
   },
 
   // RLS가 본인 행만 고치게 한다. 남의 댓글이면 0행이라 조용히 끝난다.
@@ -831,12 +864,6 @@ export const api = {
         ...(input.flags ? { p_flags: input.flags } : {}),
       }),
     );
-  },
-
-  // 지출 상세에서 '누가 뭘 먹었는지'만 바꾼다. 금액·환율·대상 인원은 그대로 둔다.
-  // 값이 빈 배열인 품목은 지정을 지운다(= 대상 인원 전원 1/N).
-  async setItemAssignees(expenseId: ExpenseId, assign: Record<string, MemberId[]>): Promise<void> {
-    unwrap(await supabase.rpc('set_item_assignees', { p_expense_id: expenseId, p_assign: assign }));
   },
 
   async roomSpotSettles(roomId: RoomId): Promise<SpotSettle[]> {

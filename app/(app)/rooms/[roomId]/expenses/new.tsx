@@ -3,20 +3,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, EditPencil, MediaImage, MessageText, Microphone, NavArrowRight } from 'iconoir-react-native';
-import { Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Icon } from '@/components/Icon';
 import { NavBar } from '@/components/NavBar';
 import { ParsingState } from '@/components/ParsingState';
 import { PassSheet } from '@/components/PassSheets';
-import { ScheduleChip } from '@/components/ScheduleChip';
 import { BottomBar, PrimaryButton } from '@/components/PrimaryButton';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useScheduleItems } from '@/hooks/useBooking';
 import { useRoom, useRoomMembers, useRoomPass } from '@/hooks/useRooms';
 import { toUserError, type UserError } from '@/lib/errors';
 import { draftFromParse, emptyDraft, type ExpenseDraft, type ParseResult } from '@/lib/expenseForm';
@@ -30,6 +28,7 @@ import { recognizeReceipt } from '@/services/ocr';
 import { preparePhoto, uploadReceipt } from '@/services/storage';
 import { colors } from '@/theme/tokens';
 import type { ExpenseSource } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 const TEXT_LIMIT = 4000;
 
@@ -47,12 +46,11 @@ const codeError = (code: string) => toUserError({ message: code });
 
 
 export default function NewExpense() {
+  const topInset = useSafeAreaInsets().top;
   const params = useLocalSearchParams<{ roomId: string; method?: InputMethod; scheduleId?: string }>();
   const roomId = params.roomId;
   // 일정 카드의 [+ 지출]로 들어오면 저장 뒤 그 일정에 연결한다(명세 §7). review까지 들고 간다.
   const scheduleId = params.scheduleId;
-  const { data: scheduleItems = [] } = useScheduleItems(roomId);
-  const scheduleTitle = scheduleItems.find((x) => x.id === scheduleId)?.title;
   // method 없이 열리면 방법 선택 화면을 먼저 보여준다.
   const [picked, setPicked] = useState<InputMethod | undefined>(undefined);
   const method = params.method ?? picked;
@@ -73,13 +71,12 @@ export default function NewExpense() {
   if (!method)
     return (
       <MethodPicker
-        // 말로 입력은 별도 화면이다. push라 뒤로가기가 방법 선택으로 돌아온다.
+        // 음성으로 입력은 별도 화면이다. push라 뒤로가기가 방법 선택으로 돌아온다.
         onSelect={(m) =>
           m === 'voice'
             ? router.push({ pathname: '/rooms/[roomId]/expenses/voice', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } })
             : setPicked(m)
         }
-        scheduleTitle={scheduleTitle}
         owner={room?.owner_id === session?.user.id}
         memberCount={members?.filter((m) => !m.leftAt).length ?? 1}
         pass={passLoaded ? !!passRec : undefined}
@@ -99,21 +96,19 @@ export default function NewExpense() {
     newId: uuidV4,
   });
 
-  const goReview = async (draft: ExpenseDraft, localPhotos: string[], nav: 'replace' | 'push' = 'replace') => {
+  const goReview = async (draft: ExpenseDraft, localPhotos: string[]) => {
     await saveDraft(roomId, { draft, localPhotos }); // review가 기기에서 다시 읽는다
-    router[nav]({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } });
+    router.replace({ pathname: '/rooms/[roomId]/expenses/review', params: { roomId, ...(scheduleId ? { scheduleId } : {}) } });
   };
 
   // 영수증 사진인지 결제앱 캡처인지는 parse-expense가 판정해 photo_kind로 돌려준다(구 버전 응답이면 receipt).
   const photos = (p: typeof photo, kind: PhotoKind) => (p?.storagePath ? [{ storagePath: p.storagePath, kind }] : []);
 
-  const manualTo = (nav: 'replace' | 'push') => {
+  const manual = () => {
     const source: ExpenseSource = method === 'photo' ? 'receipt' : method === 'text' ? 'card_text' : 'manual';
     const draft = emptyDraft({ ...ctx(source), currency: room.base_currency });
-    void goReview({ ...draft, photos: photos(photo, 'receipt') }, photo ? [photo.local] : [], nav);
+    void goReview({ ...draft, photos: photos(photo, 'receipt') }, photo ? [photo.local] : []);
   };
-  // onPress에 그대로 넘기므로 인자를 받지 않는다(이벤트 객체가 nav로 새지 않게).
-  const manual = () => manualTo('replace');
 
   // 인식·업로드에 실패해도 사진은 작성 중 지출로 남긴다.
   const keepFailedPhoto = (p: NonNullable<typeof photo>) => {
@@ -217,15 +212,8 @@ export default function NewExpense() {
 
   if (method === 'manual') {
     // 렌더 중 이동을 피하려고 버튼 대신 즉시 실행한다.
-    // 방법 선택에서 왔으면 review를 push하고 picked를 되돌린다 — 뒤로가기가 방법 선택으로 돌아오게.
-    return (
-      <ManualRedirect
-        onReady={() => {
-          manualTo(picked ? 'push' : 'replace');
-          setPicked(undefined);
-        }}
-      />
-    );
+    // 투명 모달(방법 선택) 위로 push하면 iOS가 카드 시트로 띄운다 → 사진·문자처럼 replace로 한 화면 전체를 쓴다(2026-11-25).
+    return <ManualRedirect onReady={manual} />;
   }
 
   const needNotice = !profile?.ai_notice_ack_at && !noticeDone;
@@ -244,7 +232,8 @@ export default function NewExpense() {
     : undefined;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
+      {/* 모달 화면이라 SafeAreaView(네이티브)가 위 여백을 0으로 재서 뒤로·제목이 상태바에 겹쳤다(2026-11-25 실기기). 앱 전체 기준 insets로 띄운다. */}
       <BottomSheet visible={needNotice} onClose={() => router.back()} title="사진·텍스트가 인식을 위해 Anthropic(미국)으로 전송돼요" subtitle="인식에만 쓰고, 원하지 않으면 직접 입력할 수 있어요.">
         <View className="gap-2.5">
           <PrimaryButton title="확인" onPress={() => void ackNotice()} />
@@ -290,16 +279,15 @@ export default function NewExpense() {
         <View className="flex-1">
           {/* 입력칸 밖을 누르면 키보드를 내린다 */}
           <Pressable accessible={false} onPress={() => Keyboard.dismiss()} className="flex-1 gap-6 px-5 pt-2">
-            <Title title="카드 문자 붙여넣기" sub="카드 승인 문자를 그대로 붙여넣어 주세요" />
+            <Title title="결제 문자 붙여넣기" sub="카드 승인 문자를 그대로 붙여넣어 주세요" />
             <View className="gap-2">
               <Text className="font-semibold text-sm text-ink-500">승인 문자</Text>
-              <TextInput
+              <Input
                 multiline
                 value={text}
                 onChangeText={setText}
                 maxLength={TEXT_LIMIT}
                 placeholder="카드 승인 문자를 붙여넣어 주세요"
-                placeholderTextColor={colors.ink[300]}
                 accessibilityLabel="카드 승인 문자"
                 textAlignVertical="top"
                 className="min-h-40 rounded-input border border-line bg-white p-4 text-input-17 text-ink focus:border-primary"
@@ -314,7 +302,7 @@ export default function NewExpense() {
           </BottomBar>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -350,15 +338,14 @@ function Title({ title, sub }: { title: string; sub: string }) {
 
 // 11-18 시안: 세 칸 배경은 회색(app)으로 통일하고 아이콘 색만 다르다(문자 민트 / 음성 앰버 / 직접 스카이). 라벨은 두 줄.
 const SUB_METHODS: { method: InputMethod; label: string; a11y: string; icon: typeof Camera; iconColor: string }[] = [
-  { method: 'text', label: '카드 문자\n붙여넣기', a11y: '카드 문자 붙여넣기로 지출 추가', icon: MessageText, iconColor: colors.success.DEFAULT },
-  { method: 'voice', label: '말로\n입력', a11y: '음성으로 지출 추가', icon: Microphone, iconColor: colors.warning.DEFAULT },
-  { method: 'manual', label: '직접\n입력', a11y: '직접 입력으로 지출 추가', icon: EditPencil, iconColor: colors.primary.text },
+  { method: 'text', label: '결제 문자\n붙여넣기', a11y: '결제 문자 붙여넣기로 지출 기록', icon: MessageText, iconColor: colors.success.DEFAULT },
+  { method: 'voice', label: '음성으로\n기록', a11y: '음성으로 지출 기록', icon: Microphone, iconColor: colors.warning.DEFAULT },
+  { method: 'manual', label: '직접\n기록', a11y: '직접 기록으로 지출 기록', icon: EditPencil, iconColor: colors.primary.text },
 ];
 
 // pass: 여행 패스 이용 중인지. 불러오는 중이면 undefined.
 type PickerProps = {
   onSelect: (m: InputMethod) => void;
-  scheduleTitle?: string;
   owner: boolean;
   memberCount: number;
   pass?: boolean;
@@ -366,19 +353,21 @@ type PickerProps = {
 };
 
 // 지출 올리기 방법 선택. 11-18 시안에서 'AI 인식 N건 남음' 칩은 삭제됐다(한도를 다 쓰면 고를 때 패스 시트가 뜨는 것은 그대로).
-function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passOn, roomId }: PickerProps) {
+function MethodPicker({ onSelect, owner, memberCount, pass: passOn, roomId }: PickerProps) {
   const toast = useToast();
   // 무료 AI 인식 한도(방당 5건). ponytail: 건수 데이터가 아직 없어 시안 값(DEMO_AI_USED)을 쓴다.
   const used = DEMO_AI_USED;
   const out = !passOn && used >= FREE_AI_LIMIT;
   const [pass, setPass] = useState<{ reason: PassReason | null } | null>(null);
   const insets = useSafeAreaInsets();
-  // 기기에 남은 작성 중 지출(시안: 세 칸 아래 '이어서 쓰기' 카드).
-  const [saved, setSaved] = useState<StoredDraft | null>(null);
+  // 기기에 남은 작성 중 지출(시안: 세 칸 아래 '이어서 쓰기' 카드). undefined = 아직 읽는 중.
+  // 다 읽은 뒤에 시트를 띄운다 — 먼저 띄우면 시트 높이가 카드 없이 잡혀 카드가 잘린다.
+  const [saved, setSaved] = useState<StoredDraft | null | undefined>(undefined);
   useEffect(() => {
     void loadDraft(roomId).then(setSaved);
   }, [roomId]);
   const select = (m: InputMethod) => (out && m !== 'manual' ? setPass({ reason: 'ai' }) : onSelect(m));
+  if (saved === undefined) return null;
   // 여행 상세 위에 뜨는 바텀시트(11-18 시안 §3). 라우트가 transparentModal이라 뒤의 상세가 스크림 너머로 보인다.
   return (
     <View className="flex-1 justify-end">
@@ -390,16 +379,15 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
       >
         <View className="mb-4 h-[5px] w-10 self-center rounded-full bg-line" />
         <ScrollView contentContainerClassName="gap-4 px-5">
-          {!!scheduleTitle && <ScheduleChip title={scheduleTitle} />}
           <View className="gap-1">
             {/* 22·15는 시안 값(스케일 밖) */}
-            <Text className="font-semibold text-22 text-ink">어떻게 올릴까요?</Text>
-            <Text className="text-15 text-ink-500">AI가 품목별로 나누고 결제일 환율로 바꿔드려요</Text>
+            <Text className="font-semibold text-22 text-ink">어떻게 기록할까요?</Text>
+            <Text className="text-15 text-ink-500">사진이나 문자를 분석해 지출 내역을 자동으로 채워드려요</Text>
           </View>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="영수증 사진으로 지출 추가"
+            accessibilityLabel="영수증 촬영으로 지출 기록"
             onPress={() => select('photo')}
             className="flex-row items-center gap-4 rounded-card bg-primary-text p-5 active:translate-y-px"
           >
@@ -407,8 +395,8 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
               <Icon as={Camera} size={26} color={colors.primary.text} />
             </View>
             <View className="flex-1">
-              <Text className="font-semibold text-lg text-primary-on">영수증 찍기</Text>
-              <Text className="mt-[3px] text-sm text-primary-on">사진 한 장이면 품목·번역까지</Text>
+              <Text className="font-semibold text-lg text-primary-on">영수증 촬영</Text>
+              <Text className="mt-[3px] text-sm text-primary-on">품목과 금액을 자동으로 인식해요</Text>
             </View>
             <Icon as={NavArrowRight} size={22} color={colors.primary.on} />
           </Pressable>
@@ -452,7 +440,7 @@ function MethodPicker({ onSelect, scheduleTitle, owner, memberCount, pass: passO
   );
 }
 
-// 시안: 둥글기 20 · 테두리 sky-100 · 아이콘 칸 36(회색) · 캡션 12 / 제목 15·600 · 오른쪽 '이어서 쓰기 >'.
+// 시안: 둥글기 20 · 테두리 sky-100 · 아이콘 칸 36(회색) · 캡션 12 / 제목 15·600 · 오른쪽 '이어서 작성 >'.
 function DraftCard({ stored, onPress }: { stored: StoredDraft; onPress: () => void }) {
   const { merchant, items, currency } = stored.draft;
   const total = items.reduce((a, it) => a + it.amountOriginal, 0);
@@ -460,7 +448,7 @@ function DraftCard({ stored, onPress }: { stored: StoredDraft; onPress: () => vo
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`작성 중인 지출 ${title} 이어서 쓰기`}
+      accessibilityLabel={`작성 중인 기록 ${title} 이어서 작성`}
       onPress={onPress}
       className="flex-row items-center gap-3 rounded-card border border-sky-100 bg-white px-3.5 py-3 active:bg-app"
       style={{ boxShadow: '0 0 4px rgba(18,114,191,.09)' }} // TODO(token): 시안 그림자
@@ -469,13 +457,13 @@ function DraftCard({ stored, onPress }: { stored: StoredDraft; onPress: () => vo
         <Icon as={EditPencil} size={18} color={colors.ink[500]} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-xs text-ink-500">작성 중인 지출 1건</Text>
+        <Text className="text-xs text-ink-500">작성 중인 기록 1건</Text>
         <Text numberOfLines={1} className="font-semibold text-15 text-ink">
           {title}
         </Text>
       </View>
       <View className="flex-row items-center gap-0.5">
-        <Text className="font-semibold text-13 text-ink">이어서 쓰기</Text>
+        <Text className="font-semibold text-13 text-ink">이어서 작성</Text>
         <Icon as={NavArrowRight} size={15} color={colors.ink.DEFAULT} />
       </View>
     </Pressable>

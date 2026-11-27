@@ -15,9 +15,11 @@ module.exports = {
         ice: '#F4FAFF',
         // ink=본문(ink), 700=진한 보조, 500·400=보조(600), 300=비활성(500).
         ink: { DEFAULT: '#17203A', alt: '#17203A', 700: '#3D465C', 500: '#5B6478', 400: '#5B6478', 300: '#8A92A3' },
-        // 회색 박스·입력칸(뉴트럴 50). 화면 배경은 흰색이 기본(확인하고 나누기·말로 입력만 app).
+        // 회색 박스·입력칸(뉴트럴 50). muted = 여행 방 설정·내 정보 화면 배경(뉴트럴 100).
         app: '#F8F9FB',
         muted: '#F1F3F6',
+        // 확인하고 나누기·말로 입력 화면 배경, 여행 상세 요약 카드.
+        canvas: '#EEF1F5',
         line: { DEFAULT: '#E4E7ED', off: '#C9CED8', row: '#F1F3F6' },
         danger: { DEFAULT: '#D92148', soft: '#FDA29B', text: '#D92148', bg: '#FDE8EF' },
         success: { DEFAULT: '#10A587', bg: '#EAFBF6', badge: '#EAFBF6', icon: '#7CF0D8' },
@@ -31,6 +33,9 @@ module.exports = {
         alert: '#F04452',
         kakao: { DEFAULT: '#FEE500', text: '#191600' },
         naver: '#03C75A',
+        apple: '#000000',
+        // 로그인 화면(클로드 디자인 1a 로그인): 네이비 그라데이션 배경·빛 번짐.
+        login: { from: '#1E3A8A', to: '#17203A', glow: '#33ABFF', 'glow-mint': '#36CEA6' },
         'on-dark-sub': '#C9CED8',
         // 정산 화면 세그먼트 탭.
         tab: { bg: '#EEF8FF', num: '#1272BF', 'num-off': '#80CCFF' },

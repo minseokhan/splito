@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Sparks } from 'iconoir-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
@@ -16,6 +16,7 @@ import { ALLOC_CATEGORIES, allocByRatio, categoryBreakdown, isBudgetTarget } fro
 import { categoryLabel, type CategoryCode } from '@/lib/category';
 import { colors } from '@/theme/tokens';
 import type { Krw, TripBudget } from '@/types/domain';
+import { Input } from '@/components/Input';
 
 type Alloc = Partial<Record<CategoryCode, Krw>>;
 
@@ -107,13 +108,12 @@ export default function Budget() {
               style={{ borderWidth: 1, borderColor: colors.primary.text, boxShadow: '0 0 0 4px rgba(18,114,191,.16)' }}
               className="h-14 flex-row items-center gap-1.5 rounded-input px-4"
             >
-              <TextInput
+              <Input
                 accessibilityLabel="전체 예산"
                 value={comma(total)}
                 onChangeText={(t) => setTotal(Number(digits(t) || 0))}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor={colors.ink[300]}
                 style={{ fontSize: 22 }}
                 className="h-full min-w-0 flex-1 font-semibold text-ink"
               />
@@ -151,13 +151,12 @@ export default function Budget() {
                     <Icon as={CATEGORY_ICON[code]} size={18} color={colors.primary.text} />
                     <Text className="flex-1 text-15 text-ink">{categoryLabel(code)}</Text>
                     <View style={{ borderWidth: 1, borderColor: colors.line.DEFAULT }} className="h-[42px] w-[140px] justify-center rounded-chip px-3">
-                      <TextInput
+                      <Input
                         accessibilityLabel={`${categoryLabel(code)} 예산`}
                         value={comma(alloc[code] ?? 0)}
                         onChangeText={(t) => setAlloc((a) => ({ ...a, [code]: Number(digits(t) || 0) }))}
                         keyboardType="number-pad"
                         placeholder="0"
-                        placeholderTextColor={colors.ink[300]}
                         className="text-right font-semibold text-input-15 text-ink"
                       />
                     </View>

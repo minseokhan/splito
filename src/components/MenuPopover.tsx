@@ -12,6 +12,7 @@ export type MenuItem = {
   label: string;
   sub?: string;
   icon?: ComponentType<SvgProps>;
+  iconColor?: string; // 기본 primary-text. 일정 '…' 메뉴는 ink(시안)
   selected: boolean;
   danger?: boolean; // [일정 삭제] 같은 빨간 행
 };
@@ -53,7 +54,7 @@ export function MenuPopover({ at, width, items, onPick, onClose }: Props) {
                 onPress={() => onPick(it.key)}
                 className={`flex-row items-center gap-2.5 rounded-badge px-3 py-[9px] active:bg-app ${it.selected ? 'bg-app' : ''}`}
               >
-                {it.icon && <Icon as={it.icon} size={17} color={colors.primary.text} />}
+                {it.icon && <Icon as={it.icon} size={17} color={it.danger ? colors.danger.DEFAULT : (it.iconColor ?? colors.primary.text)} />}
                 <Text
                   className={`min-w-0 flex-1 text-sm ${it.selected ? 'font-semibold' : 'font-medium'} ${it.danger ? 'text-danger' : 'text-ink'}`}
                   numberOfLines={1}

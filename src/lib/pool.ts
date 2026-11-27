@@ -25,3 +25,30 @@ export function poolRemaining(depositsKrw: number[], poolSpentKrw: number[]): nu
 export function fillEqual(memberIds: string[], amountKrw: number): { memberId: string; amountKrw: number }[] {
   return memberIds.map((memberId) => ({ memberId, amountKrw }));
 }
+
+// 공금 잔액(원)보다 큰 금액을 공금으로 기록할 때. over = 잔액(0 이상 부분)을 넘는 만큼, after = 기록 후 잔액.
+// 기록은 막지 않는다(마이너스 허용) — 경고 표시용.
+export function poolShortage(balanceKrw: number, needKrw: number): { over: number; after: number } | null {
+  if (needKrw <= balanceKrw) return null;
+  return { over: needKrw - Math.max(0, balanceKrw), after: balanceKrw - needKrw };
+}
+
+// 부족분 1/N 분담. 1인 금액은 100 단위 올림.
+export function refillPerPerson(shortKrw: number, n: number): number {
+  if (shortKrw <= 0 || n <= 0) return 0;
+  return Math.ceil(shortKrw / (n * 100)) * 100;
+}
+
+// 통화가 섞인 금액들의 원화 합계. 환율을 모르는 통화가 하나라도 있으면 null(경고를 띄우지 않는다).
+export function sumKrw(
+  parts: { amount: number; currency: string }[],
+  toKrw: (amount: number, currency: string) => number | null,
+): number | null {
+  let total = 0;
+  for (const p of parts) {
+    const k = p.currency === 'KRW' ? p.amount : toKrw(p.amount, p.currency);
+    if (k === null) return null;
+    total += k;
+  }
+  return total;
+}

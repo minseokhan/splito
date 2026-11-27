@@ -908,8 +908,14 @@ isOneToOne: false
 "create_room":
 { Args: { "p_base_currency": string,"p_end_date"?: string,"p_name": string,"p_start_date"?: string }; Returns: string
                            },
+"current_invite":
+{ Args: { "p_room_id": string }; Returns: Json
+                           },
 "delete_expense":
 { Args: { "p_expected_version": number,"p_id": string }; Returns: undefined
+                           },
+"delete_my_account":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "delete_push_token":
 { Args: { "p_token": string }; Returns: undefined
@@ -919,9 +925,6 @@ isOneToOne: false
                            },
 "delete_schedule_item":
 { Args: { "p_id": string }; Returns: undefined
-                           },
-"expense_history":
-{ Args: { "p_expense_id": string }; Returns: Json[]
                            },
 "export_expense_shares":
 { Args: { "p_room_id": string }; Returns: {
@@ -941,6 +944,9 @@ isOneToOne: false
                            },
 "join_room":
 { Args: { "p_token": string }; Returns: string
+                           },
+"join_room_as_guest":
+{ Args: { "p_guest_member_id": string,"p_token": string }; Returns: string
                            },
 "leave_room":
 { Args: { "p_room_id": string }; Returns: undefined
@@ -975,6 +981,9 @@ isOneToOne: false
 "preview_invite":
 { Args: { "p_token": string }; Returns: Json
                            },
+"preview_invite_detail":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "reconfirm_pending_fx":
 { Args: { "p_room_id": string }; Returns: number
                            },
@@ -1004,6 +1013,9 @@ isOneToOne: false
 "remove_member":
 { Args: { "p_member_id": string,"p_room_id": string }; Returns: undefined
                            },
+"resolve_invite_code":
+{ Args: { "p_code": string }; Returns: string
+                           },
 "rotate_invite":
 { Args: { "p_room_id": string }; Returns: string
                            },
@@ -1021,9 +1033,6 @@ isOneToOne: false
                            },
 "set_expense_meta":
 { Args: { "p_expense_id": string,"p_flags"?: (string)[],"p_schedule_id"?: string }; Returns: undefined
-                           },
-"set_item_assignees":
-{ Args: { "p_assign": Json,"p_expense_id": string }; Returns: undefined
                            },
 "set_payout_account":
 { Args: { "p_account_number": string,"p_bank_code": string,"p_bank_name": string,"p_holder_name": string }; Returns: undefined

@@ -81,14 +81,14 @@ export default function Prepay() {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-white">
-      <NavBar title="패키지 여행 등록" />
+      <NavBar title="예약 결제 내역 등록" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 140, gap: 18 }}>
         <View className="gap-1.5">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-success-badge">
             <Icon as={Check} size={24} color={colors.success.DEFAULT} />
           </View>
-          <Text className="mt-1.5 font-semibold text-22 leading-[35px] text-ink">예약을 불러왔어요</Text>
-          <Text className="text-15 leading-6 text-ink-500">패키지 결제 금액을 ‘여행 전’ 지출로 등록했어요</Text>
+          <Text className="mt-1.5 font-semibold text-22 leading-[35px] text-ink">예약 정보를 불러왔어요!</Text>
+          <Text className="text-15 leading-6 text-ink-500">패키지 결제 금액을 여행 전 지출에 추가했어요</Text>
         </View>
 
         <View className="gap-3 rounded-card border border-card-line p-4">
@@ -111,13 +111,13 @@ export default function Prepay() {
         {booking.pax > 1 && (
           <View className="gap-3 rounded-card bg-app p-4">
             <View>
-              <Text className="font-semibold text-17 text-ink">일행 몫도 함께 결제했나요?</Text>
+              <Text className="font-semibold text-17 text-ink">누구의 여행 경비를 결제했나요?</Text>
               <Text className="text-13 text-ink-400">예약 인원 {booking.pax}명</Text>
             </View>
             <View className="flex-row gap-1.5 rounded-input bg-muted p-1">
               {[
-                { on: together, label: '네, 함께 결제했어요', set: true },
-                { on: !together, label: '아니요, 제 몫만', set: false },
+                { on: together, label: `${booking.pax}명 몫을 모두 결제했어요`, set: true },
+                { on: !together, label: '제 몫만 결제했어요', set: false },
               ].map((seg) => (
                 <Pressable
                   key={seg.label}
@@ -156,21 +156,21 @@ export default function Prepay() {
                       ) : (
                         <>
                           <View className="h-8 w-8 rounded-full border border-line-off" />
-                          <Text className="flex-1 text-15 text-ink-300">일행 {i + 1}</Text>
+                          <Text className="flex-1 text-15 text-ink-300">동행 {i + 1}</Text>
                           <View className="flex-row gap-1.5">
                             <Pressable
                               accessibilityRole="button"
                               onPress={() => setSheet('invite')}
                               className="h-[30px] justify-center rounded-badge bg-primary-text px-2.5"
                             >
-                              <Text className="font-semibold text-xs text-white">초대</Text>
+                              <Text className="font-semibold text-xs text-white">초대하기</Text>
                             </Pressable>
                             <Pressable
                               accessibilityRole="button"
                               onPress={() => setSheet('guest')}
                               className="h-[30px] justify-center rounded-badge border border-line px-2.5"
                             >
-                              <Text className="font-semibold text-xs text-ink">이름으로 추가</Text>
+                              <Text className="font-semibold text-xs text-ink">이름 입력</Text>
                             </Pressable>
                           </View>
                         </>
@@ -179,8 +179,8 @@ export default function Prepay() {
                   ))}
                 </View>
                 <Text className="text-13 text-ink-500">
-                  1인 {formatKrw(perPersonPreview(booking.paid_amount, booking.pax))}씩 나눠요. 동행은 자동으로 초대되지
-                  않아요.
+                  1인당 {formatKrw(perPersonPreview(booking.paid_amount, booking.pax))}으로 나눠 계산해요. 동행을 초대하면 함께 정산할 수
+                  있어요.
                 </Text>
               </>
             ) : (
@@ -191,11 +191,11 @@ export default function Prepay() {
       </ScrollView>
 
       <BottomBar>
-        <PrimaryButton title="장부로 가기" variant="dark" loading={busy} onPress={submit} />
+        <PrimaryButton title="장부 확인하기" variant="dark" loading={busy} onPress={submit} />
       </BottomBar>
 
       <InviteSheet roomId={roomId} visible={sheet === 'invite'} onClose={() => setSheet(null)} />
-      <BottomSheet visible={sheet === 'guest'} onClose={() => setSheet(null)} title="이름으로 추가">
+      <BottomSheet visible={sheet === 'guest'} onClose={() => setSheet(null)} title="이름 입력">
         <GuestForm roomId={roomId} guest={null} onClose={() => setSheet(null)} />
       </BottomSheet>
     </SafeAreaView>

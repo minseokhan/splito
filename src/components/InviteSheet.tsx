@@ -6,7 +6,7 @@ import { Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import type { SvgProps } from 'react-native-svg';
 
-import { useRoom } from '@/hooks/useRooms';
+import { useCurrentInvite, useRoom } from '@/hooks/useRooms';
 import { buildInviteUrl } from '@/lib/invite';
 import { colors } from '@/theme/tokens';
 
@@ -26,13 +26,14 @@ type Props = { roomId: string; onAddGuest?: () => void };
 // 초대 3칸(카카오톡·QR·링크 복사) + 앱 없는 동행 추가. 시트와 초대 화면이 같이 쓴다.
 export function InviteOptions({ roomId, onAddGuest }: Props) {
   const { data: room } = useRoom(roomId);
+  const { data: invite } = useCurrentInvite(roomId); // 7일 지난 링크는 서버가 새로 발급한다
   const toast = useToast();
   const [qr, setQr] = useState(false);
-  if (!room) return null;
-  const url = buildInviteUrl(LINK_DOMAIN, room.invite_token);
+  if (!room || !invite) return null;
+  const url = buildInviteUrl(LINK_DOMAIN, invite.token);
 
   // 카카오톡 공유는 OS 공유 시트로 한다(Kakao 공유 SDK는 P1).
-  const share = () => void Share.share({ message: `스플리토 여행 "${room.name}"에 초대해요\n${url}` });
+  const share = () => void Share.share({ message: `스플리토 여행 "${room.name}"에 초대해요\n${url}\n참여 코드: ${invite.code}` });
   const addGuest = onAddGuest ?? (() => router.push({ pathname: '/rooms/[roomId]/members', params: { roomId, addGuest: '1' } }));
 
   return (
@@ -56,6 +57,9 @@ export function InviteOptions({ roomId, onAddGuest }: Props) {
           </View>
           <Text className="text-xs text-ink-400" selectable>
             {url}
+          </Text>
+          <Text className="font-semibold text-base text-ink" selectable accessibilityLabel={`참여 코드 ${invite.code}`}>
+            참여 코드 {invite.code}
           </Text>
         </View>
       )}
